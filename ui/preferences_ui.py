@@ -27,7 +27,7 @@ import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
 from atomic_data_manager import config
-from atomic_data_manager.updater import addon_updater_ops
+# updater removed in Blender 4.5 extension format
 
 
 def set_enable_support_me_popup(value):
@@ -215,40 +215,7 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=0
     )
 
-    # add-on updater properties
-    auto_check_update: bpy.props.BoolProperty(
-        name="Auto-check for Update",
-        description="If enabled, auto-check for updates using an interval",
-        default=True,
-    )
-
-    updater_intrval_months: bpy.props.IntProperty(
-        name='Months',
-        description="Number of months between checking for updates",
-        default=0,
-        min=0,
-        max=6
-    )
-    updater_intrval_days: bpy.props.IntProperty(
-        name='Days',
-        description="Number of days between checking for updates",
-        default=7,
-        min=0,
-    )
-    updater_intrval_hours: bpy.props.IntProperty(
-        name='Hours',
-        description="Number of hours between checking for updates",
-        default=0,
-        min=0,
-        max=23
-    )
-    updater_intrval_minutes: bpy.props.IntProperty(
-        name='Minutes',
-        description="Number of minutes between checking for updates",
-        default=0,
-        min=0,
-        max=59
-    )
+    # updater properties removed
 
     def draw(self, context):
         layout = self.layout
@@ -321,8 +288,7 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
 
         separator = layout.row()  # extra space
 
-        # add-on updater box
-        addon_updater_ops.update_settings_ui(self, context)
+        # updater UI removed
 
         # update config with any new preferences
         copy_prefs_to_config(None, None)
