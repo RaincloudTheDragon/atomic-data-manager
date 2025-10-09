@@ -24,6 +24,11 @@ registration for all packages within the add-on.
 """
 
 
+__author__ = "RaincloudTheDragon"
+__maintainer__ = "RaincloudTheDragon"
+__version__ = "1.1.0"
+
+
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
