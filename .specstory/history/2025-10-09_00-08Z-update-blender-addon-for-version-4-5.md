@@ -699,3 +699,110 @@ Next, I’ll update `__init__.py` author/maintainer metadata and then tackle geo
 
 ---
 
+_**User (2025-10-09 00:08Z)**_
+
+yes update initpy metadata
+
+---
+
+_**Assistant (gpt-5)**_
+
+
+
+---
+
+I'll update `__init__.py` to reflect the new maintainer and author metadata.
+
+---
+
+Tool use: **read_file**
+
+Read file: __init__.py
+
+---
+
+<think><details><summary>Thought Process</summary>**Updating metadata**
+
+We need to update the `__init__.py` metadata, but we've already removed `bl_info`. The user asked to update the maintainer to RaincloudTheDragon, as the previous maintainer has quit. The manifest already has this information, but the request might also involve changes in the `__init__.py` itself. The docstring only reflects copyright from 2019, and I should consider whether to change the author credit. I can't just modify the copyright statement, though, since it’s important to keep that intact.
+**Updating module metadata**
+
+I’m considering whether to add module-level constants for `__author__` and `__maintainer__` since the user requested an update to the metadata. We already removed `bl_info`, but perhaps we should keep a minimal version for backward compatibility. It sounds like the user particularly wants the metadata in `__init__.py`. So, I'll implement the following changes: set `__author__` and `__maintainer__` to RaincloudTheDragon, and include a `__version__`. I also need to ensure I maintain proper indentation, whether using tabs or spaces.
+**Implementing metadata updates**
+
+I see that the file uses 4 spaces for indentation, and it has a multiline docstring. It’s a good idea to insert the new metadata just after the imports and under the docstring. I’ll add `__author__`, `__maintainer__`, and `__version__` for RaincloudTheDragon. I’ll also update any comments that mention `bl_info` since that’s been replaced. Once I finish this implementation, I'll mark the task as complete and check the status update lines. Calling `read_lints` seems fine, although adding variables shouldn’t produce any lints.</details></think>
+
+---
+
+I'll add module-level metadata variables in __init__.py to reflect the new maintainer and version, then mark the todo complete.
+
+---
+
+Tool use: **apply_patch**
+
+<details>
+        <summary>Apply patch for __init__.py</summary>
+      
+
+```diff
+*** Begin Patch
+*** Update File: __init__.py
+@@
+ """
+@@
+ """
+ 
+ 
++__author__ = "RaincloudTheDragon"
++__maintainer__ = "RaincloudTheDragon"
++__version__ = "1.1.0"
++
++
+ import bpy
+ from bpy.utils import register_class
+ from bpy.utils import unregister_class
+ from atomic_data_manager import ops
+ from atomic_data_manager import ui
+*** End Patch
+```
+
+---
+
+Tool use: **read_lints**
+
+<details>
+          <summary>Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `__init__.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+
+---
+
+Tool use: **todo_write**
+
+## Todo List
+
+- [x] Create blender_manifest.toml for Blender 4.5 extension metadata
+- [x] Remove CG Cookie updater: delete updater/ and references
+- [x] Update __init__.py maintainer/author and remove updater registration
+- [x] Strip updater UI from preferences and properties
+- [ ] Detect Geometry Nodes: count node groups used by NODES modifiers
+- [ ] Preserve materials referenced in Geometry Nodes node trees
+- [ ] Guard legacy datablocks (textures, particles) across code
+- [ ] Update cleaners to respect new usage detection and guards
+
+---
+
+- Updated `__author__`, `__maintainer__`, and `__version__` in `__init__.py` to RaincloudTheDragon and 1.1.0.
+- Marked the related todos complete.
+
+Next, I’ll implement geometry nodes usage detection and adjust cleaners accordingly.
+
+---
+
