@@ -25,8 +25,8 @@ This file contains the inspection user interface.
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager.stats import users
-from atomic_data_manager.ui.utils import ui_layouts
+from ..stats import users
+from .utils import ui_layouts
 
 
 # bool that triggers an inspection update if it is True when the

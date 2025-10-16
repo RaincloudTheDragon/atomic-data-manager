@@ -32,9 +32,9 @@ __version__ = "1.1.0"
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager import ops
-from atomic_data_manager import ui
-from atomic_data_manager.ui import inspect_ui
+from . import ops
+from . import ui
+from .ui import inspect_ui
 # updater removed for Blender 4.5 extension format
 
 # bl_info replaced by blender_manifest.toml in Blender 4.5 extensions

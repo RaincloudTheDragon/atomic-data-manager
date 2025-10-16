@@ -24,8 +24,8 @@ as determined by stats.users.py
 """
 
 import bpy
-from atomic_data_manager import config
-from atomic_data_manager.stats import users
+from .. import config
+from . import users
 
 
 def shallow(data):
@@ -184,6 +184,9 @@ def node_groups_shallow():
 def particles_deep():
     # returns a list of keys of unused particle systems
 
+    if not hasattr(bpy.data, 'particles'):
+        return []
+
     unused = []
 
     for particle in bpy.data.particles:
@@ -201,11 +204,14 @@ def particles_shallow():
     # returns a list of keys of unused particle systems that may be
     # incomplete, but is significantly faster than doing a deep search
 
-    return shallow(bpy.data.particles)
+    return shallow(bpy.data.particles) if hasattr(bpy.data, 'particles') else []
 
 
 def textures_deep():
     # returns a list of keys of unused textures
+
+    if not hasattr(bpy.data, 'textures'):
+        return []
 
     unused = []
 
@@ -224,7 +230,7 @@ def textures_shallow():
     # returns a list of keys of unused textures that may be
     # incomplete, but is significantly faster than doing a deep search
 
-    return shallow(bpy.data.textures)
+    return shallow(bpy.data.textures) if hasattr(bpy.data, 'textures') else []
 
 
 def worlds():

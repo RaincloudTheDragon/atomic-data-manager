@@ -32,8 +32,8 @@ attempting to reload missing project files.
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager.stats import missing
-from atomic_data_manager.ui.utils import ui_layouts
+from ..stats import missing
+from ..ui.utils import ui_layouts
 
 
 # Atomic Data Manager Reload Missing Files Operator

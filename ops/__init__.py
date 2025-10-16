@@ -22,11 +22,11 @@ This file handles the registration of the atomic_data_manager.ops package
 
 """
 
-from atomic_data_manager.ops import main_ops
-from atomic_data_manager.ops import inspect_ops
-from atomic_data_manager.ops import direct_use_ops
-from atomic_data_manager.ops import missing_file_ops
-from atomic_data_manager.ops import support_me_ops
+from . import main_ops
+from . import inspect_ops
+from . import direct_use_ops
+from . import missing_file_ops
+from . import support_me_ops
 
 
 def register():
