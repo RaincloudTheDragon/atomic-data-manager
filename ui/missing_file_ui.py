@@ -27,9 +27,9 @@ import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
 from bpy.app.handlers import persistent
-from atomic_data_manager import config
-from atomic_data_manager.stats import missing
-from atomic_data_manager.ui.utils import ui_layouts
+from .. import config
+from ..stats import missing
+from .utils import ui_layouts
 
 
 # Atomic Data Manager Detect Missing Files Popup

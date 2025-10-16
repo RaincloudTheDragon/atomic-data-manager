@@ -23,9 +23,9 @@ This file contains functions that count quantities of various sets of data.
 """
 
 import bpy
-from atomic_data_manager.stats import unused
-from atomic_data_manager.stats import unnamed
-from atomic_data_manager.stats import missing
+from . import unused
+from . import unnamed
+from . import missing
 
 
 def collections():

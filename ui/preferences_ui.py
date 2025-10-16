@@ -26,15 +26,30 @@ some functions for syncing the preference properties with external factors.
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager import config
+from .. import config
 # updater removed in Blender 4.5 extension format
+
+
+def _get_addon_prefs():
+    # robustly find our AddonPreferences instance regardless of module name
+    prefs = bpy.context.preferences
+    for addon in prefs.addons.values():
+        ap = getattr(addon, "preferences", None)
+        if ap and hasattr(ap, "bl_idname") and ap.bl_idname == ATOMIC_PT_preferences_panel.bl_idname:
+            return ap
+        # fallback: match by known property
+        if ap and hasattr(ap, "enable_missing_file_warning"):
+            return ap
+    return None
 
 
 def set_enable_support_me_popup(value):
     # sets the value of the enable_support_me_popup boolean property
 
-    bpy.context.preferences.addons["atomic_data_manager"]\
-        .preferences.enable_support_me_popup = value
+    ap = _get_addon_prefs()
+    if not ap:
+        return
+    ap.enable_support_me_popup = value
     copy_prefs_to_config(None, None)
     bpy.ops.wm.save_userpref()
 
@@ -42,8 +57,10 @@ def set_enable_support_me_popup(value):
 def set_last_popup_day(day):
     # sets the value of the last_popup_day float property
 
-    bpy.context.preferences.addons["atomic_data_manager"]\
-        .preferences.last_popup_day = day
+    ap = _get_addon_prefs()
+    if not ap:
+        return
+    ap.last_popup_day = day
     copy_prefs_to_config(None, None)
 
 
@@ -51,10 +68,9 @@ def copy_prefs_to_config(self, context):
     # copies the values of Atomic's preferences to the variables in
     # config.py for global use
 
-    preferences = bpy.context.preferences
-
-    atomic_preferences = preferences.addons['atomic_data_manager']\
-        .preferences
+    atomic_preferences = _get_addon_prefs()
+    if not atomic_preferences:
+        return
 
     # visible atomic preferences
     config.enable_missing_file_warning = \
@@ -93,9 +109,9 @@ def copy_prefs_to_config(self, context):
 
 
 def update_pie_menu_hotkeys(self, context):
-    preferences = bpy.context.preferences
-    atomic_preferences = preferences.addons['atomic_data_manager'] \
-        .preferences
+    atomic_preferences = _get_addon_prefs()
+    if not atomic_preferences:
+        return
 
     # add the hotkeys if the preference is enabled
     if atomic_preferences.enable_pie_menu_ui:

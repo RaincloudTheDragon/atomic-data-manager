@@ -27,8 +27,8 @@ operators.
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager.ops.utils import delete
-from atomic_data_manager.ops.utils import duplicate
+from .utils import delete
+from .utils import duplicate
 
 
 # Atomic Data Manager Inspection Rename Operator

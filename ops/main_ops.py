@@ -27,10 +27,10 @@ various selection operations.
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager.stats import unused
-from atomic_data_manager.ops.utils import clean
-from atomic_data_manager.ops.utils import nuke
-from atomic_data_manager.ui.utils import ui_layouts
+from ..stats import unused
+from .utils import clean
+from .utils import nuke
+from ..ui.utils import ui_layouts
 
 
 # Atomic Data Manager Nuke Operator

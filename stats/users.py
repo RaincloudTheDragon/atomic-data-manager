@@ -162,7 +162,8 @@ def image_all(image_key):
            image_materials(image_key) + \
            image_node_groups(image_key) + \
            image_textures(image_key) + \
-           image_worlds(image_key)
+           image_worlds(image_key) + \
+           image_geometry_nodes(image_key)
 
 
 def image_compositors(image_key):
@@ -252,6 +253,9 @@ def image_node_groups(image_key):
 def image_textures(image_key):
     # returns a list of texture keys that use the image
 
+    if not hasattr(bpy.data, 'textures'):
+        return []
+
     users = []
     image = bpy.data.images[image_key]
 
@@ -286,6 +290,31 @@ def image_textures(image_key):
                 # if texture image is our image
                 if texture.image.name == image.name:
                     users.append(texture.name)
+
+    return distinct(users)
+
+
+def image_geometry_nodes(image_key):
+    # returns a list of object keys that use the image through Geometry Nodes
+
+    users = []
+    image = bpy.data.images[image_key]
+
+    # list of node groups that use this image
+    node_group_users = image_node_groups(image_key)
+
+    for obj in bpy.data.objects:
+        # check Geometry Nodes modifiers
+        if hasattr(obj, 'modifiers'):
+            for modifier in obj.modifiers:
+                if modifier.type == 'NODES' and hasattr(modifier, 'node_group') and modifier.node_group:
+                    ng = modifier.node_group
+                    # direct usage in the modifier's tree
+                    if node_group_has_image(ng.name, image.name):
+                        users.append(obj.name)
+                    # usage via nested node groups
+                    elif ng.name in node_group_users:
+                        users.append(obj.name)
 
     return distinct(users)
 
@@ -340,8 +369,25 @@ def light_objects(light_key):
 
 def material_all(material_key):
     # returns a list of keys of every data-block that uses this material
+    return material_objects(material_key) + \
+           material_geometry_nodes(material_key)
 
-    return material_objects(material_key)
+
+def material_geometry_nodes(material_key):
+    # returns a list of object keys that use the material via Geometry Nodes
+
+    users = []
+    material = bpy.data.materials[material_key]
+
+    for obj in bpy.data.objects:
+        if hasattr(obj, 'modifiers'):
+            for modifier in obj.modifiers:
+                if modifier.type == 'NODES' and hasattr(modifier, 'node_group') and modifier.node_group:
+                    ng = modifier.node_group
+                    if node_group_has_material(ng.name, material.name):
+                        users.append(obj.name)
+
+    return distinct(users)
 
 
 def material_objects(material_key):
@@ -373,7 +419,8 @@ def node_group_all(node_group_key):
            node_group_materials(node_group_key) + \
            node_group_node_groups(node_group_key) + \
            node_group_textures(node_group_key) + \
-           node_group_worlds(node_group_key)
+           node_group_worlds(node_group_key) + \
+           node_group_objects(node_group_key)
 
 
 def node_group_compositors(node_group_key):
@@ -458,6 +505,9 @@ def node_group_textures(node_group_key):
     # returns a list of texture keys that use this node group in their
     # node trees
 
+    if not hasattr(bpy.data, 'textures'):
+        return []
+
     users = []
     node_group = bpy.data.node_groups[node_group_key]
 
@@ -511,6 +561,26 @@ def node_group_worlds(node_group_key):
                     # our node group
                     elif node.node_tree.name in node_group_users:
                         users.append(world.name)
+
+    return distinct(users)
+
+
+def node_group_objects(node_group_key):
+    # returns a list of object keys that use this node group via Geometry Nodes modifiers
+
+    users = []
+    node_group = bpy.data.node_groups[node_group_key]
+
+    # node groups that use this node group
+    node_group_users = node_group_node_groups(node_group_key)
+
+    for obj in bpy.data.objects:
+        if hasattr(obj, 'modifiers'):
+            for modifier in obj.modifiers:
+                if modifier.type == 'NODES' and hasattr(modifier, 'node_group') and modifier.node_group:
+                    ng = modifier.node_group
+                    if ng.name == node_group.name or ng.name in node_group_users:
+                        users.append(obj.name)
 
     return distinct(users)
 
@@ -587,6 +657,8 @@ def node_group_has_texture(node_group_key, texture_key):
     # returns true if a node group contains this image
 
     has_texture = False
+    if not hasattr(bpy.data, 'textures'):
+        return has_texture
     node_group = bpy.data.node_groups[node_group_key]
     texture = bpy.data.textures[texture_key]
 
@@ -614,6 +686,30 @@ def node_group_has_texture(node_group_key, texture_key):
     return has_texture
 
 
+def node_group_has_material(node_group_key, material_key):
+    # returns true if a node group contains this material (directly or nested)
+
+    has_material = False
+    node_group = bpy.data.node_groups[node_group_key]
+    material = bpy.data.materials[material_key]
+
+    for node in node_group.nodes:
+        # base case: nodes with a material property (e.g., Set Material)
+        if hasattr(node, 'material') and node.material:
+            if node.material.name == material.name:
+                has_material = True
+
+        # recurse case: nested node groups
+        elif hasattr(node, 'node_tree') and node.node_tree:
+            has_material = node_group_has_material(
+                node.node_tree.name, material.name)
+
+        if has_material:
+            break
+
+    return has_material
+
+
 def particle_all(particle_key):
     # returns a list of keys of every data-block that uses this particle
     # system
@@ -623,6 +719,9 @@ def particle_all(particle_key):
 
 def particle_objects(particle_key):
     # returns a list of object keys that use the particle system
+
+    if not hasattr(bpy.data, 'particles'):
+        return []
 
     users = []
     particle_system = bpy.data.particles[particle_key]
@@ -653,6 +752,9 @@ def texture_all(texture_key):
 def texture_brushes(texture_key):
     # returns a list of brush keys that use the texture
 
+    if not hasattr(bpy.data, 'textures'):
+        return []
+
     users = []
     texture = bpy.data.textures[texture_key]
 
@@ -671,6 +773,9 @@ def texture_brushes(texture_key):
 def texture_compositor(texture_key):
     # returns a list containing "Compositor" if the texture is used in
     # the scene's compositor
+
+    if not hasattr(bpy.data, 'textures'):
+        return []
 
     users = []
     texture = bpy.data.textures[texture_key]
@@ -705,6 +810,9 @@ def texture_compositor(texture_key):
 def texture_objects(texture_key):
     # returns a list of object keys that use the texture in one of their
     # modifiers
+
+    if not hasattr(bpy.data, 'textures'):
+        return []
 
     users = []
     texture = bpy.data.textures[texture_key]
@@ -744,6 +852,9 @@ def texture_objects(texture_key):
 def texture_node_groups(texture_key):
     # returns a list of keys of all node groups that use this texture
 
+    if not hasattr(bpy.data, 'textures'):
+        return []
+
     users = []
     texture = bpy.data.textures[texture_key]
 
@@ -761,6 +872,9 @@ def texture_node_groups(texture_key):
 def texture_particles(texture_key):
     # returns a list of particle system keys that use the texture in
     # their texture slots
+
+    if not hasattr(bpy.data, 'textures') or not hasattr(bpy.data, 'particles'):
+        return []
 
     users = []
     texture = bpy.data.textures[texture_key]

@@ -29,9 +29,9 @@ it.
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from atomic_data_manager.stats import count
-from atomic_data_manager.stats import misc
-from atomic_data_manager.ui.utils import ui_layouts
+from ..stats import count
+from ..stats import misc
+from .utils import ui_layouts
 
 
 # Atomic Data Manager Statistics SubPanel

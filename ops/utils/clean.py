@@ -23,7 +23,7 @@ This file contains functions for cleaning out specific data categories.
 """
 
 import bpy
-from atomic_data_manager.stats import unused
+from ...stats import unused
 
 
 def collections():

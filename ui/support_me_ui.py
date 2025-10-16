@@ -28,8 +28,8 @@ import time
 from bpy.utils import register_class
 from bpy.utils import unregister_class
 from bpy.app.handlers import persistent
-from atomic_data_manager import config
-from atomic_data_manager.ui import preferences_ui
+from .. import config
+from . import preferences_ui
 
 
 def get_current_day():
