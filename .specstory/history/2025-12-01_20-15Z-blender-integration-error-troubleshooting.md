@@ -817,3 +817,426 @@ To fix this, add a check in `collection_all()` to see if the collection is refer
 
 ---
 
+_**User (2025-12-01 20:17Z)**_
+
+No, RigidBodyWorld is a collection; atomic detects it as having no users. Should it? Is the collection not technically used by the scene?
+
+---
+
+_**Agent (model default, mode Ask)**_
+
+
+
+---
+
+
+Checking how the addon determines if a collection is used, and whether it checks if the collection is linked to the scene:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: stats/users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How does the addon check if a collection is linked to the scene collection hierarchy?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `ops/utils/duplicate.py` | L23-46 |
+| `stats/users.py` | L69-120 |
+| `stats/users.py` | L35-78 |
+| `ui/inspect_ui.py` | L33-148 |
+| `stats/users.py` | L45-97 |
+| `ui/main_panel_ui.py` | L31-231 |
+| `stats/users.py` | L100-154 |
+| `stats/users.py` | L123-165 |
+| `stats/users.py` | L609-707 |
+| `utils/compat.py` | L117-153 |
+| `stats/users.py` | L677-738 |
+| `stats/unnamed.py` | L50 |
+| `stats/unused.py` | L30-70 |
+| `stats/users.py` | L81-135 |
+| `ops/main_ops.py` | L344-404 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="web_search">
+<details>
+            <summary>Tool use: **web_search** • Searched web `Blender collection users scene collection hierarchy bpy.data.collections scene collection children` • **1** results</summary>
+        
+| Title | URL | Chunk |
+|-------|-----|-------|
+| Web Search Results |  | In Blender, the `RigidBodyWorld` is not a collection itself but a construct that manages the simulation of rigid body physics within a scene. It references specific collections that contain the objects and constraints participating in the simulation. These collections are specified in the Rigid Body World settings under the Scene properties. ([docs.blender.org](https://docs.blender.org/manual/en/latest/physics/rigid_body/world.html?utm_source=openai))<br/><br/>If a collection is assigned to the `RigidBodyWorld` but contains no objects or constraints, it is technically unused in the scene. Therefore, tools like "smart select" that identify unused data blocks may correctly detect such a collection as unused. However, if the collection contains objects or constraints that are part of the rigid body simulation, it is considered used, and "smart select" should not mark it as unused.<br/><br/>To ensure accurate detection, it's important to verify that the collection contains active rigid body objects or constraints. If the collection is empty or its contents are not linked to the simulation, it is indeed unused. |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+The addon doesn't check if a collection is linked to the scene's collection hierarchy. It only checks:
+1. Objects in the collection
+2. Child collections
+
+In Blender, a collection is "used" if it's linked to the scene's collection tree (directly or as a child), even if it's empty.
+
+A collection named "RigidBodyWorld" should be considered used if it's linked to the scene's collection hierarchy. If it's not linked, it's unused.
+
+The bug: `collection_all()` doesn't check if the collection is part of the scene's collection tree. Here's what needs to be added:
+
+```python
+def collection_scene_link(collection_key):
+    # returns True if the collection is linked to the scene's collection hierarchy
+    collection = bpy.data.collections[collection_key]
+    scene_collection = bpy.context.scene.collection
+    
+    # Check if it's directly linked to scene collection
+    if collection.name in [c.name for c in scene_collection.children]:
+        return True
+    
+    # Check if it's linked through any parent collection
+    # (recursively check all collections in the scene hierarchy)
+    def is_in_scene_hierarchy(col):
+        if col.name == scene_collection.name:
+            return True
+        for child in scene_collection.children:
+            if child.name == col.name:
+                return True
+            if is_in_scene_hierarchy_recursive(col, child):
+                return True
+        return False
+    
+    def is_in_scene_hierarchy_recursive(target_col, parent_col):
+        if target_col.name == parent_col.name:
+            return True
+        for child in parent_col.children:
+            if child.name == target_col.name:
+                return True
+            if is_in_scene_hierarchy_recursive(target_col, child):
+                return True
+        return False
+    
+    return is_in_scene_hierarchy(collection)
+```
+
+Then update `collection_all()` to include this check:
+
+```python
+def collection_all(collection_key):
+    # returns a list of keys of every data-block that uses this collection
+    
+    # First check if collection is linked to scene (if so, it's used)
+    if collection_scene_link(collection_key):
+        return ["Scene"]  # Return something to indicate it's used
+    
+    return collection_cameras(collection_key) + \
+           collection_children(collection_key) + \
+           collection_lights(collection_key) + \
+           collection_meshes(collection_key) + \
+           collection_others(collection_key)
+```
+
+Should I implement this fix? It will correctly identify collections that are part of the scene hierarchy as "used" even if they're empty.
+
+---
+
+_**User (2025-12-01 20:17Z)**_
+
+Let's make it so it detects the user of the collection selected in the scene's rigidbody_world.collection 
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+Adding detection for collections used by the scene's RigidBodyWorld. Checking the API and implementing the fix:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: stats/users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How to access scene rigidbody_world collection in Blender API?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `stats/users.py` | L301-361 |
+| `ui/inspect_ui.py` | L561-704 |
+| `ops/utils/duplicate.py` | L23-46 |
+| `ui/main_panel_ui.py` | L31-239 |
+| `stats/users.py` | L521-606 |
+| `ops/direct_use_ops.py` | L49-260 |
+| `ui/main_panel_ui.py` | L31-231 |
+| `stats/users.py` | L35-78 |
+| `ops/main_ops.py` | L355-423 |
+| `ops/main_ops.py` | L344-404 |
+| `utils/compat.py` | L117-153 |
+| `__init__.py` | L52-221 |
+| `stats/users.py` | L100-154 |
+| `stats/users.py` | L123-165 |
+| `ops/inspect_ops.py` | L29-219 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="web_search">
+<details>
+            <summary>Tool use: **web_search** • Searched web `Blender Python API scene.rigidbody_world.collection bpy.types.RigidBodyWorld` • **1** results</summary>
+        
+| Title | URL | Chunk |
+|-------|-----|-------|
+| Web Search Results |  | To ensure that the addon correctly identifies collections used by the scene's `rigidbody_world.collection`, we need to modify the `collection_all()` function to account for this specific usage. Here's how you can implement this:<br/><br/>1. **Check if the collection is assigned to the scene's `rigidbody_world.collection`:**<br/><br/>   In Blender, the `RigidBodyWorld` settings include a `collection` attribute that specifies which collection contains the objects participating in the simulation. If a collection is assigned to `rigidbody_world.collection`, it is considered used by the scene. ([docs.blender.org](https://docs.blender.org/api/3.1/bpy.types.RigidBodyWorld.html?utm_source=openai))<br/><br/>2. **Modify the `collection_all()` function:**<br/><br/>   Update the function to include a check for this assignment. Here's an example of how you might implement this:<br/><br/>   ```python<br/>   def collection_all(collection):<br/>       # Existing checks for objects and child collections<br/>       if collection.objects or collection.children:<br/>           return True<br/><br/>       # Check if the collection is assigned to the scene's rigidbody_world.collection<br/>       for scene in bpy.data.scenes:<br/>           if scene.rigidbody_world and scene.rigidbody_world.collection == collection:<br/>               return True<br/><br/>       return False<br/>   ```<br/><br/><br/>   In this function:<br/><br/>   - We first check if the collection contains any objects or child collections.<br/><br/>   - Then, we iterate through all scenes in the Blender file.<br/><br/>   - For each scene, we check if it has a `rigidbody_world` and if the `rigidbody_world.collection` is the collection in question.<br/><br/>   - If any of these conditions are met, the collection is considered used.<br/><br/>By implementing this check, the addon will correctly detect collections assigned to the scene's `rigidbody_world.collection` as used, preventing them from being incorrectly marked as unused. |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Adding a function to detect collections used by the scene's RigidBodyWorld and integrating it into the usage detection:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: stats/users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -41,5 +41,6 @@
+             collection_lights(collection_key) + \
+             collection_meshes(collection_key) + \
+-            collection_others(collection_key)
++            collection_others(collection_key) + \
++            collection_rigidbody_world(collection_key)
+  
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+
+**Chunk 1**
+Lines added: 18, lines removed: undefined
+
+```diff
+@@ -156,4 +156,22 @@
+      return distinct(users)
+  
++ 
++ def collection_rigidbody_world(collection_key):
++     # returns a list containing &quot;RigidBodyWorld&quot; if the collection is used
++     # by any scene&#39;s rigidbody_world.collection
++ 
++     users = []
++     collection = bpy.data.collections[collection_key]
++ 
++     # check all scenes for rigidbody_world usage
++     for scene in bpy.data.scenes:
++         # check if scene has rigidbody_world and if it uses our collection
++         if hasattr(scene, &#39;rigidbody_world&#39;) and scene.rigidbody_world:
++             if hasattr(scene.rigidbody_world, &#39;collection&#39;) and scene.rigidbody_world.collection:
++                 if scene.rigidbody_world.collection.name == collection.name:
++                     users.append(&quot;RigidBodyWorld&quot;)
++ 
++     return distinct(users)
++ 
+  
+  def image_all(image_key):
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `stats/users.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Checking that the `distinct` function exists and verifying the implementation:
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "^def distinct" in "stats/users.py" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `stats/users.py` | `def distinct(seq):` | L943 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: stats/users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Checking for version compatibility issues with the RigidBodyWorld API:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: utils/compat.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "rigidbody|rigid.*body" • 10 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\stats\users.py` | `collection_rigidbody_world(collection_key)` | L44 |
+| `.\stats\users.py` | `def collection_rigidbody_world(collection_key):` | L159 |
+| `.\stats\users.py` | `# returns a list containing "RigidBodyWorld" if the collection is used` | L160 |
+| `.\stats\users.py` | `# by any scene's rigidbody_world.collection` | L161 |
+| `.\stats\users.py` | `# check all scenes for rigidbody_world usage` | L166 |
+| `.\stats\users.py` | `# check if scene has rigidbody_world and if it uses our collection` | L168 |
+| `.\stats\users.py` | `if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:` | L169 |
+| `.\stats\users.py` | `if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:` | L170 |
+| `.\stats\users.py` | `if scene.rigidbody_world.collection.name == collection.name:` | L171 |
+| `.\stats\users.py` | `users.append("RigidBodyWorld")` | L172 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Verifying the implementation is complete and correct:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: stats/users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+## Changes Made
+
+1. **Added `collection_rigidbody_world()` function** (lines 159-174):
+   - Checks all scenes for RigidBodyWorld usage
+   - Returns `["RigidBodyWorld"]` if the collection is assigned to any scene's `rigidbody_world.collection`
+   - Uses `hasattr` checks for version compatibility
+
+2. **Updated `collection_all()` function** (line 44):
+   - Added `collection_rigidbody_world(collection_key)` to the list of checks
+   - Collections used by RigidBodyWorld are now detected as "used"
+
+When a collection is assigned to a scene's RigidBodyWorld (via `scene.rigidbody_world.collection`), the addon will:
+- Detect it as used
+- Not mark it as unused in Smart Select
+- Show "RigidBodyWorld" as a user when inspecting the collection
+
+The implementation checks all scenes in the file, so it works even if you have multiple scenes with different RigidBodyWorld configurations.
+
+---
+
