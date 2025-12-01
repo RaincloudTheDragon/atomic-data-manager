@@ -1240,3 +1240,125 @@ The implementation checks all scenes in the file, so it works even if you have m
 
 ---
 
+_**User (2025-12-01 20:17Z)**_
+
+Let's bump the addon version to 2.0.0.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+Updating the version to 2.0.0 in both `bl_info` (for 4.2 LTS) and `blender_manifest.toml` (for 4.5+):
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: __init__.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Updating the version to 2.0.0 in both locations:
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: __init__.py</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -45,5 +45,5 @@
+          &quot;name&quot;: &quot;Atomic Data Manager&quot;,
+          &quot;author&quot;: &quot;RaincloudTheDragon&quot;,
+-         &quot;version&quot;: (1, 1, 0),
++         &quot;version&quot;: (2, 0, 0),
+          &quot;blender&quot;: (4, 2, 0),
+          &quot;location&quot;: &quot;Properties &gt; Scene&quot;,
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: blender_manifest.toml</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -3,5 +3,5 @@
+  id = &quot;atomic_data_manager&quot;
+  name = &quot;Atomic Data Manager&quot;
+- version = &quot;1.1.0&quot;
++ version = &quot;2.0.0&quot;
+  type = &quot;add-on&quot;
+  author = &quot;RaincloudTheDragon&quot;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 2 files</summary>
+      
+Lint paths:
+
+- `__init__.py`
+- `blender_manifest.toml`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Updated the addon version to 2.0.0 in both locations:
+
+1. **`bl_info["version"]`** in `__init__.py` — changed from `(1, 1, 0)` to `(2, 0, 0)` (for Blender 4.2 LTS)
+2. **`version`** in `blender_manifest.toml` — changed from `"1.1.0"` to `"2.0.0"` (for Blender 4.5+)
+
+The version is now 2.0.0 across all supported Blender versions.
+
+---
+

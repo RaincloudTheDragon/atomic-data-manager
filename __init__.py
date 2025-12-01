@@ -44,7 +44,7 @@ if version.is_version_4_2():
     bl_info = {
         "name": "Atomic Data Manager",
         "author": "RaincloudTheDragon",
-        "version": (1, 1, 0),
+        "version": (2, 0, 0),
         "blender": (4, 2, 0),
         "location": "Properties > Scene",
         "description": "An Intelligent Data Manager for Blender.",
