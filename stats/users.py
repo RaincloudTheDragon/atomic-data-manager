@@ -40,7 +40,8 @@ def collection_all(collection_key):
            collection_children(collection_key) + \
            collection_lights(collection_key) + \
            collection_meshes(collection_key) + \
-           collection_others(collection_key)
+           collection_others(collection_key) + \
+           collection_rigidbody_world(collection_key)
 
 
 def collection_cameras(collection_key):
@@ -151,6 +152,24 @@ def collection_others(collection_key):
     for obj in collection.all_objects:
         if obj.type not in excluded_types:
             users.append(obj.name)
+
+    return distinct(users)
+
+
+def collection_rigidbody_world(collection_key):
+    # returns a list containing "RigidBodyWorld" if the collection is used
+    # by any scene's rigidbody_world.collection
+
+    users = []
+    collection = bpy.data.collections[collection_key]
+
+    # check all scenes for rigidbody_world usage
+    for scene in bpy.data.scenes:
+        # check if scene has rigidbody_world and if it uses our collection
+        if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:
+            if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:
+                if scene.rigidbody_world.collection.name == collection.name:
+                    users.append("RigidBodyWorld")
 
     return distinct(users)
 
