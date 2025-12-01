@@ -29,7 +29,6 @@ from . import missing_file_ui
 from . import missing_file_ui
 from . import pie_menu_ui
 from . import preferences_ui
-from . import support_me_ui
 
 
 def register():
@@ -42,7 +41,6 @@ def register():
     inspect_ui.register()
     missing_file_ui.register()
     pie_menu_ui.register()
-    support_me_ui.register()
 
 
 def unregister():
@@ -52,4 +50,3 @@ def unregister():
     missing_file_ui.unregister()
     pie_menu_ui.unregister()
     preferences_ui.unregister()
-    support_me_ui.unregister()

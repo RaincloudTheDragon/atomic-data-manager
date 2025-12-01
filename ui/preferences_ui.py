@@ -43,25 +43,6 @@ def _get_addon_prefs():
     return None
 
 
-def set_enable_support_me_popup(value):
-    # sets the value of the enable_support_me_popup boolean property
-
-    ap = _get_addon_prefs()
-    if not ap:
-        return
-    ap.enable_support_me_popup = value
-    copy_prefs_to_config(None, None)
-    bpy.ops.wm.save_userpref()
-
-
-def set_last_popup_day(day):
-    # sets the value of the last_popup_day float property
-
-    ap = _get_addon_prefs()
-    if not ap:
-        return
-    ap.last_popup_day = day
-    copy_prefs_to_config(None, None)
 
 
 def copy_prefs_to_config(self, context):
@@ -78,9 +59,6 @@ def copy_prefs_to_config(self, context):
 
     config.enable_pie_menu_ui = \
         atomic_preferences.enable_pie_menu_ui
-
-    config.enable_support_me_popup = \
-        atomic_preferences.enable_support_me_popup
 
     config.include_fake_users = \
         atomic_preferences.include_fake_users
@@ -103,9 +81,6 @@ def copy_prefs_to_config(self, context):
 
     config.pie_menu_shift = \
         atomic_preferences.pie_menu_shift
-
-    config.last_popup_day = \
-        atomic_preferences.last_popup_day
 
 
 def update_pie_menu_hotkeys(self, context):
@@ -183,12 +158,6 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=True
     )
 
-    enable_support_me_popup: bpy.props.BoolProperty(
-        description="Occasionally display a popup asking if you would "
-                    "like to support Remington Creative",
-        default=True
-    )
-
     include_fake_users: bpy.props.BoolProperty(
         description="Include data-blocks with only fake users in unused "
                     "data detection",
@@ -227,10 +196,6 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=False
     )
 
-    last_popup_day: bpy.props.FloatProperty(
-        default=0
-    )
-
     # updater properties removed
 
     def draw(self, context):
@@ -246,13 +211,6 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             self,
             "enable_missing_file_warning",
             text="Show Missing File Warning"
-        )
-
-        # enable support me popup toggle
-        col.prop(
-            self,
-            "enable_support_me_popup",
-            text="Show \"Support Me\" Popup"
         )
 
         # right column
