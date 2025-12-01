@@ -112,8 +112,9 @@ def get_version_category():
 
 
 def is_version_4_2():
-    """Check if running Blender 4.2 LTS."""
-    return is_version_at_least(4, 2, 0) and is_version_less_than(4, 5, 0)
+    """Check if running Blender 4.2 LTS (4.2.x only, not 4.3 or 4.4)."""
+    version = get_blender_version()
+    return version[0] == 4 and version[1] == 2
 
 
 def is_version_4_5():

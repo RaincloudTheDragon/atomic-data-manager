@@ -176,26 +176,31 @@ def image_compositors(image_key):
     # a list of node groups that use our image
     node_group_users = image_node_groups(image_key)
 
+    # Import compat module for version-safe compositor access
+    from ..utils import compat
+
     # if our compositor uses nodes and has a valid node tree
-    if bpy.context.scene.use_nodes and bpy.context.scene.node_tree:
+    scene = bpy.context.scene
+    if scene.use_nodes:
+        node_tree = compat.get_scene_compositor_node_tree(scene)
+        if node_tree:
+            # check each node in the compositor
+            for node in node_tree.nodes:
 
-        # check each node in the compositor
-        for node in bpy.context.scene.node_tree.nodes:
+                # if the node is an image node with a valid image
+                if hasattr(node, 'image') and node.image:
 
-            # if the node is an image node with a valid image
-            if hasattr(node, 'image') and node.image:
+                    # if the node's image is our image
+                    if node.image.name == image.name:
+                        users.append("Compositor")
 
-                # if the node's image is our image
-                if node.image.name == image.name:
-                    users.append("Compositor")
+                # if the node is a group node with a valid node tree
+                elif hasattr(node, 'node_tree') and node.node_tree:
 
-            # if the node is a group node with a valid node tree
-            elif hasattr(node, 'node_tree') and node.node_tree:
-
-                # if the node tree's name is in our list of node group
-                # users
-                if node.node_tree.name in node_group_users:
-                    users.append("Compositor")
+                    # if the node tree's name is in our list of node group
+                    # users
+                    if node.node_tree.name in node_group_users:
+                        users.append("Compositor")
 
     return distinct(users)
 
@@ -441,22 +446,27 @@ def node_group_compositors(node_group_key):
     # a list of node groups that use our node group
     node_group_users = node_group_node_groups(node_group_key)
 
+    # Import compat module for version-safe compositor access
+    from ..utils import compat
+
     # if our compositor uses nodes and has a valid node tree
-    if bpy.context.scene.use_nodes and bpy.context.scene.node_tree:
+    scene = bpy.context.scene
+    if scene.use_nodes:
+        node_tree = compat.get_scene_compositor_node_tree(scene)
+        if node_tree:
+            # check each node in the compositor
+            for node in node_tree.nodes:
 
-        # check each node in the compositor
-        for node in bpy.context.scene.node_tree.nodes:
+                # if the node is a group and has a valid node tree
+                if hasattr(node, 'node_tree') and node.node_tree:
 
-            # if the node is a group and has a valid node tree
-            if hasattr(node, 'node_tree') and node.node_tree:
+                    # if the node group is our node group
+                    if node.node_tree.name == node_group.name:
+                        users.append("Compositor")
 
-                # if the node group is our node group
-                if node.node_tree.name == node_group.name:
-                    users.append("Compositor")
-
-                # if the node group is in our list of node group users
-                if node.node_tree.name in node_group_users:
-                    users.append("Compositor")
+                    # if the node group is in our list of node group users
+                    if node.node_tree.name in node_group_users:
+                        users.append("Compositor")
 
     return distinct(users)
 
@@ -795,26 +805,31 @@ def texture_compositor(texture_key):
     # a list of node groups that use our image
     node_group_users = texture_node_groups(texture_key)
 
+    # Import compat module for version-safe compositor access
+    from ..utils import compat
+
     # if our compositor uses nodes and has a valid node tree
-    if bpy.context.scene.use_nodes and bpy.context.scene.node_tree:
+    scene = bpy.context.scene
+    if scene.use_nodes:
+        node_tree = compat.get_scene_compositor_node_tree(scene)
+        if node_tree:
+            # check each node in the compositor
+            for node in node_tree.nodes:
 
-        # check each node in the compositor
-        for node in bpy.context.scene.node_tree.nodes:
+                # if the node is an texture node with a valid texture
+                if hasattr(node, 'texture') and node.texture:
 
-            # if the node is an texture node with a valid texture
-            if hasattr(node, 'texture') and node.texture:
+                    # if the node's texture is our texture
+                    if node.texture.name == texture.name:
+                        users.append("Compositor")
 
-                # if the node's texture is our texture
-                if node.texture.name == texture.name:
-                    users.append("Compositor")
+                # if the node is a group node with a valid node tree
+                elif hasattr(node, 'node_tree') and node.node_tree:
 
-            # if the node is a group node with a valid node tree
-            elif hasattr(node, 'node_tree') and node.node_tree:
-
-                # if the node tree's name is in our list of node group
-                # users
-                if node.node_tree.name in node_group_users:
-                    users.append("Compositor")
+                    # if the node tree's name is in our list of node group
+                    # users
+                    if node.node_tree.name in node_group_users:
+                        users.append("Compositor")
 
     return distinct(users)
 
