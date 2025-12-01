@@ -303,18 +303,22 @@ def image_geometry_nodes(image_key):
     # list of node groups that use this image
     node_group_users = image_node_groups(image_key)
 
+    # Import compat module for version-safe geometry nodes access
+    from ..utils import compat
+
     for obj in bpy.data.objects:
         # check Geometry Nodes modifiers
         if hasattr(obj, 'modifiers'):
             for modifier in obj.modifiers:
-                if modifier.type == 'NODES' and hasattr(modifier, 'node_group') and modifier.node_group:
-                    ng = modifier.node_group
-                    # direct usage in the modifier's tree
-                    if node_group_has_image(ng.name, image.name):
-                        users.append(obj.name)
-                    # usage via nested node groups
-                    elif ng.name in node_group_users:
-                        users.append(obj.name)
+                if compat.is_geometry_nodes_modifier(modifier):
+                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                    if ng:
+                        # direct usage in the modifier's tree
+                        if node_group_has_image(ng.name, image.name):
+                            users.append(obj.name)
+                        # usage via nested node groups
+                        elif ng.name in node_group_users:
+                            users.append(obj.name)
 
     return distinct(users)
 
@@ -379,13 +383,17 @@ def material_geometry_nodes(material_key):
     users = []
     material = bpy.data.materials[material_key]
 
+    # Import compat module for version-safe geometry nodes access
+    from ..utils import compat
+
     for obj in bpy.data.objects:
         if hasattr(obj, 'modifiers'):
             for modifier in obj.modifiers:
-                if modifier.type == 'NODES' and hasattr(modifier, 'node_group') and modifier.node_group:
-                    ng = modifier.node_group
-                    if node_group_has_material(ng.name, material.name):
-                        users.append(obj.name)
+                if compat.is_geometry_nodes_modifier(modifier):
+                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                    if ng:
+                        if node_group_has_material(ng.name, material.name):
+                            users.append(obj.name)
 
     return distinct(users)
 
@@ -574,13 +582,17 @@ def node_group_objects(node_group_key):
     # node groups that use this node group
     node_group_users = node_group_node_groups(node_group_key)
 
+    # Import compat module for version-safe geometry nodes access
+    from ..utils import compat
+
     for obj in bpy.data.objects:
         if hasattr(obj, 'modifiers'):
             for modifier in obj.modifiers:
-                if modifier.type == 'NODES' and hasattr(modifier, 'node_group') and modifier.node_group:
-                    ng = modifier.node_group
-                    if ng.name == node_group.name or ng.name in node_group_users:
-                        users.append(obj.name)
+                if compat.is_geometry_nodes_modifier(modifier):
+                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                    if ng:
+                        if ng.name == node_group.name or ng.name in node_group_users:
+                            users.append(obj.name)
 
     return distinct(users)
 

@@ -35,9 +35,23 @@ from bpy.utils import unregister_class
 from . import ops
 from . import ui
 from .ui import inspect_ui
+from .utils import version
 # updater removed for Blender 4.5 extension format
 
-# bl_info replaced by blender_manifest.toml in Blender 4.5 extensions
+# bl_info is required for Blender 4.2 LTS, replaced by blender_manifest.toml in 4.5+
+# Conditionally define bl_info only for versions < 4.5
+if version.is_version_less_than(4, 5, 0):
+    bl_info = {
+        "name": "Atomic Data Manager",
+        "author": "RaincloudTheDragon",
+        "version": (1, 1, 0),
+        "blender": (4, 2, 0),
+        "location": "Properties > Scene",
+        "description": "An Intelligent Data Manager for Blender.",
+        "warning": "",
+        "doc_url": "https://github.com/grantwilk/atomic-data-manager",
+        "category": "Utility",
+    }
 
 
 # Atomic Data Manager Properties
