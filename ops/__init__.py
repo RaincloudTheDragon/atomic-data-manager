@@ -26,7 +26,6 @@ from . import main_ops
 from . import inspect_ops
 from . import direct_use_ops
 from . import missing_file_ops
-from . import support_me_ops
 
 
 def register():
@@ -34,7 +33,6 @@ def register():
     inspect_ops.register()
     direct_use_ops.register()
     missing_file_ops.register()
-    support_me_ops.register()
 
 
 def unregister():
@@ -42,4 +40,3 @@ def unregister():
     inspect_ops.unregister()
     direct_use_ops.unregister()
     missing_file_ops.unregister()
-    support_me_ops.unregister()

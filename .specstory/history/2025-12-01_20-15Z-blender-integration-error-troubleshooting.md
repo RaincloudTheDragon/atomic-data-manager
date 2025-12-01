@@ -1362,3 +1362,767 @@ The version is now 2.0.0 across all supported Blender versions.
 
 ---
 
+_**User (2025-12-01 20:17Z)**_
+
+Let's remove the "support remington creative" popup, since they no longer maintain this package.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+Searching for the "support remington creative" popup code:
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "remington|support.*creative|support.*me" • 82 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\__init__.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\stats\users.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\utils\compat.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\utils\version.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\utils\__init__.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\preferences_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\preferences_ui.py` | `def set_enable_support_me_popup(value):` | L46 |
+| `.\ui\preferences_ui.py` | `# sets the value of the enable_support_me_popup boolean property` | L47 |
+| `.\ui\preferences_ui.py` | `ap.enable_support_me_popup = value` | L52 |
+| `.\ui\preferences_ui.py` | `config.enable_support_me_popup = \` | L82 |
+| `.\ui\preferences_ui.py` | `atomic_preferences.enable_support_me_popup` | L83 |
+| `.\ui\preferences_ui.py` | `enable_support_me_popup: bpy.props.BoolProperty(` | L186 |
+| `.\ui\preferences_ui.py` | `"like to support Remington Creative",` | L188 |
+| `.\ui\preferences_ui.py` | `# enable support me popup toggle` | L251 |
+| `.\ui\preferences_ui.py` | `"enable_support_me_popup",` | L254 |
+| `.\ui\preferences_ui.py` | `text="Show \"Support Me\" Popup"` | L255 |
+| `.\stats\count.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\direct_use_ops.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\inspect_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\inspect_ops.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\main_panel_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\main_ops.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\missing_file_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\missing_file_ops.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\stats\unused.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\__init__.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\__init__.py` | `from . import support_me_ops` | L29 |
+| `.\ops\__init__.py` | `support_me_ops.register()` | L37 |
+| `.\ops\__init__.py` | `support_me_ops.unregister()` | L45 |
+| `.\ui\stats_panel_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\utils\clean.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\support_me_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\support_me_ui.py` | `support Remington Creative popup.` | L22 |
+| `.\ui\support_me_ui.py` | `def update_enable_show_support_me_popup(self, context):` | L41 |
+| `.\ui\support_me_ui.py` | `# enable support me popup preference` | L43 |
+| `.\ui\support_me_ui.py` | `preferences_ui.set_enable_support_me_popup(` | L44 |
+| `.\ui\support_me_ui.py` | `def show_support_me_popup(dummy=None):` | L49 |
+| `.\ui\support_me_ui.py` | `# shows the support me popup if the 5 day interval has expired and the` | L50 |
+| `.\ui\support_me_ui.py` | `# enable support me popup preference is enabled` | L51 |
+| `.\ui\support_me_ui.py` | `if config.enable_support_me_popup and current_day >= next_day:` | L58 |
+| `.\ui\support_me_ui.py` | `bpy.ops.atomic.show_support_me('INVOKE_DEFAULT')` | L60 |
+| `.\ui\support_me_ui.py` | `# Atomic Data Manager Support Me Popup Operator` | L63 |
+| `.\ui\support_me_ui.py` | `class ATOMIC_OT_support_me_popup(bpy.types.Operator):` | L64 |
+| `.\ui\support_me_ui.py` | `"""Displays the Atomic \"Support Me\" popup"""` | L65 |
+| `.\ui\support_me_ui.py` | `bl_idname = "atomic.show_support_me"` | L66 |
+| `.\ui\support_me_ui.py` | `update=update_enable_show_support_me_popup` | L72 |
+| `.\ui\support_me_ui.py` | `text="Consider supporting our free software development!"` | L81 |
+| `.\ui\support_me_ui.py` | `# support remington creative button` | L92 |
+| `.\ui\support_me_ui.py` | `"atomic.open_support_me",` | L96 |
+| `.\ui\support_me_ui.py` | `text="Support Remington Creative",` | L97 |
+| `.\ui\support_me_ui.py` | `reg_list = [ATOMIC_OT_support_me_popup]` | L109 |
+| `.\ui\support_me_ui.py` | `bpy.app.handlers.load_post.append(show_support_me_popup)` | L116 |
+| `.\ui\support_me_ui.py` | `bpy.app.handlers.load_post.remove(show_support_me_popup)` | L128 |
+| `.\ui\__init__.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\__init__.py` | `from . import support_me_ui` | L32 |
+| `.\ui\__init__.py` | `support_me_ui.register()` | L45 |
+| `.\ui\__init__.py` | `support_me_ui.unregister()` | L55 |
+| `.\config.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\config.py` | `enable_support_me_popup = True` | L33 |
+| `.\README.md` | `[![atomic_combo_side_mono_dark1-min](https://remington.pro/wp-content/uploads/2019/08/atomic_combo_side_dark1_512px.png)](https://remington.pro/software/blender/atomic)` | L1 |
+| `.\README.md` | `[**Learn More About Atomic Data Manager on its Official Product Page**](https://remington.pro/software/blender/atomic)` | L3 |
+| `.\README.md` | `![spring_window_shaded-min](https://remington.pro/wp-content/uploads/2019/07/spring_window_shaded-min.jpg)` | L9 |
+| `.\README.md` | `[![video-thumb](https://remington.pro/wp-content/uploads/2019/08/atomic_addon_tour_play_button-min.jpg)](https://remington.pro/software/blender/atomic/#tour)` | L31 |
+| `.\README.md` | `**Download:** [https://remington.pro/software/blender/atomic/](https://remington.pro/software/blender/atomic)` | L40 |
+| `.\README.md` | `**Like the Add-on?** [Consider Supporting Remington Creative](https://remington.pro/support/)!` | L46 |
+| `.\stats\misc.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\stats\missing.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\stats\unnamed.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\pie_menu_ui.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\support_me_ops.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\support_me_ops.py` | `This file contains the operator for opening the Remington Creative` | L22 |
+| `.\ops\support_me_ops.py` | `# Atomic Data Manager Open Support Me Operator` | L34 |
+| `.\ops\support_me_ops.py` | `class ATOMIC_OT_open_support_me(bpy.types.Operator):` | L35 |
+| `.\ops\support_me_ops.py` | `"""Opens the Remington Creative \"Support Me\" webpage"""` | L36 |
+| `.\ops\support_me_ops.py` | `bl_idname = "atomic.open_support_me"` | L37 |
+| `.\ops\support_me_ops.py` | `bl_label = "Support Me"` | L38 |
+| `.\ops\support_me_ops.py` | `webbrowser.open("https://remingtoncreative.com/support/")` | L41 |
+| `.\ops\support_me_ops.py` | `reg_list = [ATOMIC_OT_open_support_me]` | L45 |
+| `.\ops\utils\delete.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\utils\duplicate.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ui\utils\ui_layouts.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+| `.\ops\utils\nuke.py` | `Copyright (C) 2019 Remington Creative` | L2 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "Where is the support remington creative popup or dialog displayed?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `ui/support_me_ui.py` | L47-108 |
+| `ui/support_me_ui.py` | L40-105 |
+| `ui/support_me_ui.py` | L63-127 |
+| `ui/preferences_ui.py` | L171-309 |
+| `ui/preferences_ui.py` | L159-309 |
+| `ui/support_me_ui.py` | L34-59 |
+| `ui/support_me_ui.py` | L111-127 |
+| `ui/__init__.py` | L54 |
+| `ops/support_me_ops.py` | L44 |
+| `config.py` | L43 |
+| `ui/support_me_ui.py` | L44 |
+| `ui/missing_file_ui.py` | L34-175 |
+| `ui/preferences_ui.py` | L32-63 |
+| `ui/__init__.py` | L34-54 |
+| `ui/missing_file_ui.py` | L34-166 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ops/support_me_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ui/support_me_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Removing the support popup. Checking where it's registered and used:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ui/__init__.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ops/__init__.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: config.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ui/preferences_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Removing all support popup functionality:
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/__init__.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -30,5 +30,4 @@
+  from . import pie_menu_ui
+  from . import preferences_ui
+- from . import support_me_ui
+  
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/__init__.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -42,5 +42,4 @@
+      missing_file_ui.register()
+      pie_menu_ui.register()
+-     support_me_ui.register()
+  
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/__init__.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -51,4 +51,3 @@
+      pie_menu_ui.unregister()
+      preferences_ui.unregister()
+-     support_me_ui.unregister()
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ops/__init__.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -27,5 +27,4 @@
+  from . import direct_use_ops
+  from . import missing_file_ops
+- from . import support_me_ops
+  
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ops/__init__.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -34,5 +34,4 @@
+      direct_use_ops.register()
+      missing_file_ops.register()
+-     support_me_ops.register()
+  
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ops/__init__.py</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -40,4 +39,4 @@
+      main_ops.unregister()
+      inspect_ops.unregister()
+-     missing_file_ops.unregister()
+-     support_me_ops.unregister()
++     direct_use_ops.unregister()
++     missing_file_ops.unregister()
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: config.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -31,5 +31,4 @@
+  # visible atomic preferences
+  enable_missing_file_warning = True
+- enable_support_me_popup = True
+  include_fake_users = False
+  enable_pie_menu_ui = True
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -41,4 +39,4 @@
+  pie_menu_any = False
+  pie_menu_ctrl = False
+- pie_menu_shift = False
+- last_popup_day = 0
++ pie_menu_oskey = False
++ pie_menu_shift = False
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ui/preferences_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Removing the support popup from preferences:
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 6
+
+```diff
+@@ -183,10 +183,4 @@
+          default=True
+      )
+- 
+-     enable_support_me_popup: bpy.props.BoolProperty(
+-         description=&quot;Occasionally display a popup asking if you would &quot;
+-                     &quot;like to support Remington Creative&quot;,
+-         default=True
+-     )
+  
+      include_fake_users: bpy.props.BoolProperty(
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 4
+
+```diff
+@@ -221,8 +221,4 @@
+          default=False
+      )
+- 
+-     last_popup_day: bpy.props.FloatProperty(
+-         default=0
+-     )
+  
+      # updater properties removed
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 7
+
+```diff
+@@ -238,11 +238,4 @@
+              text=&quot;Show Missing File Warning&quot;
+          )
+- 
+-         # enable support me popup toggle
+-         col.prop(
+-             self,
+-             &quot;enable_support_me_popup&quot;,
+-             text=&quot;Show \&quot;Support Me\&quot; Popup&quot;
+-         )
+  
+          # right column
+```
+
+</details>
+
+</tool-use>
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 3
+
+```diff
+@@ -80,7 +80,4 @@
+          atomic_preferences.enable_pie_menu_ui
+  
+-     config.enable_support_me_popup = \
+-         atomic_preferences.enable_support_me_popup
+- 
+      config.include_fake_users = \
+          atomic_preferences.include_fake_users
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 4 files</summary>
+      
+Lint paths:
+
+- `ui/__init__.py`
+- `ops/__init__.py`
+- `config.py`
+- `ui/preferences_ui.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Reading the file to remove the remaining functions:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ui/preferences_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 19
+
+```diff
+@@ -44,23 +44,4 @@
+  
+  
+- def set_enable_support_me_popup(value):
+-     # sets the value of the enable_support_me_popup boolean property
+- 
+-     ap = _get_addon_prefs()
+-     if not ap:
+-         return
+-     ap.enable_support_me_popup = value
+-     copy_prefs_to_config(None, None)
+-     bpy.ops.wm.save_userpref()
+- 
+- 
+- def set_last_popup_day(day):
+-     # sets the value of the last_popup_day float property
+- 
+-     ap = _get_addon_prefs()
+-     if not ap:
+-         return
+-     ap.last_popup_day = day
+-     copy_prefs_to_config(None, None)
+  
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `ui/preferences_ui.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Checking for remaining references to the support popup:
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "set_enable_support_me_popup|set_last_popup_day|enable_support_me_popup|last_popup_day|support_me_ui|support_me_ops" • 9 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\ui\preferences_ui.py` | `config.last_popup_day = \` | L85 |
+| `.\ui\preferences_ui.py` | `atomic_preferences.last_popup_day` | L86 |
+| `.\ui\support_me_ui.py` | `preferences_ui.set_enable_support_me_popup(` | L44 |
+| `.\ui\support_me_ui.py` | `next_day = config.last_popup_day + popup_interval` | L56 |
+| `.\ui\support_me_ui.py` | `if config.enable_support_me_popup and current_day >= next_day:` | L58 |
+| `.\ui\support_me_ui.py` | `preferences_ui.set_last_popup_day(current_day)` | L59 |
+| `.\ui\support_me_ui.py` | `if config.last_popup_day == 0 \` | L119 |
+| `.\ui\support_me_ui.py` | `or config.last_popup_day > get_current_day():` | L120 |
+| `.\ui\support_me_ui.py` | `preferences_ui.set_last_popup_day(get_current_day())` | L121 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 3 files</summary>
+      
+Lint paths:
+
+- `ui`
+- `ops`
+- `config.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Removing the remaining reference to `last_popup_day` in `copy_prefs_to_config`:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ui/preferences_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "last_popup_day" in "ui/preferences_ui.py" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `ui/preferences_ui.py` | `config.last_popup_day = \` | L85 |
+| `ui/preferences_ui.py` | `atomic_preferences.last_popup_day` | L86 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Removing the remaining reference:
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 3
+
+```diff
+@@ -83,7 +83,4 @@
+          atomic_preferences.pie_menu_shift
+  
+-     config.last_popup_day = \
+-         atomic_preferences.last_popup_day
+- 
+  
+  def update_pie_menu_hotkeys(self, context):
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `ui/preferences_ui.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+Removed the "Support Remington Creative" popup. Summary of changes:
+
+## Changes Made
+
+1. **Removed registration** in `ui/__init__.py`:
+   - Removed import of `support_me_ui`
+   - Removed `support_me_ui.register()` and `support_me_ui.unregister()` calls
+
+2. **Removed registration** in `ops/__init__.py`:
+   - Removed import of `support_me_ops`
+   - Removed `support_me_ops.register()` and `support_me_ops.unregister()` calls
+
+3. **Removed preferences** in `ui/preferences_ui.py`:
+   - Removed `enable_support_me_popup` property
+   - Removed `last_popup_day` property
+   - Removed the "Show 'Support Me' Popup" toggle from the preferences UI
+   - Removed `set_enable_support_me_popup()` function
+   - Removed `set_last_popup_day()` function
+   - Removed references to these in `copy_prefs_to_config()`
+
+4. **Removed config variables** in `config.py`:
+   - Removed `enable_support_me_popup` variable
+   - Removed `last_popup_day` variable
+
+The popup will no longer appear, and the related preferences have been removed. The `support_me_ui.py` and `support_me_ops.py` files remain but are not registered, so they won't run. You can delete them if you want to clean up further.
+
+---
+

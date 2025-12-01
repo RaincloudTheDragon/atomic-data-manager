@@ -30,7 +30,6 @@ Blender, not in here.
 
 # visible atomic preferences
 enable_missing_file_warning = True
-enable_support_me_popup = True
 include_fake_users = False
 enable_pie_menu_ui = True
 
@@ -41,4 +40,3 @@ pie_menu_any = False
 pie_menu_ctrl = False
 pie_menu_oskey = False
 pie_menu_shift = False
-last_popup_day = 0
