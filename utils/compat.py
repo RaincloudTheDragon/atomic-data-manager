@@ -129,3 +129,26 @@ def get_node_tree_from_node(node):
         return node.node_tree
     return None
 
+
+def get_scene_compositor_node_tree(scene):
+    """
+    Get the compositor node tree from a scene, handling version differences.
+    
+    In Blender 4.2/4.5: scene.node_tree
+    In Blender 5.0+: scene.compositing_node_tree
+    
+    Args:
+        scene: The scene object
+    
+    Returns:
+        NodeTree or None: The compositor node tree if available
+    """
+    # Blender 5.0+ uses compositing_node_tree
+    if version.is_version_at_least(5, 0, 0):
+        if hasattr(scene, 'compositing_node_tree') and scene.compositing_node_tree:
+            return scene.compositing_node_tree
+    else:
+        # Blender 4.2/4.5 uses node_tree
+        if hasattr(scene, 'node_tree') and scene.node_tree:
+            return scene.node_tree
+    return None
