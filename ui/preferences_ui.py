@@ -43,6 +43,49 @@ def _get_addon_prefs():
     return None
 
 
+def _save_after_pref_change():
+    """
+    Persist user preferences after programmatic updates.
+    """
+    bpy.ops.wm.save_userpref()
+
+
+def set_enable_missing_file_warning(value):
+    """
+    Programmatically toggle the missing file warning preference.
+    """
+    ap = _get_addon_prefs()
+    if not ap:
+        return
+    ap.enable_missing_file_warning = value
+    copy_prefs_to_config(None, None)
+    _save_after_pref_change()
+
+
+def set_include_fake_users(value):
+    """
+    Programmatically toggle inclusion of fake users.
+    """
+    ap = _get_addon_prefs()
+    if not ap:
+        return
+    ap.include_fake_users = value
+    copy_prefs_to_config(None, None)
+    _save_after_pref_change()
+
+
+def set_enable_pie_menu_ui(value):
+    """
+    Programmatically toggle the pie menu UI preference.
+    """
+    ap = _get_addon_prefs()
+    if not ap:
+        return
+    ap.enable_pie_menu_ui = value
+    copy_prefs_to_config(None, None)
+    _save_after_pref_change()
+
+
 
 
 def copy_prefs_to_config(self, context):
