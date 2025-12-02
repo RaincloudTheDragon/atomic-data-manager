@@ -1,0 +1,55 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v2.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: pip install toml
+      
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(python -c "import toml; print(toml.load('blender_manifest.toml')['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "zip_name=atomic_data_manager.${{ inputs.release_tag }}.zip" >> $GITHUB_OUTPUT
+      
+      - name: Create ZIP
+        run: |
+          # Create a temporary directory structure
+          mkdir -p addon_files/atomic_data_manager
+          
+          # Copy the required files for Blender Extensions
+          cp __init__.py rainys_repo_bootstrap.py README.md blender_manifest.toml LICENSE.txt config.py addon_files/atomic_data_manager/
+          
+          # Copy subdirectories
+          cp -r ops ui stats utils addon_files/atomic_data_manager/
+          
+          # Create the ZIP file
+          cd addon_files
+          zip -r ../${{ steps.get_version.outputs.zip_name }} atomic_data_manager/
+          cd ..
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: Atomic Data Manager ${{ steps.get_version.outputs.version }}
+          files: ${{ steps.get_version.outputs.zip_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

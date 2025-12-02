@@ -36,6 +36,7 @@ from . import ops
 from . import ui
 from .ui import inspect_ui
 from .utils import version
+from . import rainys_repo_bootstrap
 # updater removed for Blender 4.5 extension format
 
 # bl_info is required for Blender 4.2 LTS, replaced by blender_manifest.toml in 4.3+
@@ -229,9 +230,15 @@ def register():
     # atomic package registration
     ui.register()
     ops.register()
+    
+    # bootstrap Rainy's Extensions repository
+    rainys_repo_bootstrap.register()
 
 
 def unregister():
+    # bootstrap unregistration
+    rainys_repo_bootstrap.unregister()
+    
     # atomic package unregistration
     ui.unregister()
     ops.unregister()
