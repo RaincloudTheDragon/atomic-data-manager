@@ -1574,3 +1574,101 @@ The bootstrap module will automatically register the Rainy's Extensions reposito
 
 ---
 
+_**User (2025-12-02 20:03Z)**_
+
+Create a changelog.md with all the changes so far.
+
+---
+
+_**Agent (model gpt-5.1-codex, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+**Preparing changelog creation**</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="apply_patch">
+<details>
+<summary>Tool use: **apply_patch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "CHANGELOG.md"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "33bc7e06-b6e4-4c75-9399-d1c17b995dc9"
+}
+```
+Result:
+
+```json
+{
+  "diff": {
+    "chunks": [
+      {
+        "diffString": "- \n+ # Changelog\n+ \n+ All notable changes to this project will be documented in this file.\n+ \n+ ## [Unreleased] - 2025-12-02\n+ \n+ ### Added\n+ - GitHub Actions release workflow that packages the add-on (including &#96;rainys_repo_bootstrap.py&#96;, &#96;blender_manifest.toml&#96;, &#96;README.md&#96;, &#96;LICENSE.txt&#96;, &#96;config.py&#96;, and all sub-packages) and uploads the ZIP to a tagged release.\n+ \n+ ### Changed\n+ - Integrated &#96;rainys_repo_bootstrap&#96; into &#96;__init__.py&#96; so the Rainy's Extensions repository is registered on add-on enable and the bootstrap guard resets on disable.\n+ ",
+        "oldStart": 1,
+        "newStart": 1,
+        "oldLines": 1,
+        "newLines": 12,
+        "linesRemoved": 1,
+        "linesAdded": 12
+      }
+    ],
+    "editor": "EDITOR_AI"
+  },
+  "shouldAutoFixLints": true,
+  "resultForModel": "Success. Updated the following files:\nM CHANGELOG.md",
+  "contentsAfterEdit": "# Changelog\r\n\r\nAll notable changes to this project will be documented in this file.\r\n\r\n## [Unreleased] - 2025-12-02\r\n\r\n### Added\r\n- GitHub Actions release workflow that packages the add-on (including &#96;rainys_repo_bootstrap.py&#96;, &#96;blender_manifest.toml&#96;, &#96;README.md&#96;, &#96;LICENSE.txt&#96;, &#96;config.py&#96;, and all sub-packages) and uploads the ZIP to a tagged release.\r\n\r\n### Changed\r\n- Integrated &#96;rainys_repo_bootstrap&#96; into &#96;__init__.py&#96; so the Rainy's Extensions repository is registered on add-on enable and the bootstrap guard resets on disable.\r\n\r\n"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Considering running lint checks**</details></think>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `CHANGELOG.md`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Preparing final summary**</details></think>
+
+---
+
+Added `CHANGELOG.md` to track work-to-date. Current entry (labeled Unreleased, 2025‑12‑02) documents the new GitHub Actions release workflow and the `rainys_repo_bootstrap` integration in `__init__.py`. No linter issues reported for the new file.
+
+Next steps: review the changelog entry once you’re ready to tag a release and update the heading/date as needed.
+
+---
+
