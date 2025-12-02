@@ -2126,3 +2126,121 @@ The popup will no longer appear, and the related preferences have been removed. 
 
 ---
 
+_**User (2025-12-02 20:03Z)**_
+
+@CHANGELOG.md:5-10 add all changes so far to the upcoming release in the changelog
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+Reviewing the changelog and adding the changes from this session:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: CHANGELOG.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Updating the changelog with all changes from this session:
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: CHANGELOG.md</summary>
+
+**Chunk 1**
+Lines added: 19, lines removed: undefined
+
+```diff
+@@ -4,4 +4,23 @@
+  
+  ## [v2.0.0] - 2025-12-02
++ 
++ ### Added
++ - Multi-version Blender support (4.2 LTS, 4.5 LTS, and 5.0)
++ - Version detection utilities in &#96;utils/version.py&#96;
++ - API compatibility layer in &#96;utils/compat.py&#96; for handling version differences
++ - Dual metadata format support: &#96;bl_info&#96; for 4.2 LTS, &#96;blender_manifest.toml&#96; for 4.5+
++ - Detection of collections used by RigidBodyWorld physics system
++ 
++ ### Fixed
++ - Blender 5.0 compatibility: Fixed &#96;AttributeError&#96; when accessing scene compositor node tree (changed from &#96;scene.node_tree&#96; to &#96;scene.compositing_node_tree&#96;)
++ - Collections assigned to &#96;rigidbody_world.collection&#96; are now correctly detected as used
++ 
++ ### Changed
++ - Minimum Blender version requirement updated to 4.2.0 (was 4.5.0)
++ - Version bumped to 2.0.0
++ 
++ ### Removed
++ - "Support Remington Creative" popup and all related functionality
++ - Support popup preferences and configuration options
+  
+  ### Internal
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `CHANGELOG.md`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Updated the changelog with all changes from this session. Organized into:
+
+- **Added**: Multi-version support, version detection utilities, compatibility layer, dual metadata format, and RigidBodyWorld collection detection
+- **Fixed**: Blender 5.0 compositor API compatibility and RigidBodyWorld collection usage detection
+- **Changed**: Version bump and minimum Blender version requirement
+- **Removed**: Support popup and related functionality
+- **Internal**: Existing internal changes
+
+The changelog now documents all changes for v2.0.0.
+
+---
+
