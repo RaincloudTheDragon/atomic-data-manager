@@ -23,36 +23,13 @@ registration for all packages within the add-on.
 
 """
 
-
-__author__ = "RaincloudTheDragon"
-__maintainer__ = "RaincloudTheDragon"
-__version__ = "1.1.0"
-
-
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
 from . import ops
 from . import ui
 from .ui import inspect_ui
-from .utils import version
 from . import rainys_repo_bootstrap
-# updater removed for Blender 4.5 extension format
-
-# bl_info is required for Blender 4.2 LTS, replaced by blender_manifest.toml in 4.3+
-# Conditionally define bl_info only for 4.2 LTS (4.2.0 to 4.2.x)
-if version.is_version_4_2():
-    bl_info = {
-        "name": "Atomic Data Manager",
-        "author": "RaincloudTheDragon",
-        "version": (2, 0, 0),
-        "blender": (4, 2, 0),
-        "location": "Properties > Scene",
-        "description": "An Intelligent Data Manager for Blender.",
-        "warning": "",
-        "doc_url": "https://github.com/grantwilk/atomic-data-manager",
-        "category": "Utility",
-    }
 
 
 # Atomic Data Manager Properties

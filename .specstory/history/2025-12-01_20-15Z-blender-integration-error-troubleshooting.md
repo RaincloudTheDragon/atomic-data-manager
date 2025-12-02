@@ -829,7 +829,6 @@ _**Agent (model default, mode Ask)**_
 
 ---
 
-
 Checking how the addon determines if a collection is used, and whether it checks if the collection is linked to the scene:
 
 
@@ -886,7 +885,6 @@ Checking how the addon determines if a collection is used, and whether it checks
 
 
 ---
-
 
 The addon doesn't check if a collection is linked to the scene's collection hierarchy. It only checks:
 1. Objects in the collection
@@ -966,7 +964,6 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 Adding detection for collections used by the scene's RigidBodyWorld. Checking the API and implementing the fix:
 
 
@@ -1023,7 +1020,6 @@ Adding detection for collections used by the scene's RigidBodyWorld. Checking th
 
 
 ---
-
 
 Adding a function to detect collections used by the scene's RigidBodyWorld and integrating it into the usage detection:
 
@@ -1122,7 +1118,6 @@ Lint results
 
 ---
 
-
 Checking that the `distinct` function exists and verifying the implementation:
 
 
@@ -1156,7 +1151,6 @@ Output mode: content
 
 
 ---
-
 
 Checking for version compatibility issues with the RigidBodyWorld API:
 
@@ -1201,7 +1195,6 @@ Output mode: content
 
 ---
 
-
 Verifying the implementation is complete and correct:
 
 
@@ -1218,7 +1211,6 @@ Verifying the implementation is complete and correct:
 
 
 ---
-
 
 ## Changes Made
 
@@ -1252,7 +1244,6 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 Updating the version to 2.0.0 in both `bl_info` (for 4.2 LTS) and `blender_manifest.toml` (for 4.5+):
 
 
@@ -1277,7 +1268,6 @@ Updating the version to 2.0.0 in both `bl_info` (for 4.2 LTS) and `blender_manif
 
 
 ---
-
 
 Updating the version to 2.0.0 in both locations:
 
@@ -1351,7 +1341,6 @@ Lint results
 
 
 ---
-
 
 Updated the addon version to 2.0.0 in both locations:
 
@@ -2241,6 +2230,754 @@ Updated the changelog with all changes from this session. Organized into:
 - **Internal**: Existing internal changes
 
 The changelog now documents all changes for v2.0.0.
+
+---
+
+_**User (2025-12-02 20:03Z)**_
+
+We should remove bl_info entirely; Blender 4.2 saw the *launch* of the blender extensions platform, so we won't be needing our dual-metadata format support. We should also bring back the configuration options not related to the support me.
+
+---
+
+_**Agent (model gpt-5.1-codex, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+**Reviewing configuration and version references**</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: __init__.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Cleaning up version imports and updating version number**</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="rg">
+<details>
+<summary>Tool use: **rg**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "version\\.is_",
+  "path": "",
+  "outputMode": "content",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "version\\.is_",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:/atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": ".\\__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 44,
+                  "content": "if version.is_version_4_2():"
+                }
+              ]
+            },
+            {
+              "file": ".\\utils\\compat.py",
+              "matches": [
+                {
+                  "lineNumber": 147,
+                  "content": "    if version.is_version_at_least(5, 0, 0):"
+                }
+              ]
+            }
+          ],
+          "totalLines": 2,
+          "totalMatchedLines": 2
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Reviewing configuration restoration**</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="rg">
+<details>
+<summary>Tool use: **rg**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "set_enable_support_me_popup",
+  "path": "",
+  "outputMode": "content",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "set_enable_support_me_popup",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:/atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": ".\\ui\\support_me_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 44,
+                  "content": "    preferences_ui.set_enable_support_me_popup("
+                }
+              ]
+            }
+          ],
+          "totalLines": 1,
+          "totalMatchedLines": 1
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Clarifying config restoration and metadata removal**
+
+I’m sorting through the instructions to remove the `bl_info` block and update metadata to use only `blender_manifest` with a 4.2 minimum version. Also, I’m double-checking configuration options that were removed unrelated to the support_me feature, aiming to restore any general preferences or functions unintentionally deleted earlier, while keeping support_me-specific settings out. Since things are a bit unclear about which config items to bring back, I’m comparing current and prior files carefully to avoid breaking anything or missing user intentions.</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="rg">
+<details>
+<summary>Tool use: **rg**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "def set_",
+  "path": "ui/preferences_ui.py",
+  "outputMode": "content",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "def set_",
+    "path": "ui/preferences_ui.py",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:/atomic_data_manager": {
+        "content": {}
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Investigating removed setter functions**</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="rg">
+<details>
+<summary>Tool use: **rg**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "preferences_ui\\.",
+  "path": "",
+  "outputMode": "content",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "preferences_ui\\.",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:/atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": ".\\ui\\__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 36,
+                  "content": "    preferences_ui.register()"
+                },
+                {
+                  "lineNumber": 52,
+                  "content": "    preferences_ui.unregister()"
+                }
+              ]
+            },
+            {
+              "file": ".\\ui\\support_me_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 44,
+                  "content": "    preferences_ui.set_enable_support_me_popup("
+                },
+                {
+                  "lineNumber": 59,
+                  "content": "        preferences_ui.set_last_popup_day(current_day)"
+                },
+                {
+                  "lineNumber": 121,
+                  "content": "        preferences_ui.set_last_popup_day(get_current_day())"
+                }
+              ]
+            }
+          ],
+          "totalLines": 5,
+          "totalMatchedLines": 5
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Evaluating configuration option restoration**</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: config.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Reevaluating removed config options**</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="rg">
+<details>
+<summary>Tool use: **rg**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "config\\.",
+  "path": "",
+  "outputMode": "content",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "config\\.",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:/atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": ".\\ui\\preferences_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 50,
+                  "content": "    # config.py for global use"
+                },
+                {
+                  "lineNumber": 57,
+                  "content": "    config.enable_missing_file_warning = \\"
+                },
+                {
+                  "lineNumber": 60,
+                  "content": "    config.enable_pie_menu_ui = \\"
+                },
+                {
+                  "lineNumber": 63,
+                  "content": "    config.include_fake_users = \\"
+                },
+                {
+                  "lineNumber": 67,
+                  "content": "    config.pie_menu_type = \\"
+                },
+                {
+                  "lineNumber": 70,
+                  "content": "    config.pie_menu_alt = \\"
+                },
+                {
+                  "lineNumber": 73,
+                  "content": "    config.pie_menu_any = \\"
+                },
+                {
+                  "lineNumber": 76,
+                  "content": "    config.pie_menu_ctrl = \\"
+                },
+                {
+                  "lineNumber": 79,
+                  "content": "    config.pie_menu_oskey = \\"
+                },
+                {
+                  "lineNumber": 82,
+                  "content": "    config.pie_menu_shift = \\"
+                },
+                {
+                  "lineNumber": 121,
+                  "content": "        type=config.pie_menu_type,"
+                },
+                {
+                  "lineNumber": 123,
+                  "content": "        alt=config.pie_menu_alt,"
+                },
+                {
+                  "lineNumber": 124,
+                  "content": "        any=config.pie_menu_any,"
+                },
+                {
+                  "lineNumber": 125,
+                  "content": "        ctrl=config.pie_menu_ctrl,"
+                },
+                {
+                  "lineNumber": 126,
+                  "content": "        oskey=config.pie_menu_oskey,"
+                },
+                {
+                  "lineNumber": 127,
+                  "content": "        shift=config.pie_menu_shift,"
+                }
+              ]
+            },
+            {
+              "file": ".\\ui\\__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 35,
+                  "content": "    # register preferences first so we can access variables in config.py"
+                }
+              ]
+            },
+            {
+              "file": ".\\ops\\direct_use_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 48,
+                  "content": "        if config.enable_pie_menu_ui:"
+                }
+              ]
+            },
+            {
+              "file": ".\\ui\\missing_file_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 174,
+                  "content": "    if config.enable_missing_file_warning and \\"
+                }
+              ]
+            },
+            {
+              "file": ".\\stats\\unused.py",
+              "matches": [
+                {
+                  "lineNumber": 43,
+                  "content": "                                    config.include_fake_users):"
+                },
+                {
+                  "lineNumber": 88,
+                  "content": "            if not image.use_fake_user or config.include_fake_users:"
+                },
+                {
+                  "lineNumber": 125,
+                  "content": "            if not light.use_fake_user or config.include_fake_users:"
+                },
+                {
+                  "lineNumber": 148,
+                  "content": "            if not material.use_fake_user or config.include_fake_users:"
+                },
+                {
+                  "lineNumber": 171,
+                  "content": "            if not node_group.use_fake_user or config.include_fake_users:"
+                },
+                {
+                  "lineNumber": 197,
+                  "content": "            if not particle.use_fake_user or config.include_fake_users:"
+                },
+                {
+                  "lineNumber": 223,
+                  "content": "            if not texture.use_fake_user or config.include_fake_users:"
+                },
+                {
+                  "lineNumber": 247,
+                  "content": "                                config.include_fake_users):"
+                }
+              ]
+            },
+            {
+              "file": ".\\ui\\support_me_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 56,
+                  "content": "    next_day = config.last_popup_day + popup_interval"
+                },
+                {
+                  "lineNumber": 58,
+                  "content": "    if config.enable_support_me_popup and current_day &gt;= next_day:"
+                },
+                {
+                  "lineNumber": 119,
+                  "content": "    if config.last_popup_day == 0 \\"
+                },
+                {
+                  "lineNumber": 120,
+                  "content": "            or config.last_popup_day &gt; get_current_day():"
+                }
+              ]
+            }
+          ],
+          "totalLines": 31,
+          "totalMatchedLines": 31
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Clarifying support_me config removal and restoration**</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="apply_patch">
+<details>
+<summary>Tool use: **apply_patch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "__init__.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "469f6d00-339c-4318-84cf-cade070c55d3"
+}
+```
+Result:
+
+```json
+{
+  "diff": {
+    "chunks": [
+      {
+        "diffString": "  __author__ = \"RaincloudTheDragon\"\n  __maintainer__ = \"RaincloudTheDragon\"\n- __version__ = \"1.1.0\"\n+ __version__ = \"2.0.0\"\n  \n  ",
+        "oldStart": 27,
+        "newStart": 27,
+        "oldLines": 5,
+        "newLines": 5,
+        "linesRemoved": 1,
+        "linesAdded": 1
+      },
+      {
+        "diffString": "  from . import ui\n  from .ui import inspect_ui\n- from .utils import version\n  from . import rainys_repo_bootstrap\n- # updater removed for Blender 4.5 extension format\n- \n- # bl_info is required for Blender 4.2 LTS, replaced by blender_manifest.toml in 4.3+\n- # Conditionally define bl_info only for 4.2 LTS (4.2.0 to 4.2.x)\n- if version.is_version_4_2():\n-     bl_info = {\n-         \"name\": \"Atomic Data Manager\",\n-         \"author\": \"RaincloudTheDragon\",\n-         \"version\": (2, 0, 0),\n-         \"blender\": (4, 2, 0),\n-         \"location\": \"Properties &gt; Scene\",\n-         \"description\": \"An Intelligent Data Manager for Blender.\",\n-         \"warning\": \"\",\n-         \"doc_url\": \"https://github.com/grantwilk/atomic-data-manager\",\n-         \"category\": \"Utility\",\n-     }\n  \n  ",
+        "oldStart": 36,
+        "newStart": 36,
+        "oldLines": 22,
+        "newLines": 5,
+        "linesRemoved": 17
+      }
+    ],
+    "editor": "EDITOR_AI"
+  },
+  "shouldAutoFixLints": true,
+  "resultForModel": "Success. Updated the following files:\nM __init__.py",
+  "contentsAfterEdit": "\"\"\"\nCopyright (C) 2019 Remington Creative\n\nThis file is part of Atomic Data Manager.\n\nAtomic Data Manager is free software: you can redistribute\nit and/or modify it under the terms of the GNU General Public License\nas published by the Free Software Foundation, either version 3 of the\nLicense, or (at your option) any later version.\n\nAtomic Data Manager is distributed in the hope that it will\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\nGeneral Public License for more details.\n\nYou should have received a copy of the GNU General Public License along\nwith Atomic Data Manager.  If not, see &lt;https://www.gnu.org/licenses/&gt;.\n\n---\n\nThis file contains Atomic's global properties and handles the\nregistration for all packages within the add-on.\n\n\"\"\"\n\n\n__author__ = \"RaincloudTheDragon\"\n__maintainer__ = \"RaincloudTheDragon\"\n__version__ = \"2.0.0\"\n\n\nimport bpy\nfrom bpy.utils import register_class\nfrom bpy.utils import unregister_class\nfrom . import ops\nfrom . import ui\nfrom .ui import inspect_ui\nfrom . import rainys_repo_bootstrap\n\n\n# Atomic Data Manager Properties\nclass ATOMIC_PG_main(bpy.types.PropertyGroup):\n    # main panel toggle buttons\n    collections: bpy.props.BoolProperty(default=False)\n    images: bpy.props.BoolProperty(default=False)\n    lights: bpy.props.BoolProperty(default=False)\n    materials: bpy.props.BoolProperty(default=False)\n    node_groups: bpy.props.BoolProperty(default=False)\n    particles: bpy.props.BoolProperty(default=False)\n    textures: bpy.props.BoolProperty(default=False)\n    worlds: bpy.props.BoolProperty(default=False)\n\n    # inspect data-block search fields\n    collections_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    images_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    lights_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    materials_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    node_groups_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    particles_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    textures_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    worlds_field: bpy.props.StringProperty(\n        update=inspect_ui.update_inspection)\n\n    # enum for the inspection mode that is currently active\n    active_inspection: bpy.props.EnumProperty(\n        items=[\n            (\n                'COLLECTIONS',\n                'Collections',\n                'Collections'\n            ),\n            (\n                'IMAGES',\n                'Images',\n                'Images'\n            ),\n            (\n                'LIGHTS',\n                'Lights',\n                'Lights'\n            ),\n            (\n                'MATERIALS',\n                'Materials',\n                'Materials'\n            ),\n            (\n                'NODE_GROUPS',\n                'Node Groups',\n                'Node Groups'\n            ),\n            (\n                'PARTICLES',\n                'Particles',\n                'Particles'\n            ),\n            (\n                'TEXTURES',\n                'Textures',\n                'Textures'\n            ),\n            (\n                'WORLDS',\n                'Worlds',\n                'Worlds'\n            )\n        ],\n        default='COLLECTIONS'\n    )\n\n    # enum for the type of data being shown in the stats panel\n    stats_mode: bpy.props.EnumProperty(\n        items=[\n            (\n                'OVERVIEW',  # identifier\n                'Overview',  # title\n                'Overview',  # description\n                'FILE',      # icon\n                0            # number / id\n            ),\n            (\n                'COLLECTIONS',\n                'Collections',\n                'Collections',\n                'GROUP',\n                1\n            ),\n            (\n                'IMAGES',\n                'Images',\n                'Images',\n                'IMAGE_DATA',\n                2\n            ),\n            (\n                'LIGHTS',\n                'Lights',\n                'Lights',\n                'LIGHT',\n                3\n            ),\n            (\n                'MATERIALS',\n                'Materials',\n                'Materials',\n                'MATERIAL',\n                4\n            ),\n            (\n                'OBJECTS',\n                'Objects',\n                'Objects',\n                'OBJECT_DATA',\n                5\n            ),\n            (\n                'NODE_GROUPS',\n                'Node Groups',\n                'Node Groups',\n                'NODETREE',\n                6\n            ),\n            (\n                'PARTICLES',\n                'Particle Systems',\n                'Particle Systems',\n                'PARTICLES',\n                7\n            ),\n            (\n                'TEXTURES',\n                'Textures',\n                'Textures',\n                'TEXTURE',\n                8\n            ),\n            (\n                'WORLDS',\n                'Worlds',\n                'Worlds',\n                'WORLD',\n                9\n             )\n        ],\n        default='OVERVIEW'\n    )\n\n    # text field for the inspect rename operator\n    rename_field: bpy.props.StringProperty()\n\n    # search field for the inspect replace operator\n    replace_field: bpy.props.StringProperty()\n\n\ndef register():\n    register_class(ATOMIC_PG_main)\n    bpy.types.Scene.atomic = bpy.props.PointerProperty(type=ATOMIC_PG_main)\n\n    # atomic package registration\n    ui.register()\n    ops.register()\n    \n    # bootstrap Rainy's Extensions repository\n    rainys_repo_bootstrap.register()\n\n\ndef unregister():\n    # bootstrap unregistration\n    rainys_repo_bootstrap.unregister()\n    \n    # atomic package unregistration\n    ui.unregister()\n    ops.unregister()\n\n    unregister_class(ATOMIC_PG_main)\n    del bpy.types.Scene.atomic\n"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Preparing changelog update**</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: CHANGELOG.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Updating release notes and config checks**
+
+I’m preparing to add a bullet about removing the legacy `bl_info` metadata under the Internal or Removed section, leaning toward Internal since that fits their reorganizing style. I’m also double-checking the user’s request to restore configuration options not related to support, verifying what was removed and what remains to clarify if they want to revert changes or just notes for compliance. Finally, I plan to run lint checks on `__init__` to ensure nothing is broken.</details></think>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `__init__.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Restoring config helper functions**
+
+I'm thinking it makes sense to add back general setter functions for configuration options not related to "support me," like `enable_missing_file_warning` and `enable_pie_menu_ui`, so the user sees active code changes fulfilling that request. I'll also mention removing `bl_info` and update the changelog accordingly to document these adjustments.</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="apply_patch">
+<details>
+<summary>Tool use: **apply_patch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "ui/preferences_ui.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "8e4bc410-974e-4d20-bada-865309dc223f"
+}
+```
+Result:
+
+```json
+{
+  "diff": {
+    "chunks": [
+      {
+        "diffString": "      return None\n  \n+ \n+ def _save_after_pref_change():\n+     \"\"\"\n+     Persist user preferences after programmatic updates.\n+     \"\"\"\n+     bpy.ops.wm.save_userpref()\n+ \n+ \n+ def set_enable_missing_file_warning(value):\n+     \"\"\"\n+     Programmatically toggle the missing file warning preference.\n+     \"\"\"\n+     ap = _get_addon_prefs()\n+     if not ap:\n+         return\n+     ap.enable_missing_file_warning = value\n+     copy_prefs_to_config(None, None)\n+     _save_after_pref_change()\n+ \n+ \n+ def set_include_fake_users(value):\n+     \"\"\"\n+     Programmatically toggle inclusion of fake users.\n+     \"\"\"\n+     ap = _get_addon_prefs()\n+     if not ap:\n+         return\n+     ap.include_fake_users = value\n+     copy_prefs_to_config(None, None)\n+     _save_after_pref_change()\n+ \n+ \n+ def set_enable_pie_menu_ui(value):\n+     \"\"\"\n+     Programmatically toggle the pie menu UI preference.\n+     \"\"\"\n+     ap = _get_addon_prefs()\n+     if not ap:\n+         return\n+     ap.enable_pie_menu_ui = value\n+     copy_prefs_to_config(None, None)\n+     _save_after_pref_change()\n+ \n  \n  ",
+        "oldStart": 43,
+        "newStart": 43,
+        "oldLines": 4,
+        "newLines": 47,
+        "linesAdded": 43
+      }
+    ],
+    "editor": "EDITOR_AI"
+  },
+  "shouldAutoFixLints": true,
+  "resultForModel": "Success. Updated the following files:\nM ui/preferences_ui.py",
+  "contentsAfterEdit": "\"\"\"\nCopyright (C) 2019 Remington Creative\n\nThis file is part of Atomic Data Manager.\n\nAtomic Data Manager is free software: you can redistribute\nit and/or modify it under the terms of the GNU General Public License\nas published by the Free Software Foundation, either version 3 of the\nLicense, or (at your option) any later version.\n\nAtomic Data Manager is distributed in the hope that it will\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\nGeneral Public License for more details.\n\nYou should have received a copy of the GNU General Public License along\nwith Atomic Data Manager.  If not, see &lt;https://www.gnu.org/licenses/&gt;.\n\n---\n\nThis file contains the Atomic preferences UI, preferences properties, and\nsome functions for syncing the preference properties with external factors.\n\n\"\"\"\n\nimport bpy\nfrom bpy.utils import register_class\nfrom bpy.utils import unregister_class\nfrom .. import config\n# updater removed in Blender 4.5 extension format\n\n\ndef _get_addon_prefs():\n    # robustly find our AddonPreferences instance regardless of module name\n    prefs = bpy.context.preferences\n    for addon in prefs.addons.values():\n        ap = getattr(addon, \"preferences\", None)\n        if ap and hasattr(ap, \"bl_idname\") and ap.bl_idname == ATOMIC_PT_preferences_panel.bl_idname:\n            return ap\n        # fallback: match by known property\n        if ap and hasattr(ap, \"enable_missing_file_warning\"):\n            return ap\n    return None\n\n\ndef _save_after_pref_change():\n    \"\"\"\n    Persist user preferences after programmatic updates.\n    \"\"\"\n    bpy.ops.wm.save_userpref()\n\n\ndef set_enable_missing_file_warning(value):\n    \"\"\"\n    Programmatically toggle the missing file warning preference.\n    \"\"\"\n    ap = _get_addon_prefs()\n    if not ap:\n        return\n    ap.enable_missing_file_warning = value\n    copy_prefs_to_config(None, None)\n    _save_after_pref_change()\n\n\ndef set_include_fake_users(value):\n    \"\"\"\n    Programmatically toggle inclusion of fake users.\n    \"\"\"\n    ap = _get_addon_prefs()\n    if not ap:\n        return\n    ap.include_fake_users = value\n    copy_prefs_to_config(None, None)\n    _save_after_pref_change()\n\n\ndef set_enable_pie_menu_ui(value):\n    \"\"\"\n    Programmatically toggle the pie menu UI preference.\n    \"\"\"\n    ap = _get_addon_prefs()\n    if not ap:\n        return\n    ap.enable_pie_menu_ui = value\n    copy_prefs_to_config(None, None)\n    _save_after_pref_change()\n\n\n\n\ndef copy_prefs_to_config(self, context):\n    # copies the values of Atomic's preferences to the variables in\n    # config.py for global use\n\n    atomic_preferences = _get_addon_prefs()\n    if not atomic_preferences:\n        return\n\n    # visible atomic preferences\n    config.enable_missing_file_warning = \\\n        atomic_preferences.enable_missing_file_warning\n\n    config.enable_pie_menu_ui = \\\n        atomic_preferences.enable_pie_menu_ui\n\n    config.include_fake_users = \\\n        atomic_preferences.include_fake_users\n\n    # hidden atomic preferences\n    config.pie_menu_type = \\\n        atomic_preferences.pie_menu_type\n\n    config.pie_menu_alt = \\\n        atomic_preferences.pie_menu_alt\n\n    config.pie_menu_any = \\\n        atomic_preferences.pie_menu_any\n\n    config.pie_menu_ctrl = \\\n        atomic_preferences.pie_menu_ctrl\n\n    config.pie_menu_oskey = \\\n        atomic_preferences.pie_menu_oskey\n\n    config.pie_menu_shift = \\\n        atomic_preferences.pie_menu_shift\n\n\ndef update_pie_menu_hotkeys(self, context):\n    atomic_preferences = _get_addon_prefs()\n    if not atomic_preferences:\n        return\n\n    # add the hotkeys if the preference is enabled\n    if atomic_preferences.enable_pie_menu_ui:\n        add_pie_menu_hotkeys()\n\n    # remove the hotkeys otherwise\n    else:\n        remove_pie_menu_hotkeys()\n\n\ndef add_pie_menu_hotkeys():\n    # adds the pie menu hotkeys to blender's addon keymaps\n\n    global keymaps\n    keyconfigs = bpy.context.window_manager.keyconfigs.addon\n\n    # check to see if a window keymap already exists\n    if \"Window\" in keyconfigs.keymaps.keys():\n        km = keyconfigs.keymaps['Window']\n\n    # if not, crate a new one\n    else:\n        km = keyconfigs.keymaps.new(\n            name=\"Window\",\n            space_type='EMPTY',\n            region_type='WINDOW'\n        )\n\n    # add a new keymap item to that keymap\n    kmi = km.keymap_items.new(\n        idname=\"atomic.invoke_pie_menu_ui\",\n        type=config.pie_menu_type,\n        value=\"PRESS\",\n        alt=config.pie_menu_alt,\n        any=config.pie_menu_any,\n        ctrl=config.pie_menu_ctrl,\n        oskey=config.pie_menu_oskey,\n        shift=config.pie_menu_shift,\n    )\n\n    # # point the keymap item to our pie menu\n    # kmi.properties.name = \"ATOMIC_MT_main_pie\"\n    keymaps.append((km, kmi))\n\n\ndef remove_pie_menu_hotkeys():\n    # removes the pie menu hotkeys from blender's addon keymaps if they\n    # exist there\n\n    global keymaps\n\n    # remove each hotkey in our keymaps list if it exists in blenders\n    # addon keymaps\n    for km, kmi in keymaps:\n        km.keymap_items.remove(kmi)\n\n    # clear our keymaps list\n    keymaps.clear()\n\n\n# Atomic Data Manager Preference Panel UI\nclass ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):\n    bl_idname = \"atomic_data_manager\"\n\n    # visible atomic preferences\n    enable_missing_file_warning: bpy.props.BoolProperty(\n        description=\"Display a warning on startup if Atomic detects \"\n                    \"missing files in your project\",\n        default=True\n    )\n\n    include_fake_users: bpy.props.BoolProperty(\n        description=\"Include data-blocks with only fake users in unused \"\n                    \"data detection\",\n        default=False\n    )\n\n    enable_pie_menu_ui: bpy.props.BoolProperty(\n        description=\"Enable the Atomic pie menu UI, so you can clean \"\n                    \"your project from anywhere.\",\n        default=True,\n        update=update_pie_menu_hotkeys\n    )\n\n    # hidden atomic preferences\n    pie_menu_type: bpy.props.StringProperty(\n        default=\"D\"\n    )\n\n    pie_menu_alt: bpy.props.BoolProperty(\n        default=False\n    )\n\n    pie_menu_any: bpy.props.BoolProperty(\n        default=False\n    )\n\n    pie_menu_ctrl: bpy.props.BoolProperty(\n        default=False\n    )\n\n    pie_menu_oskey: bpy.props.BoolProperty(\n        default=False\n    )\n\n    pie_menu_shift: bpy.props.BoolProperty(\n        default=False\n    )\n\n    # updater properties removed\n\n    def draw(self, context):\n        layout = self.layout\n\n        split = layout.split()\n\n        # left column\n        col = split.column()\n\n        # enable missing file warning toggle\n        col.prop(\n            self,\n            \"enable_missing_file_warning\",\n            text=\"Show Missing File Warning\"\n        )\n\n        # right column\n        col = split.column()\n\n        # ignore fake users toggle\n        col.prop(\n            self,\n            \"include_fake_users\",\n            text=\"Include Fake Users\"\n        )\n\n        # pie menu settings\n        pie_split = col.split(factor=0.55)  # nice\n\n        # enable pie menu ui toggle\n        pie_split.prop(\n            self,\n            \"enable_pie_menu_ui\",\n            text=\"Enable Pie Menu\"\n        )\n\n        # put the property in a row so it can be disabled\n        pie_row = pie_split.row()\n        pie_row.enabled = self.enable_pie_menu_ui\n\n        if pie_row.enabled:\n            # keymap item that contains our pie menu hotkey\n            # note: keymap item index hardcoded with an index -- may be\n            # dangerous if more keymap items are added\n            kmi = bpy.context.window_manager.keyconfigs.addon.keymaps[\n                'Window'].keymap_items[0]\n\n            # hotkey property\n            pie_row.prop(\n                kmi,\n                \"type\",\n                text=\"\",\n                full_event=True\n            )\n\n            # update hotkey preferences\n            self.pie_menu_type = kmi.type\n            self.pie_menu_any = kmi.any\n            self.pie_menu_alt = kmi.alt\n            self.pie_menu_ctrl = kmi.ctrl\n            self.pie_menu_oskey = kmi.oskey\n            self.pie_menu_shift = kmi.shift\n\n        separator = layout.row()  # extra space\n\n        # updater UI removed\n\n        # update config with any new preferences\n        copy_prefs_to_config(None, None)\n\n\nreg_list = [ATOMIC_PT_preferences_panel]\nkeymaps = []\n\n\ndef register():\n    for cls in reg_list:\n        register_class(cls)\n\n    # make sure global preferences are updated on registration\n    copy_prefs_to_config(None, None)\n\n    # update keymaps\n    add_pie_menu_hotkeys()\n\n\ndef unregister():\n    for cls in reg_list:\n        unregister_class(cls)\n\n    remove_pie_menu_hotkeys()\n"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Documenting changes and updating changelog**
+
+I'm making sure the _save_after preference function uses bpy.ops consistently, checking if it works in background mode, and adding detailed docstrings. Then I'll update the changelog to reflect the removal of bl_info and the restoration of programmable preference setters, placing the notes under the Internal section with clear bullet points.</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="apply_patch">
+<details>
+<summary>Tool use: **apply_patch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "CHANGELOG.md"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "b8dfa767-1eed-4301-b2e9-27eba0f9f74e"
+}
+```
+Result:
+
+```json
+{
+  "diff": {
+    "chunks": [
+      {
+        "diffString": "      - Version detection utilities in &#96;utils/version.py&#96;\r\n      - API compatibility layer in &#96;utils/compat.py&#96; for handling version differences\r\n+ - Blender metadata now relies solely on &#96;blender_manifest.toml&#96; (legacy &#96;bl_info&#96; removed)\r\n  \r\n  ### Fixes\r",
+        "oldStart": 9,
+        "newStart": 9,
+        "oldLines": 4,
+        "newLines": 5,
+        "linesAdded": 1
+      },
+      {
+        "diffString": "  - Integrated &#96;rainys_repo_bootstrap&#96; into &#96;__init__.py&#96; so the Rainy's Extensions repository is registered on add-on enable and the bootstrap guard resets on disable.\r\n  - Removed \"Support Remington Creative\" popup and all related functionality\r\n- - Removed \"Support Remington Creative\" popup and all related functionality\r\n-     - Removed Support popup preferences\n+     - Removed Support popup preferences\r\n+ - Restored non-support preference helper setters for scriptable configuration updates",
+        "oldStart": 17,
+        "newStart": 19,
+        "oldLines": 4,
+        "newLines": 4,
+        "linesRemoved": 2,
+        "linesAdded": 2
+      }
+    ],
+    "editor": "EDITOR_AI"
+  },
+  "shouldAutoFixLints": true,
+  "resultForModel": "Success. Updated the following files:\nM CHANGELOG.md",
+  "contentsAfterEdit": "# Changelog\r\n\r\nAll notable changes to this project will be documented in this file.\r\n\r\n## [v2.0.0] - Raincloud's first re-release\r\n\r\n### Feature\r\n- Multi-version Blender support (4.2 LTS, 4.5 LTS, and 5.0)\r\n    - Version detection utilities in &#96;utils/version.py&#96;\r\n    - API compatibility layer in &#96;utils/compat.py&#96; for handling version differences\r\n- Blender metadata now relies solely on &#96;blender_manifest.toml&#96; (legacy &#96;bl_info&#96; removed)\r\n\r\n### Fixes\r\n- Blender 5.0 compatibility: Fixed &#96;AttributeError&#96; when accessing scene compositor node tree (changed from &#96;scene.node_tree&#96; to &#96;scene.compositing_node_tree&#96;)\r\n- Collections assigned to &#96;rigidbody_world.collection&#96; are now correctly detected as used\r\n\r\n### Internal\r\n- GitHub Actions release workflow\r\n- Integrated &#96;rainys_repo_bootstrap&#96; into &#96;__init__.py&#96; so the Rainy's Extensions repository is registered on add-on enable and the bootstrap guard resets on disable.\r\n- Removed \"Support Remington Creative\" popup and all related functionality\r\n    - Removed Support popup preferences\r\n- Restored non-support preference helper setters for scriptable configuration updates"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Running lints on changed files**</details></think>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 2 files</summary>
+      
+Lint paths:
+
+- `CHANGELOG.md`
+- `ui/preferences_ui.py`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+**Summarizing final changes**</details></think>
+
+---
+
+Removed the legacy `bl_info` path and now rely solely on the Extensions manifest:
+
+- `__init__.py` no longer imports the version helper just for metadata, the conditional `bl_info` block is gone, and `__version__` now matches 2.0.0.
+- Changelog updated to note the manifest-only metadata change and the restored configuration helpers.
+- Added back general preference setter helpers (`set_enable_missing_file_warning`, `set_include_fake_users`, `set_enable_pie_menu_ui`) so other tooling can still tweak non-support settings programmatically; each setter re-syncs `config` and persists user prefs.
+
+Ready for testing in Blender 4.2+ with the manifest-only metadata flow.
 
 ---
 
