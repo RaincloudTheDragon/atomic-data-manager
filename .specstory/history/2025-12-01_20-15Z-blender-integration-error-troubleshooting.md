@@ -155,7 +155,7 @@ Adding a compatibility function for the scene compositor node tree and updating 
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: utils/compat.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: utils/compat.py</summary>
 
 **Chunk 1**
 Lines added: 24, lines removed: 1
@@ -167,7 +167,7 @@ Lines added: 24, lines removed: 1
 - 
 + 
 + def get_scene_compositor_node_tree(scene):
-+     &quot;&quot;&quot;
++     """
 +     Get the compositor node tree from a scene, handling version differences.
 +     
 +     In Blender 4.2/4.5: scene.node_tree
@@ -178,14 +178,14 @@ Lines added: 24, lines removed: 1
 +     
 +     Returns:
 +         NodeTree or None: The compositor node tree if available
-+     &quot;&quot;&quot;
++     """
 +     # Blender 5.0+ uses compositing_node_tree
 +     if version.is_version_at_least(5, 0, 0):
-+         if hasattr(scene, &#39;compositing_node_tree&#39;) and scene.compositing_node_tree:
++         if hasattr(scene, 'compositing_node_tree') and scene.compositing_node_tree:
 +             return scene.compositing_node_tree
 +     else:
 +         # Blender 4.2/4.5 uses node_tree
-+         if hasattr(scene, &#39;node_tree&#39;) and scene.node_tree:
++         if hasattr(scene, 'node_tree') and scene.node_tree:
 +             return scene.node_tree
 +     return None
 + 
@@ -200,7 +200,7 @@ Lines added: 24, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: stats/users.py</summary>
 
 **Chunk 1**
 Lines added: 20, lines removed: 15
@@ -225,30 +225,30 @@ Lines added: 20, lines removed: 15
 +             for node in node_tree.nodes:
   
 -             # if the node is an image node with a valid image
--             if hasattr(node, &#39;image&#39;) and node.image:
+-             if hasattr(node, 'image') and node.image:
 +                 # if the node is an image node with a valid image
-+                 if hasattr(node, &#39;image&#39;) and node.image:
++                 if hasattr(node, 'image') and node.image:
   
--                 # if the node&#39;s image is our image
+-                 # if the node's image is our image
 -                 if node.image.name == image.name:
--                     users.append(&quot;Compositor&quot;)
-+                     # if the node&#39;s image is our image
+-                     users.append("Compositor")
++                     # if the node's image is our image
 +                     if node.image.name == image.name:
-+                         users.append(&quot;Compositor&quot;)
++                         users.append("Compositor")
   
 -             # if the node is a group node with a valid node tree
--             elif hasattr(node, &#39;node_tree&#39;) and node.node_tree:
+-             elif hasattr(node, 'node_tree') and node.node_tree:
 +                 # if the node is a group node with a valid node tree
-+                 elif hasattr(node, &#39;node_tree&#39;) and node.node_tree:
++                 elif hasattr(node, 'node_tree') and node.node_tree:
   
--                 # if the node tree&#39;s name is in our list of node group
+-                 # if the node tree's name is in our list of node group
 -                 # users
 -                 if node.node_tree.name in node_group_users:
--                     users.append(&quot;Compositor&quot;)
-+                     # if the node tree&#39;s name is in our list of node group
+-                     users.append("Compositor")
++                     # if the node tree's name is in our list of node group
 +                     # users
 +                     if node.node_tree.name in node_group_users:
-+                         users.append(&quot;Compositor&quot;)
++                         users.append("Compositor")
   
       return distinct(users)
 ```
@@ -261,7 +261,7 @@ Lines added: 20, lines removed: 15
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: stats/users.py</summary>
 
 **Chunk 1**
 Lines added: 17, lines removed: 12
@@ -286,23 +286,23 @@ Lines added: 17, lines removed: 12
 +             for node in node_tree.nodes:
   
 -             # if the node is a group and has a valid node tree
--             if hasattr(node, &#39;node_tree&#39;) and node.node_tree:
+-             if hasattr(node, 'node_tree') and node.node_tree:
 +                 # if the node is a group and has a valid node tree
-+                 if hasattr(node, &#39;node_tree&#39;) and node.node_tree:
++                 if hasattr(node, 'node_tree') and node.node_tree:
   
 -                 # if the node group is our node group
 -                 if node.node_tree.name == node_group.name:
--                     users.append(&quot;Compositor&quot;)
+-                     users.append("Compositor")
 +                     # if the node group is our node group
 +                     if node.node_tree.name == node_group.name:
-+                         users.append(&quot;Compositor&quot;)
++                         users.append("Compositor")
   
 -                 # if the node group is in our list of node group users
 -                 if node.node_tree.name in node_group_users:
--                     users.append(&quot;Compositor&quot;)
+-                     users.append("Compositor")
 +                     # if the node group is in our list of node group users
 +                     if node.node_tree.name in node_group_users:
-+                         users.append(&quot;Compositor&quot;)
++                         users.append("Compositor")
   
       return distinct(users)
 ```
@@ -315,7 +315,7 @@ Lines added: 17, lines removed: 12
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: stats/users.py</summary>
 
 **Chunk 1**
 Lines added: 20, lines removed: 15
@@ -340,30 +340,30 @@ Lines added: 20, lines removed: 15
 +             for node in node_tree.nodes:
   
 -             # if the node is an texture node with a valid texture
--             if hasattr(node, &#39;texture&#39;) and node.texture:
+-             if hasattr(node, 'texture') and node.texture:
 +                 # if the node is an texture node with a valid texture
-+                 if hasattr(node, &#39;texture&#39;) and node.texture:
++                 if hasattr(node, 'texture') and node.texture:
   
--                 # if the node&#39;s texture is our texture
+-                 # if the node's texture is our texture
 -                 if node.texture.name == texture.name:
--                     users.append(&quot;Compositor&quot;)
-+                     # if the node&#39;s texture is our texture
+-                     users.append("Compositor")
++                     # if the node's texture is our texture
 +                     if node.texture.name == texture.name:
-+                         users.append(&quot;Compositor&quot;)
++                         users.append("Compositor")
   
 -             # if the node is a group node with a valid node tree
--             elif hasattr(node, &#39;node_tree&#39;) and node.node_tree:
+-             elif hasattr(node, 'node_tree') and node.node_tree:
 +                 # if the node is a group node with a valid node tree
-+                 elif hasattr(node, &#39;node_tree&#39;) and node.node_tree:
++                 elif hasattr(node, 'node_tree') and node.node_tree:
   
--                 # if the node tree&#39;s name is in our list of node group
+-                 # if the node tree's name is in our list of node group
 -                 # users
 -                 if node.node_tree.name in node_group_users:
--                     users.append(&quot;Compositor&quot;)
-+                     # if the node tree&#39;s name is in our list of node group
+-                     users.append("Compositor")
++                     # if the node tree's name is in our list of node group
 +                     # users
 +                     if node.node_tree.name in node_group_users:
-+                         users.append(&quot;Compositor&quot;)
++                         users.append("Compositor")
   
       return distinct(users)
 ```
@@ -1040,7 +1040,7 @@ Adding a function to detect collections used by the scene's RigidBodyWorld and i
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: stats/users.py</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 1
@@ -1064,7 +1064,7 @@ Lines added: 2, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: stats/users.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: stats/users.py</summary>
 
 **Chunk 1**
 Lines added: 18, lines removed: undefined
@@ -1075,8 +1075,8 @@ Lines added: 18, lines removed: undefined
   
 + 
 + def collection_rigidbody_world(collection_key):
-+     # returns a list containing &quot;RigidBodyWorld&quot; if the collection is used
-+     # by any scene&#39;s rigidbody_world.collection
++     # returns a list containing "RigidBodyWorld" if the collection is used
++     # by any scene's rigidbody_world.collection
 + 
 +     users = []
 +     collection = bpy.data.collections[collection_key]
@@ -1084,10 +1084,10 @@ Lines added: 18, lines removed: undefined
 +     # check all scenes for rigidbody_world usage
 +     for scene in bpy.data.scenes:
 +         # check if scene has rigidbody_world and if it uses our collection
-+         if hasattr(scene, &#39;rigidbody_world&#39;) and scene.rigidbody_world:
-+             if hasattr(scene.rigidbody_world, &#39;collection&#39;) and scene.rigidbody_world.collection:
++         if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:
++             if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:
 +                 if scene.rigidbody_world.collection.name == collection.name:
-+                     users.append(&quot;RigidBodyWorld&quot;)
++                     users.append("RigidBodyWorld")
 + 
 +     return distinct(users)
 + 
@@ -1286,19 +1286,19 @@ Updating the version to 2.0.0 in both locations:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: __init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: __init__.py</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
 
 ```diff
 @@ -45,5 +45,5 @@
-          &quot;name&quot;: &quot;Atomic Data Manager&quot;,
-          &quot;author&quot;: &quot;RaincloudTheDragon&quot;,
--         &quot;version&quot;: (1, 1, 0),
-+         &quot;version&quot;: (2, 0, 0),
-          &quot;blender&quot;: (4, 2, 0),
-          &quot;location&quot;: &quot;Properties &gt; Scene&quot;,
+          "name": "Atomic Data Manager",
+          "author": "RaincloudTheDragon",
+-         "version": (1, 1, 0),
++         "version": (2, 0, 0),
+          "blender": (4, 2, 0),
+          "location": "Properties &gt; Scene",
 ```
 
 </details>
@@ -1309,19 +1309,19 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: blender_manifest.toml</summary>
+<details><summary>Tool use: **search_replace** • Edit file: blender_manifest.toml</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
 
 ```diff
 @@ -3,5 +3,5 @@
-  id = &quot;atomic_data_manager&quot;
-  name = &quot;Atomic Data Manager&quot;
-- version = &quot;1.1.0&quot;
-+ version = &quot;2.0.0&quot;
-  type = &quot;add-on&quot;
-  author = &quot;RaincloudTheDragon&quot;
+  id = "atomic_data_manager"
+  name = "Atomic Data Manager"
+- version = "1.1.0"
++ version = "2.0.0"
+  type = "add-on"
+  author = "RaincloudTheDragon"
 ```
 
 </details>
@@ -1572,7 +1572,7 @@ Removing all support popup functionality:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/__init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/__init__.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -1594,7 +1594,7 @@ Lines added: undefined, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/__init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/__init__.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -1616,7 +1616,7 @@ Lines added: undefined, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/__init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/__init__.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -1637,7 +1637,7 @@ Lines added: undefined, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ops/__init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ops/__init__.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -1659,7 +1659,7 @@ Lines added: undefined, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ops/__init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ops/__init__.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -1681,7 +1681,7 @@ Lines added: undefined, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ops/__init__.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ops/__init__.py</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -1704,7 +1704,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: config.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: config.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -1756,7 +1756,7 @@ Removing the support popup from preferences:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/preferences_ui.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 6
@@ -1767,8 +1767,8 @@ Lines added: undefined, lines removed: 6
       )
 - 
 -     enable_support_me_popup: bpy.props.BoolProperty(
--         description=&quot;Occasionally display a popup asking if you would &quot;
--                     &quot;like to support Remington Creative&quot;,
+-         description="Occasionally display a popup asking if you would "
+-                     "like to support Remington Creative",
 -         default=True
 -     )
   
@@ -1783,7 +1783,7 @@ Lines added: undefined, lines removed: 6
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/preferences_ui.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 4
@@ -1808,21 +1808,21 @@ Lines added: undefined, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/preferences_ui.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 7
 
 ```diff
 @@ -238,11 +238,4 @@
-              text=&quot;Show Missing File Warning&quot;
+              text="Show Missing File Warning"
           )
 - 
 -         # enable support me popup toggle
 -         col.prop(
 -             self,
--             &quot;enable_support_me_popup&quot;,
--             text=&quot;Show \&quot;Support Me\&quot; Popup&quot;
+-             "enable_support_me_popup",
+-             text="Show \"Support Me\" Popup"
 -         )
   
           # right column
@@ -1840,7 +1840,7 @@ The string to replace was not found in the file.
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/preferences_ui.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 3
@@ -1901,7 +1901,7 @@ Reading the file to remove the remaining functions:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/preferences_ui.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 19
@@ -2055,7 +2055,7 @@ Removing the remaining reference:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: ui/preferences_ui.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: ui/preferences_ui.py</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 3
