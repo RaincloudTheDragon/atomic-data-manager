@@ -41,7 +41,8 @@ def collection_all(collection_key):
            collection_lights(collection_key) + \
            collection_meshes(collection_key) + \
            collection_others(collection_key) + \
-           collection_rigidbody_world(collection_key)
+           collection_rigidbody_world(collection_key) + \
+           collection_scenes(collection_key)
 
 
 def collection_cameras(collection_key):
@@ -172,6 +173,34 @@ def collection_rigidbody_world(collection_key):
                     users.append("RigidBodyWorld")
 
     return distinct(users)
+
+
+def collection_scenes(collection_key):
+    # returns a list of scene names that include this collection anywhere in
+    # their collection hierarchy
+
+    users = []
+    collection = bpy.data.collections[collection_key]
+
+    for scene in bpy.data.scenes:
+        if _scene_collection_contains(scene.collection, collection):
+            users.append(scene.name)
+
+    return distinct(users)
+
+
+def _scene_collection_contains(parent_collection, target_collection):
+    # helper that checks whether target_collection exists inside the
+    # parent_collection hierarchy
+
+    if parent_collection.name == target_collection.name:
+        return True
+
+    for child in parent_collection.children:
+        if _scene_collection_contains(child, target_collection):
+            return True
+
+    return False
 
 
 def image_all(image_key):
