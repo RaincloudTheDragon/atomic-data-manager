@@ -7357,3 +7357,93 @@ The changelog entry is dated 2025-12-16 and documents the compatibility fixes.
 
 ---
 
+_**User**_
+
+what
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Git is blocking the pull because the local `v2.0.0` tag conflicts with the remote `v2.0.0` tag (they may point to different commits).
+
+Options:
+1. Replace Local Tag(s) — overwrites your local `v2.0.0` with the remote version. Safe if you want to match the remote.
+2. Always Replace Local Tag(s) — same as above, and sets this as the default for future conflicts.
+3. Cancel — aborts the pull and leaves the conflict.
+
+Since you're on `v2.0.1`, you can safely replace the local `v2.0.0` tag. Choose "Replace Local Tag(s)" to proceed with the pull.
+
+If you don't need the local tag, you can also delete it manually:
+```bash
+git tag -d v2.0.0
+```
+
+Then try pulling again.
+
+---
+
+_**User**_
+
+@vscode.git.Git:1287-1381 now it's failing, what's happening
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Git is rejecting the pull because the local `v2.0.0` tag points to a different commit than the remote, so it won't overwrite it.
+
+The error:
+```
+! [rejected]        v2.0.0     -> v2.0.0  (would clobber existing tag)
+```
+
+Fixing by deleting the local `v2.0.0` tag, then pulling again:
+
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: git tag -d v2.0.0</summary>
+
+```bash
+git tag -d v2.0.0
+```
+
+```
+Deleted tag 'v2.0.0' (was fd05e5c)
+
+```
+</details>
+</tool-use>
+
+---
+
+
+Deleted the local `v2.0.0` tag. Pull again; it should work now. The remote `v2.0.0` tag will be fetched.
+
+**What happened:**
+- Your local `v2.0.0` tag pointed to commit `fd05e5c`
+- The remote `v2.0.0` tag points to a different commit
+- Git refused to overwrite your local tag to prevent accidental loss
+
+**Now you can:**
+1. Pull again — the remote `v2.0.0` tag will be fetched
+2. Continue working on `v2.0.1` — your current work is unaffected
+
+If you need to pull with tags, use:
+```bash
+git pull --tags origin master
+```
+
+Or pull without tags if you only need the code:
+```bash
+git pull origin master
+```
+
+The tag conflict is resolved.
+
+---
+
