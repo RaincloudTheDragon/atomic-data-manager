@@ -7254,3 +7254,106 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
+_**User**_
+
+add a summary to the changelog for 2.0.1 and bump 2.0.1.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Reading CHANGELOG.md and blender_manifest.toml, then updating both:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\CHANGELOG.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the CHANGELOG and bumping the version:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\CHANGELOG.md"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "1def8e5e-15c2-4c51-91dc-62eb115ca69e"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\blender_manifest.toml"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "48195a6d-233f-498f-b3f4-5f0a47cc83bc"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Updated both files:
+
+1. **CHANGELOG.md**: Added a v2.0.1 section summarizing:
+   - Blender 5.0 compatibility fix for missing library detection (`packed_file` vs `packed_files`)
+   - Unregistration error fixes in Blender 4.5
+
+2. **blender_manifest.toml**: Bumped version from `2.0.0` to `2.0.1`
+
+The changelog entry is dated 2025-12-16 and documents the compatibility fixes.
+
+---
+
