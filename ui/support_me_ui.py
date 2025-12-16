@@ -26,7 +26,7 @@ support Remington Creative popup.
 import bpy
 import time
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from bpy.app.handlers import persistent
 from .. import config
 from . import preferences_ui
@@ -123,6 +123,6 @@ def register():
 
 def unregister():
     for cls in reg_list:
-        unregister_class(cls)
+        compat.safe_unregister_class(cls)
 
     bpy.app.handlers.load_post.remove(show_support_me_popup)

@@ -25,7 +25,7 @@ some functions for syncing the preference properties with external factors.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from .. import config
 # updater removed in Blender 4.5 extension format
 
@@ -328,6 +328,6 @@ def register():
 
 def unregister():
     for cls in reg_list:
-        unregister_class(cls)
+        compat.safe_unregister_class(cls)
 
     remove_pie_menu_hotkeys()

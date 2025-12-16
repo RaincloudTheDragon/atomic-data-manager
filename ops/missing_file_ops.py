@@ -31,7 +31,7 @@ attempting to reload missing project files.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from ..stats import missing
 from ..ui.utils import ui_layouts
 
@@ -192,4 +192,4 @@ def register():
 
 def unregister():
     for item in reg_list:
-        unregister_class(item)
+        compat.safe_unregister_class(item)
