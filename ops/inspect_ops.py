@@ -26,7 +26,7 @@ operators.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from .utils import delete
 from .utils import duplicate
 
@@ -437,4 +437,4 @@ def register():
 
 def unregister():
     for item in reg_list:
-        unregister_class(item)
+        compat.safe_unregister_class(item)

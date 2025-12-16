@@ -30,7 +30,7 @@ intefaces in Blender.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from .. import config
 from ..stats import unused
 from .utils import nuke
@@ -790,4 +790,4 @@ def register():
 
 def unregister():
     for item in reg_list:
-        unregister_class(item)
+        compat.safe_unregister_class(item)

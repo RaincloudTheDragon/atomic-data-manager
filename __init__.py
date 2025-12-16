@@ -25,7 +25,7 @@ registration for all packages within the add-on.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from .utils import compat
 from . import ops
 from . import ui
 from .ui import inspect_ui
@@ -220,5 +220,5 @@ def unregister():
     ui.unregister()
     ops.unregister()
 
-    unregister_class(ATOMIC_PG_main)
+    compat.safe_unregister_class(ATOMIC_PG_main)
     del bpy.types.Scene.atomic

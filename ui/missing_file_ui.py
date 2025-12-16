@@ -25,7 +25,7 @@ pops up when missing files are detected on file load.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from bpy.app.handlers import persistent
 from .. import config
 from ..stats import missing
@@ -189,7 +189,7 @@ def register():
 
 def unregister():
     for item in reg_list:
-        unregister_class(item)
+        compat.safe_unregister_class(item)
 
     # stop running missing file auto-detection after loading a Blender file
     bpy.app.handlers.load_post.remove(autodetect_missing_files)

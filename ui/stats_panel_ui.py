@@ -28,7 +28,7 @@ it.
 
 import bpy
 from bpy.utils import register_class
-from bpy.utils import unregister_class
+from ..utils import compat
 from ..stats import count
 from ..stats import misc
 from .utils import ui_layouts
@@ -373,4 +373,4 @@ def register():
 
 def unregister():
     for cls in reg_list:
-        unregister_class(cls)
+        compat.safe_unregister_class(cls)
