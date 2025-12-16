@@ -1,6 +1,8 @@
-# Changelog
+## [v2.0.1] - 2025-12-16
 
-All notable changes to this project will be documented in this file.
+### Fixes
+- Blender 5.0 compatibility: Fixed `AttributeError` when detecting missing library files (Library objects use `packed_file` singular, Image objects use `packed_files` plural in 5.0)
+- Fixed unregistration errors in Blender 4.5 by using safe unregister functions throughout the codebase
 
 ## [v2.0.0] - Raincloud's first re-release
 
