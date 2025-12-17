@@ -1,3 +1,8 @@
+## [v2.0.3] - 2025-12-17
+
+### Fixes
+- Fixed missing import error in missing file detection
+
 ## [v2.0.2] - 2025-12-17
 
 ### Fixes
