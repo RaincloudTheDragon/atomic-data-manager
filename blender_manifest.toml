@@ -2,7 +2,7 @@ schema_version = "1.0.0"
 
 id = "atomic_data_manager"
 name = "Atomic Data Manager"
-version = "2.0.2"
+version = "2.0.3"
 type = "add-on"
 author = "RaincloudTheDragon"
 maintainer = "RaincloudTheDragon"
