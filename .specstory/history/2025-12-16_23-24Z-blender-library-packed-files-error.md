@@ -7365,7 +7365,6 @@ what
 
 _**Agent (model default, mode Agent)**_
 
-
 Git is blocking the pull because the local `v2.0.0` tag conflicts with the remote `v2.0.0` tag (they may point to different commits).
 
 Options:
@@ -20670,6 +20669,746 @@ The addon is now loading cleanly in Blender 5.0 without registration conflicts. 
 _**User**_
 
 @blender (1012-1075) anything out of the ordinary?
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Reviewing the output: no errors from atomic_data_manager. The issues are from other addons:
+
+1. `simple_renaming_panel` — `AttributeError: 'Action' object has no attribute 'fcurves'` (Blender 5.0 API change)
+2. `Animation_Layers` — `IndexError` in poll functions
+3. `blenderkit` — warning about a Python class
+
+The "Pie menus with more than 8 items" warnings could be from atomic_data_manager if its pie menus exceed 8 items. Checking:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "pie|PIE",
+  "path": "E:\\atomic_data_manager\\ui",
+  "caseInsensitive": true
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "pie|PIE",
+    "path": "E:\\atomic_data_manager\\ui",
+    "outputMode": "content",
+    "workspaceResults": {
+      "E:\\atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": "ui/__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 30,
+                  "content": "from . import pie_menu_ui"
+                },
+                {
+                  "lineNumber": 43,
+                  "content": "    pie_menu_ui.register()"
+                },
+                {
+                  "lineNumber": 51,
+                  "content": "    pie_menu_ui.unregister()"
+                }
+              ]
+            },
+            {
+              "file": "ui/preferences_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 77,
+                  "content": "def set_enable_pie_menu_ui(value):"
+                },
+                {
+                  "lineNumber": 79,
+                  "content": "    Programmatically toggle the pie menu UI preference."
+                },
+                {
+                  "lineNumber": 84,
+                  "content": "    ap.enable_pie_menu_ui = value"
+                },
+                {
+                  "lineNumber": 92,
+                  "content": "    # copies the values of Atomic's preferences to the variables in"
+                },
+                {
+                  "lineNumber": 103,
+                  "content": "    config.enable_pie_menu_ui = \\"
+                },
+                {
+                  "lineNumber": 104,
+                  "content": "        atomic_preferences.enable_pie_menu_ui"
+                },
+                {
+                  "lineNumber": 110,
+                  "content": "    config.pie_menu_type = \\"
+                },
+                {
+                  "lineNumber": 111,
+                  "content": "        atomic_preferences.pie_menu_type"
+                },
+                {
+                  "lineNumber": 113,
+                  "content": "    config.pie_menu_alt = \\"
+                },
+                {
+                  "lineNumber": 114,
+                  "content": "        atomic_preferences.pie_menu_alt"
+                },
+                {
+                  "lineNumber": 116,
+                  "content": "    config.pie_menu_any = \\"
+                },
+                {
+                  "lineNumber": 117,
+                  "content": "        atomic_preferences.pie_menu_any"
+                },
+                {
+                  "lineNumber": 119,
+                  "content": "    config.pie_menu_ctrl = \\"
+                },
+                {
+                  "lineNumber": 120,
+                  "content": "        atomic_preferences.pie_menu_ctrl"
+                },
+                {
+                  "lineNumber": 122,
+                  "content": "    config.pie_menu_oskey = \\"
+                },
+                {
+                  "lineNumber": 123,
+                  "content": "        atomic_preferences.pie_menu_oskey"
+                },
+                {
+                  "lineNumber": 125,
+                  "content": "    config.pie_menu_shift = \\"
+                },
+                {
+                  "lineNumber": 126,
+                  "content": "        atomic_preferences.pie_menu_shift"
+                },
+                {
+                  "lineNumber": 129,
+                  "content": "def update_pie_menu_hotkeys(self, context):"
+                },
+                {
+                  "lineNumber": 135,
+                  "content": "    if atomic_preferences.enable_pie_menu_ui:"
+                },
+                {
+                  "lineNumber": 136,
+                  "content": "        add_pie_menu_hotkeys()"
+                },
+                {
+                  "lineNumber": 140,
+                  "content": "        remove_pie_menu_hotkeys()"
+                },
+                {
+                  "lineNumber": 143,
+                  "content": "def add_pie_menu_hotkeys():"
+                },
+                {
+                  "lineNumber": 144,
+                  "content": "    # adds the pie menu hotkeys to blender's addon keymaps"
+                },
+                {
+                  "lineNumber": 163,
+                  "content": "        idname=\"atomic.invoke_pie_menu_ui\","
+                },
+                {
+                  "lineNumber": 164,
+                  "content": "        type=config.pie_menu_type,"
+                },
+                {
+                  "lineNumber": 166,
+                  "content": "        alt=config.pie_menu_alt,"
+                },
+                {
+                  "lineNumber": 167,
+                  "content": "        any=config.pie_menu_any,"
+                },
+                {
+                  "lineNumber": 168,
+                  "content": "        ctrl=config.pie_menu_ctrl,"
+                },
+                {
+                  "lineNumber": 169,
+                  "content": "        oskey=config.pie_menu_oskey,"
+                },
+                {
+                  "lineNumber": 170,
+                  "content": "        shift=config.pie_menu_shift,"
+                },
+                {
+                  "lineNumber": 173,
+                  "content": "    # # point the keymap item to our pie menu"
+                },
+                {
+                  "lineNumber": 174,
+                  "content": "    # kmi.properties.name = \"ATOMIC_MT_main_pie\""
+                },
+                {
+                  "lineNumber": 178,
+                  "content": "def remove_pie_menu_hotkeys():"
+                },
+                {
+                  "lineNumber": 179,
+                  "content": "    # removes the pie menu hotkeys from blender's addon keymaps if they"
+                },
+                {
+                  "lineNumber": 210,
+                  "content": "    enable_pie_menu_ui: bpy.props.BoolProperty("
+                },
+                {
+                  "lineNumber": 211,
+                  "content": "        description=\"Enable the Atomic pie menu UI, so you can clean \""
+                },
+                {
+                  "lineNumber": 214,
+                  "content": "        update=update_pie_menu_hotkeys"
+                },
+                {
+                  "lineNumber": 218,
+                  "content": "    pie_menu_type: bpy.props.StringProperty("
+                },
+                {
+                  "lineNumber": 222,
+                  "content": "    pie_menu_alt: bpy.props.BoolProperty("
+                },
+                {
+                  "lineNumber": 226,
+                  "content": "    pie_menu_any: bpy.props.BoolProperty("
+                },
+                {
+                  "lineNumber": 230,
+                  "content": "    pie_menu_ctrl: bpy.props.BoolProperty("
+                },
+                {
+                  "lineNumber": 234,
+                  "content": "    pie_menu_oskey: bpy.props.BoolProperty("
+                },
+                {
+                  "lineNumber": 238,
+                  "content": "    pie_menu_shift: bpy.props.BoolProperty("
+                },
+                {
+                  "lineNumber": 269,
+                  "content": "        # pie menu settings"
+                },
+                {
+                  "lineNumber": 270,
+                  "content": "        pie_split = col.split(factor=0.55)  # nice"
+                },
+                {
+                  "lineNumber": 272,
+                  "content": "        # enable pie menu ui toggle"
+                },
+                {
+                  "lineNumber": 273,
+                  "content": "        pie_split.prop("
+                },
+                {
+                  "lineNumber": 275,
+                  "content": "            \"enable_pie_menu_ui\","
+                },
+                {
+                  "lineNumber": 276,
+                  "content": "            text=\"Enable Pie Menu\""
+                },
+                {
+                  "lineNumber": 280,
+                  "content": "        pie_row = pie_split.row()"
+                },
+                {
+                  "lineNumber": 281,
+                  "content": "        pie_row.enabled = self.enable_pie_menu_ui"
+                },
+                {
+                  "lineNumber": 283,
+                  "content": "        if pie_row.enabled:"
+                },
+                {
+                  "lineNumber": 284,
+                  "content": "            # keymap item that contains our pie menu hotkey"
+                },
+                {
+                  "lineNumber": 291,
+                  "content": "            pie_row.prop("
+                },
+                {
+                  "lineNumber": 299,
+                  "content": "            self.pie_menu_type = kmi.type"
+                },
+                {
+                  "lineNumber": 300,
+                  "content": "            self.pie_menu_any = kmi.any"
+                },
+                {
+                  "lineNumber": 301,
+                  "content": "            self.pie_menu_alt = kmi.alt"
+                },
+                {
+                  "lineNumber": 302,
+                  "content": "            self.pie_menu_ctrl = kmi.ctrl"
+                },
+                {
+                  "lineNumber": 303,
+                  "content": "            self.pie_menu_oskey = kmi.oskey"
+                },
+                {
+                  "lineNumber": 304,
+                  "content": "            self.pie_menu_shift = kmi.shift"
+                },
+                {
+                  "lineNumber": 326,
+                  "content": "    add_pie_menu_hotkeys()"
+                },
+                {
+                  "lineNumber": 333,
+                  "content": "    remove_pie_menu_hotkeys()"
+                }
+              ]
+            },
+            {
+              "file": "ui/utils/ui_layouts.py",
+              "matches": [
+                {
+                  "lineNumber": 157,
+                  "content": "    # determine whether or not the piece of data is using a fake user"
+                }
+              ]
+            },
+            {
+              "file": "ui/pie_menu_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 21,
+                  "content": "This file contains Atomic's pie menu UI and its pie menu keymap"
+                },
+                {
+                  "lineNumber": 31,
+                  "content": "# Atomic Data Manager Main Pie Menu"
+                },
+                {
+                  "lineNumber": 32,
+                  "content": "class ATOMIC_MT_main_pie(bpy.types.Menu):"
+                },
+                {
+                  "lineNumber": 33,
+                  "content": "    bl_idname = \"ATOMIC_MT_main_pie\""
+                },
+                {
+                  "lineNumber": 38,
+                  "content": "        pie = layout.menu_pie()"
+                },
+                {
+                  "lineNumber": 41,
+                  "content": "        pie.operator("
+                },
+                {
+                  "lineNumber": 48,
+                  "content": "        pie.operator("
+                },
+                {
+                  "lineNumber": 55,
+                  "content": "        pie.operator("
+                },
+                {
+                  "lineNumber": 62,
+                  "content": "        pie.operator("
+                },
+                {
+                  "lineNumber": 63,
+                  "content": "            \"wm.call_menu_pie\","
+                },
+                {
+                  "lineNumber": 66,
+                  "content": "        ).name = \"ATOMIC_MT_inspect_pie\""
+                },
+                {
+                  "lineNumber": 69,
+                  "content": "        pie.operator("
+                },
+                {
+                  "lineNumber": 70,
+                  "content": "            \"wm.call_menu_pie\","
+                },
+                {
+                  "lineNumber": 73,
+                  "content": "        ).name = \"ATOMIC_MT_nuke_pie\""
+                },
+                {
+                  "lineNumber": 76,
+                  "content": "        pie.operator("
+                },
+                {
+                  "lineNumber": 77,
+                  "content": "            \"wm.call_menu_pie\","
+                },
+                {
+                  "lineNumber": 80,
+                  "content": "        ).name = \"ATOMIC_MT_clean_pie\""
+                },
+                {
+                  "lineNumber": 83,
+                  "content": "# Atomic Data Manager Nuke Pie Menu"
+                },
+                {
+                  "lineNumber": 84,
+                  "content": "class ATOMIC_MT_nuke_pie(bpy.types.Menu):"
+                },
+                {
+                  "lineNumber": 85,
+                  "content": "    bl_idname = \"ATOMIC_MT_nuke_pie\""
+                },
+                {
+                  "lineNumber": 90,
+                  "content": "        pie = layout.menu_pie()"
+                },
+                {
+                  "lineNumber": 93,
+                  "content": "        pie.operator(\"atomic.nuke_node_groups\", icon=\"NODETREE\")"
+                },
+                {
+                  "lineNumber": 96,
+                  "content": "        pie.operator(\"atomic.nuke_materials\", icon=\"MATERIAL\")"
+                },
+                {
+                  "lineNumber": 99,
+                  "content": "        pie.operator(\"atomic.nuke_worlds\", icon=\"WORLD\")"
+                },
+                {
+                  "lineNumber": 102,
+                  "content": "        pie.operator(\"atomic.nuke_collections\", icon=\"GROUP\")"
+                },
+                {
+                  "lineNumber": 105,
+                  "content": "        pie.operator(\"atomic.nuke_lights\", icon=\"LIGHT\")"
+                },
+                {
+                  "lineNumber": 108,
+                  "content": "        pie.operator(\"atomic.nuke_images\", icon=\"IMAGE_DATA\")"
+                },
+                {
+                  "lineNumber": 111,
+                  "content": "        pie.operator(\"atomic.nuke_textures\", icon=\"TEXTURE\")"
+                },
+                {
+                  "lineNumber": 114,
+                  "content": "        pie.operator(\"atomic.nuke_particles\", icon=\"PARTICLES\")"
+                },
+                {
+                  "lineNumber": 117,
+                  "content": "# Atomic Data Manager Clean Pie Menu"
+                },
+                {
+                  "lineNumber": 118,
+                  "content": "class ATOMIC_MT_clean_pie(bpy.types.Menu):"
+                },
+                {
+                  "lineNumber": 119,
+                  "content": "    bl_idname = \"ATOMIC_MT_clean_pie\""
+                },
+                {
+                  "lineNumber": 124,
+                  "content": "        pie = layout.menu_pie()"
+                },
+                {
+                  "lineNumber": 127,
+                  "content": "        pie.operator(\"atomic.clean_node_groups\", icon=\"NODETREE\")"
+                },
+                {
+                  "lineNumber": 130,
+                  "content": "        pie.operator(\"atomic.clean_materials\", icon=\"MATERIAL\")"
+                },
+                {
+                  "lineNumber": 133,
+                  "content": "        pie.operator(\"atomic.clean_worlds\", icon=\"WORLD\")"
+                },
+                {
+                  "lineNumber": 136,
+                  "content": "        pie.operator(\"atomic.clean_collections\", icon=\"GROUP\")"
+                },
+                {
+                  "lineNumber": 139,
+                  "content": "        pie.operator(\"atomic.clean_lights\", icon=\"LIGHT\")"
+                },
+                {
+                  "lineNumber": 142,
+                  "content": "        pie.operator(\"atomic.clean_images\", icon=\"IMAGE_DATA\")"
+                },
+                {
+                  "lineNumber": 145,
+                  "content": "        pie.operator(\"atomic.clean_textures\", icon=\"TEXTURE\")"
+                },
+                {
+                  "lineNumber": 148,
+                  "content": "        pie.operator(\"atomic.clean_particles\", icon=\"PARTICLES\")"
+                },
+                {
+                  "lineNumber": 151,
+                  "content": "# Atomic Data Manager Inspect Pie Menu"
+                },
+                {
+                  "lineNumber": 152,
+                  "content": "class ATOMIC_MT_inspect_pie(bpy.types.Menu):"
+                },
+                {
+                  "lineNumber": 153,
+                  "content": "    bl_idname = \"ATOMIC_MT_inspect_pie\""
+                },
+                {
+                  "lineNumber": 158,
+                  "content": "        pie = layout.menu_pie()"
+                },
+                {
+                  "lineNumber": 161,
+                  "content": "        pie.operator(\"atomic.inspect_node_groups\", icon=\"NODETREE\")"
+                },
+                {
+                  "lineNumber": 164,
+                  "content": "        pie.operator(\"atomic.inspect_materials\", icon=\"MATERIAL\")"
+                },
+                {
+                  "lineNumber": 167,
+                  "content": "        pie.operator(\"atomic.inspect_worlds\", icon=\"WORLD\")"
+                },
+                {
+                  "lineNumber": 170,
+                  "content": "        pie.operator(\"atomic.inspect_collections\", icon=\"GROUP\")"
+                },
+                {
+                  "lineNumber": 173,
+                  "content": "        pie.operator(\"atomic.inspect_lights\", icon=\"LIGHT\")"
+                },
+                {
+                  "lineNumber": 176,
+                  "content": "        pie.operator(\"atomic.inspect_images\", icon=\"IMAGE_DATA\")"
+                },
+                {
+                  "lineNumber": 179,
+                  "content": "        pie.operator(\"atomic.inspect_textures\", icon=\"TEXTURE\")"
+                },
+                {
+                  "lineNumber": 182,
+                  "content": "        pie.operator(\"atomic.inspect_particles\", icon=\"PARTICLES\")"
+                },
+                {
+                  "lineNumber": 186,
+                  "content": "    ATOMIC_MT_main_pie,"
+                },
+                {
+                  "lineNumber": 187,
+                  "content": "    ATOMIC_MT_nuke_pie,"
+                },
+                {
+                  "lineNumber": 188,
+                  "content": "    ATOMIC_MT_clean_pie,"
+                },
+                {
+                  "lineNumber": 189,
+                  "content": "    ATOMIC_MT_inspect_pie"
+                }
+              ]
+            }
+          ],
+          "totalLines": 124,
+          "totalMatchedLines": 124
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\pie_menu_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Checking pie menu item counts:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\pie_menu_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Findings:
+
+1. No errors from atomic_data_manager — all errors are from other addons.
+
+2. Pie menu warnings — the nuke, clean, and inspect pie menus each have 8 items. The warning says "more than 8 items are currently unsupported", so 8 should be fine, but Blender 5.0 may have changed the limit or the warning is overly strict. These are warnings, not errors; the menus should still work.
+
+3. "Info: Deleted 117 data-block(s)" — normal if you ran a nuke/clean operation. The library/override filtering should have excluded library datablocks.
+
+Summary: Nothing out of the ordinary for atomic_data_manager. The errors shown are from:
+- `simple_renaming_panel` (Blender 5.0 API compatibility issue)
+- `Animation_Layers` (addon bug)
+- `blenderkit` (minor warning)
+
+The pie menu warnings are cosmetic and shouldn't affect functionality. The addon appears to be working correctly.
+
+---
+
+_**User**_
+
+bump 2.0.2 and amend the changelog with this change.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Bumping the version to 2.0.2 and updating the CHANGELOG with the library/override filtering changes:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\CHANGELOG.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the version and CHANGELOG:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\blender_manifest.toml"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "2d378982-44f5-4601-af2c-2a9385e074ee"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\CHANGELOG.md"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "fefa4363-1b37-426f-ad51-5d7587440c7a"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Updated both files:
+
+1. **blender_manifest.toml**: Version bumped from `2.0.1` to `2.0.2`
+
+2. **CHANGELOG.md**: Added a new v2.0.2 section documenting:
+   - Library-linked datablock filtering
+   - Override datablock filtering
+   - Protection against modifying library data
+   - Error messages for inspect operations on library/override datablocks
+
+The changelog entry is dated 2025-12-17 and describes the library/override filtering changes.
+
+---
+
+_**User**_
+
+less verbose please.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Making the changelog entry more concise:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\CHANGELOG.md</summary>
+
+</details>
+</tool-use>
 
 ---
 

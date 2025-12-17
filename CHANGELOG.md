@@ -1,3 +1,8 @@
+## [v2.0.2] - 2025-12-17
+
+### Fixes
+- Atomic now completely ignores all library-linked and override datablocks across all operations, as originally intended.
+
 ## [v2.0.1] - 2025-12-16
 
 ### Fixes
