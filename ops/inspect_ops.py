@@ -31,6 +31,13 @@ from .utils import delete
 from .utils import duplicate
 
 
+def _check_library_or_override(datablock):
+    """Check if datablock is library-linked or override, return error message if so."""
+    if compat.is_library_or_override(datablock):
+        return "Cannot modify library-linked or override datablocks"
+    return None
+
+
 # Atomic Data Manager Inspection Rename Operator
 class ATOMIC_OT_inspection_rename(bpy.types.Operator):
     """Give this data-block a new name"""
@@ -51,35 +58,75 @@ class ATOMIC_OT_inspection_rename(bpy.types.Operator):
         name = atom.rename_field
 
         if inspection == 'COLLECTIONS':
-            bpy.data.collections[atom.collections_field].name = name
+            collection = bpy.data.collections[atom.collections_field]
+            error = _check_library_or_override(collection)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            collection.name = name
             atom.collections_field = name
 
         if inspection == 'IMAGES':
-            bpy.data.images[atom.images_field].name = name
+            image = bpy.data.images[atom.images_field]
+            error = _check_library_or_override(image)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            image.name = name
             atom.images_field = name
 
         if inspection == 'LIGHTS':
-            bpy.data.lights[atom.lights_field].name = name
+            light = bpy.data.lights[atom.lights_field]
+            error = _check_library_or_override(light)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            light.name = name
             atom.lights_field = name
 
         if inspection == 'MATERIALS':
-            bpy.data.materials[atom.materials_field].name = name
+            material = bpy.data.materials[atom.materials_field]
+            error = _check_library_or_override(material)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            material.name = name
             atom.materials_field = name
 
         if inspection == 'NODE_GROUPS':
-            bpy.data.node_groups[atom.node_groups_field].name = name
+            node_group = bpy.data.node_groups[atom.node_groups_field]
+            error = _check_library_or_override(node_group)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            node_group.name = name
             atom.node_groups_field = name
 
         if inspection == 'PARTICLES':
-            bpy.data.particles[atom.particles_field].name = name
+            particle = bpy.data.particles[atom.particles_field]
+            error = _check_library_or_override(particle)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            particle.name = name
             atom.particles_field = name
 
         if inspection == 'TEXTURES':
-            bpy.data.textures[atom.textures_field].name = name
+            texture = bpy.data.textures[atom.textures_field]
+            error = _check_library_or_override(texture)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            texture.name = name
             atom.textures_field = name
 
         if inspection == 'WORLDS':
-            bpy.data.worlds[atom.worlds_field].name = name
+            world = bpy.data.worlds[atom.worlds_field]
+            error = _check_library_or_override(world)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            world.name = name
             atom.worlds_field = name
 
         atom.rename_field = ""
@@ -172,44 +219,72 @@ class ATOMIC_OT_inspection_replace(bpy.types.Operator):
 
         if inspection == 'IMAGES' and \
                 atom.replace_field in bpy.data.images.keys():
-            bpy.data.images[atom.images_field].user_remap(
-                bpy.data.images[atom.replace_field])
+            image = bpy.data.images[atom.images_field]
+            error = _check_library_or_override(image)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            image.user_remap(bpy.data.images[atom.replace_field])
             atom.images_field = atom.replace_field
 
         if inspection == 'LIGHTS' and \
                 atom.replace_field in bpy.data.lights.keys():
-            bpy.data.lights[atom.lights_field].user_remap(
-                bpy.data.lights[atom.replace_field])
+            light = bpy.data.lights[atom.lights_field]
+            error = _check_library_or_override(light)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            light.user_remap(bpy.data.lights[atom.replace_field])
             atom.lights_field = atom.replace_field
 
         if inspection == 'MATERIALS' and \
                 atom.replace_field in bpy.data.materials.keys():
-            bpy.data.materials[atom.materials_field].user_remap(
-                bpy.data.materials[atom.replace_field])
+            material = bpy.data.materials[atom.materials_field]
+            error = _check_library_or_override(material)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            material.user_remap(bpy.data.materials[atom.replace_field])
             atom.materials_field = atom.replace_field
 
         if inspection == 'NODE_GROUPS' and \
                 atom.replace_field in bpy.data.node_groups.keys():
-            bpy.data.node_groups[atom.node_groups_field].user_remap(
-                bpy.data.node_groups[atom.replace_field])
+            node_group = bpy.data.node_groups[atom.node_groups_field]
+            error = _check_library_or_override(node_group)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            node_group.user_remap(bpy.data.node_groups[atom.replace_field])
             atom.node_groups_field = atom.replace_field
 
         if inspection == 'PARTICLES' and \
                 atom.replace_field in bpy.data.particles.keys():
-            bpy.data.particles[atom.particles_field].user_remap(
-                bpy.data.particles[atom.replace_field])
+            particle = bpy.data.particles[atom.particles_field]
+            error = _check_library_or_override(particle)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            particle.user_remap(bpy.data.particles[atom.replace_field])
             atom.particles_field = atom.replace_field
 
         if inspection == 'TEXTURES' and \
                 atom.replace_field in bpy.data.textures.keys():
-            bpy.data.textures[atom.textures_field].user_remap(
-                bpy.data.textures[atom.replace_field])
+            texture = bpy.data.textures[atom.textures_field]
+            error = _check_library_or_override(texture)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            texture.user_remap(bpy.data.textures[atom.replace_field])
             atom.textures_field = atom.replace_field
 
         if inspection == 'WORLDS' and \
                 atom.replace_field in bpy.data.worlds.keys():
-            bpy.data.worlds[atom.worlds_field].user_remap(
-                bpy.data.worlds[atom.replace_field])
+            world = bpy.data.worlds[atom.worlds_field]
+            error = _check_library_or_override(world)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            world.user_remap(bpy.data.worlds[atom.replace_field])
             atom.worlds_field = atom.replace_field
 
         atom.replace_field = ""
@@ -232,38 +307,59 @@ class ATOMIC_OT_inspection_toggle_fake_user(bpy.types.Operator):
 
         if inspection == 'IMAGES':
             image = bpy.data.images[atom.images_field]
-            bpy.data.images[atom.images_field].use_fake_user = \
-                not image.use_fake_user
+            error = _check_library_or_override(image)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            image.use_fake_user = not image.use_fake_user
 
         if inspection == 'LIGHTS':
             light = bpy.data.lights[atom.lights_field]
-            bpy.data.lights[atom.lights_field].use_fake_user = \
-                not light.use_fake_user
+            error = _check_library_or_override(light)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            light.use_fake_user = not light.use_fake_user
 
         if inspection == 'MATERIALS':
             material = bpy.data.materials[atom.materials_field]
-            bpy.data.materials[atom.materials_field].use_fake_user = \
-                not material.use_fake_user
+            error = _check_library_or_override(material)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            material.use_fake_user = not material.use_fake_user
 
         if inspection == 'NODE_GROUPS':
             node_group = bpy.data.node_groups[atom.node_groups_field]
-            bpy.data.node_groups[atom.node_groups_field].use_fake_user = \
-                not node_group.use_fake_user
+            error = _check_library_or_override(node_group)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            node_group.use_fake_user = not node_group.use_fake_user
 
         if inspection == 'PARTICLES':
             particle = bpy.data.particles[atom.particles_field]
-            bpy.data.particles[atom.particles_field].use_fake_user = \
-                not particle.use_fake_user
+            error = _check_library_or_override(particle)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            particle.use_fake_user = not particle.use_fake_user
 
         if inspection == 'TEXTURES':
             texture = bpy.data.textures[atom.textures_field]
-            bpy.data.textures[atom.textures_field].use_fake_user = \
-                not texture.use_fake_user
+            error = _check_library_or_override(texture)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            texture.use_fake_user = not texture.use_fake_user
 
         if inspection == 'WORLDS':
             world = bpy.data.worlds[atom.worlds_field]
-            bpy.data.worlds[atom.worlds_field].use_fake_user = \
-                not world.use_fake_user
+            error = _check_library_or_override(world)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            world.use_fake_user = not world.use_fake_user
 
         return {'FINISHED'}
 
@@ -283,6 +379,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             collections = bpy.data.collections
 
             if key in collections.keys():
+                collection = collections[key]
+                error = _check_library_or_override(collection)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.collection(key)
                 atom.collections_field = copy_key
 
@@ -291,6 +392,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             images = bpy.data.images
 
             if key in images.keys():
+                image = images[key]
+                error = _check_library_or_override(image)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.image(key)
                 atom.images_field = copy_key
 
@@ -299,6 +405,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             lights = bpy.data.lights
 
             if key in lights.keys():
+                light = lights[key]
+                error = _check_library_or_override(light)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.light(key)
                 atom.lights_field = copy_key
 
@@ -307,6 +418,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             materials = bpy.data.materials
 
             if key in materials.keys():
+                material = materials[key]
+                error = _check_library_or_override(material)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.material(key)
                 atom.materials_field = copy_key
 
@@ -315,6 +431,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             node_groups = bpy.data.node_groups
 
             if key in node_groups.keys():
+                node_group = node_groups[key]
+                error = _check_library_or_override(node_group)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.node_group(key)
                 atom.node_groups_field = copy_key
 
@@ -323,6 +444,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             particles = bpy.data.particles
 
             if key in particles.keys():
+                particle = particles[key]
+                error = _check_library_or_override(particle)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.particle(key)
                 atom.particles_field = copy_key
 
@@ -331,6 +457,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             textures = bpy.data.textures
 
             if key in textures.keys():
+                texture = textures[key]
+                error = _check_library_or_override(texture)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.texture(key)
                 atom.textures_field = copy_key
 
@@ -339,6 +470,11 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
             worlds = bpy.data.worlds
 
             if key in worlds.keys():
+                world = worlds[key]
+                error = _check_library_or_override(world)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 copy_key = duplicate.world(key)
                 atom.worlds_field = copy_key
 
@@ -360,6 +496,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             collections = bpy.data.collections
 
             if key in collections.keys():
+                collection = collections[key]
+                error = _check_library_or_override(collection)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.collection(key)
                 atom.collections_field = ""
 
@@ -368,6 +509,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             images = bpy.data.images
 
             if key in images.keys():
+                image = images[key]
+                error = _check_library_or_override(image)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.image(key)
                 atom.images_field = ""
 
@@ -376,6 +522,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             lights = bpy.data.lights
 
             if key in lights.keys():
+                light = lights[key]
+                error = _check_library_or_override(light)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.light(key)
                 atom.lights_field = ""
 
@@ -384,6 +535,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             materials = bpy.data.materials
 
             if key in materials.keys():
+                material = materials[key]
+                error = _check_library_or_override(material)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.material(key)
                 atom.materials_field = ""
 
@@ -392,6 +548,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             node_groups = bpy.data.node_groups
 
             if key in node_groups.keys():
+                node_group = node_groups[key]
+                error = _check_library_or_override(node_group)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.node_group(key)
                 atom.node_groups_field = ""
 
@@ -399,6 +560,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             key = atom.particles_field
             particles = bpy.data.particles
             if key in particles.keys():
+                particle = particles[key]
+                error = _check_library_or_override(particle)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.particle(key)
                 atom.particles_field = ""
 
@@ -407,6 +573,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             textures = bpy.data.textures
 
             if key in textures.keys():
+                texture = textures[key]
+                error = _check_library_or_override(texture)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.texture(key)
                 atom.textures_field = ""
 
@@ -415,6 +586,11 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
             worlds = bpy.data.worlds
 
             if key in worlds.keys():
+                world = worlds[key]
+                error = _check_library_or_override(world)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
                 delete.world(key)
                 atom.worlds_field = ""
 

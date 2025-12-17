@@ -152,3 +152,25 @@ def get_scene_compositor_node_tree(scene):
         if hasattr(scene, 'node_tree') and scene.node_tree:
             return scene.node_tree
     return None
+
+
+def is_library_or_override(datablock):
+    """
+    Check if a datablock is library-linked or an override.
+    Atomic should completely ignore all datablocks within libraries.
+    
+    Args:
+        datablock: The datablock to check
+    
+    Returns:
+        bool: True if the datablock is library-linked or an override, False otherwise
+    """
+    # Check if datablock is linked from a library
+    if hasattr(datablock, 'library') and datablock.library:
+        return True
+    
+    # Check if datablock is an override (Blender 3.0+)
+    if hasattr(datablock, 'override_library') and datablock.override_library:
+        return True
+    
+    return False

@@ -25,6 +25,7 @@ Blender project.
 
 import bpy
 import re
+from ..utils import compat
 
 
 def collections():
@@ -32,6 +33,9 @@ def collections():
     unnamed = []
 
     for collection in bpy.data.collections:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(collection):
+            continue
         if re.match(r'.*\.\d\d\d$', collection.name) or \
                 collection.name.startswith("Collection"):
             unnamed.append(collection.name)
@@ -44,6 +48,9 @@ def images():
     unnamed = []
 
     for image in bpy.data.images:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(image):
+            continue
         if re.match(r'.*\.\d\d\d$', image.name) or \
                 image.name.startswith("Untitled"):
             unnamed.append(image.name)
@@ -56,6 +63,9 @@ def lights():
     unnamed = []
 
     for light in bpy.data.lights:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(light):
+            continue
         if re.match(r'.*\.\d\d\d$', light.name) or \
                 light.name.startswith("Light"):
             unnamed.append(light.name)
@@ -67,7 +77,10 @@ def materials():
     # returns the keys of all unnamed materials in the project
     unnamed = []
 
-    for material in bpy.data.lights:
+    for material in bpy.data.materials:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(material):
+            continue
         if re.match(r'.*\.\d\d\d$', material.name) or \
                 material.name.startswith("Material"):
             unnamed.append(material.name)
@@ -152,6 +165,9 @@ def objects():
     unnamed = []
 
     for obj in bpy.data.objects:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(obj):
+            continue
         if re.match(r'.*\.\d\d\d$', obj.name) or \
                 obj.name.startswith(default_obj_names):
             unnamed.append(obj.name)
@@ -164,6 +180,9 @@ def node_groups():
     unnamed = []
 
     for node_group in bpy.data.node_groups:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(node_group):
+            continue
         if re.match(r'.*\.\d\d\d$', node_group.name) or \
                 node_group.name.startswith("NodeGroup"):
             unnamed.append(node_group.name)
@@ -176,6 +195,9 @@ def particles():
     unnamed = []
 
     for particle in bpy.data.particles:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(particle):
+            continue
         if re.match(r'.*\.\d\d\d$', particle.name) or \
                 particle.name.startswith("ParticleSettings"):
             unnamed.append(particle.name)
@@ -188,6 +210,9 @@ def textures():
     unnamed = []
 
     for texture in bpy.data.textures:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(texture):
+            continue
         if re.match(r'.*\.\d\d\d$', texture.name) or \
                 texture.name.startswith("Texture"):
             unnamed.append(texture.name)
@@ -200,6 +225,9 @@ def worlds():
     unnamed = []
 
     for world in bpy.data.worlds:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(world):
+            continue
         if re.match(r'.*\.\d\d\d$', world.name) or \
                 world.name.startswith("World"):
             unnamed.append(world.name)
