@@ -25,7 +25,7 @@ project.
 
 import bpy
 import os
-from ..utils import version
+from ..utils import version, compat
 
 
 def get_missing(data):
