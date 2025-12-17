@@ -21398,7 +21398,6 @@ less verbose please.
 
 _**Agent (model default, mode Agent)**_
 
-
 Making the changelog entry more concise:
 
 
@@ -21409,6 +21408,1005 @@ Making the changelog entry more concise:
 
 </details>
 </tool-use>
+
+---
+
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\CHANGELOG.md"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "317490e2-1323-457d-a0ad-74fa2d70f349"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+Changelog entry simplified to a single line.
+
+---
+
+_**User**_
+
+I didn't realize this error.
+
+Traceback (most recent call last):
+  File "C:\Program Files\Blender Foundation\Blender 5.0\portable\extensions\rainys_extensions\atomic_data_manager\ui\missing_file_ui.py", line 175, in autodetect_missing_files
+    (missing.images() or missing.libraries()):
+     ^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Blender Foundation\Blender 5.0\portable\extensions\rainys_extensions\atomic_data_manager\stats\missing.py", line 83, in images
+    return get_missing(bpy.data.images)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Blender Foundation\Blender 5.0\portable\extensions\rainys_extensions\atomic_data_manager\stats\missing.py", line 42, in get_missing
+    if compat.is_library_or_override(datablock):
+       ^^^^^^
+NameError: name 'compat' is not defined
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Checking `stats/missing.py` for the missing import:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\missing.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Adding the missing `compat` import:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\missing.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "5bd4414c-45fe-4531-a87c-36740b3c25d0"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "E:\\atomic_data_manager\\stats\\missing.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\missing.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Added the missing `compat` import. The error should be resolved. The file was using `compat.is_library_or_override()` but only imported `version`; it now imports both.
+
+---
+
+_**User**_
+
+any other import issues?
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Checking all files that use `compat` for missing imports:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "compat\\.is_library_or_override|from.*compat|import.*compat",
+  "path": "E:\\atomic_data_manager",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "compat\\.is_library_or_override|from.*compat|import.*compat",
+    "path": "E:\\atomic_data_manager",
+    "outputMode": "content",
+    "workspaceResults": {
+      "E:\\atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": "__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from .utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ui/pie_menu_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "stats\\missing.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import version, compat"
+                },
+                {
+                  "lineNumber": 42,
+                  "content": "        if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "ops/inspect_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 29,
+                  "content": "from ..utils import compat"
+                },
+                {
+                  "lineNumber": 36,
+                  "content": "    if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "ops/utils/nuke.py",
+              "matches": [
+                {
+                  "lineNumber": 27,
+                  "content": "from ...utils import compat"
+                },
+                {
+                  "lineNumber": 36,
+                  "content": "        if not compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "stats/unnamed.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import compat"
+                },
+                {
+                  "lineNumber": 37,
+                  "content": "        if compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 52,
+                  "content": "        if compat.is_library_or_override(image):"
+                },
+                {
+                  "lineNumber": 67,
+                  "content": "        if compat.is_library_or_override(light):"
+                },
+                {
+                  "lineNumber": 82,
+                  "content": "        if compat.is_library_or_override(material):"
+                },
+                {
+                  "lineNumber": 169,
+                  "content": "        if compat.is_library_or_override(obj):"
+                },
+                {
+                  "lineNumber": 184,
+                  "content": "        if compat.is_library_or_override(node_group):"
+                },
+                {
+                  "lineNumber": 199,
+                  "content": "        if compat.is_library_or_override(particle):"
+                },
+                {
+                  "lineNumber": 214,
+                  "content": "        if compat.is_library_or_override(texture):"
+                },
+                {
+                  "lineNumber": 229,
+                  "content": "        if compat.is_library_or_override(world):"
+                }
+              ]
+            },
+            {
+              "file": "ui/stats_panel_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 31,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ui/main_panel_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 31,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "stats/missing.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import version, compat"
+                },
+                {
+                  "lineNumber": 42,
+                  "content": "        if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "utils/__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 26,
+                  "content": "from . import compat"
+                }
+              ]
+            },
+            {
+              "file": ".specstory/history/2025-12-16_23-24Z-blender-library-packed-files-error.md",
+              "matches": [
+                {
+                  "lineNumber": 3996,
+                  "content": "        \"contents\": \"def image_geometry_nodes(image_key):\\n    # returns a list of object keys that use the image through Geometry Nodes\\n\\n    users = []\\n    image = bpy.data.images[image_key]\\n\\n    # list of node groups that use this image\\n    node_group_users = image_node_groups(image_key)\\n\\n    # Import compat module for version-safe geometry nodes access\\n    from ..utils import compat\\n\\n    for obj in bpy.data.objects:\\n        # check Geometry Nodes modifiers\\n        if hasattr(obj, 'modifiers'):\\n            for modifier in obj.modifiers:\\n                if compat.is_geometry_nodes_modifier(modifier):\\n                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)\\n                    if ng:\\n                        # direct usage in the modifier's tree\\n                        if node_group_has_image(ng.name, image.name):\\n                            users.append(obj.name)\\n                        # usage via nested node groups\\n                       "
+                },
+                {
+                  "lineNumber": 4039,
+                  "content": "            \"text\": \"    from ..utils import compat\","
+                },
+                {
+                  "lineNumber": 4774,
+                  "content": "        \"contents\": \"def image_compositors(image_key):\\n    # returns a list containing \\\"Compositor\\\" if the image is used in\\n    # the scene's compositor\\n\\n    users = []\\n    image = bpy.data.images[image_key]\\n\\n    # a list of node groups that use our image\\n    node_group_users = image_node_groups(image_key)\\n\\n    # Import compat module for version-safe compositor access\\n    from ..utils import compat\\n\\n    # if our compositor uses nodes and has a valid node tree\\n    scene = bpy.context.scene\\n    if scene.use_nodes:\\n        node_tree = compat.get_scene_compositor_node_tree(scene)\\n        if node_tree:\\n            # check each node in the compositor\\n            for node in node_tree.nodes:\\n\\n                # if the node is an image node with a valid image\\n                if hasattr(node, 'image') and node.image:\\n\\n                    # if the node's image is our image\\n                    if node.image.name == image.name:\\n                        users.append(\\\"Comp"
+                },
+                {
+                  "lineNumber": 4822,
+                  "content": "            \"text\": \"    from ..utils import compat\","
+                },
+                {
+                  "lineNumber": 5665,
+                  "content": "  \"pattern\": \"from.*compat|import.*compat\","
+                },
+                {
+                  "lineNumber": 5675,
+                  "content": "    \"pattern\": \"from.*compat|import.*compat\","
+                },
+                {
+                  "lineNumber": 5695,
+                  "content": "Updating UI files to use &#96;safe_unregister_class&#96; from the compat module:"
+                },
+                {
+                  "lineNumber": 6967,
+                  "content": "Updated all files to use &#96;safe_unregister_class&#96; from the &#96;compat&#96; module instead of &#96;unregister_class&#96;. This function:"
+                },
+                {
+                  "lineNumber": 10066,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains the Atomic preferences UI, preferences properties, and\\nsome functions for syncing the preference properties with external factors.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import register_class\\nfrom ..uti"
+                },
+                {
+                  "lineNumber": 10170,
+                  "content": "            \"text\": \"from ..utils import compat\","
+                },
+                {
+                  "lineNumber": 11819,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains operations for missing file handling. This includes\\nthe option to reload, remove, replace, and search for these missing files.\\n\\nIt also contains the post-reload report dialog that appears after\\nattempt"
+                },
+                {
+                  "lineNumber": 11945,
+                  "content": "            \"text\": \"from ..utils import compat\","
+                },
+                {
+                  "lineNumber": 21461,
+                  "content": "    if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "stats/unused.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import compat"
+                },
+                {
+                  "lineNumber": 40,
+                  "content": "        if compat.is_library_or_override(datablock):"
+                },
+                {
+                  "lineNumber": 60,
+                  "content": "        if compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 76,
+                  "content": "        if compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 95,
+                  "content": "        if compat.is_library_or_override(image):"
+                },
+                {
+                  "lineNumber": 135,
+                  "content": "        if compat.is_library_or_override(light):"
+                },
+                {
+                  "lineNumber": 161,
+                  "content": "        if compat.is_library_or_override(material):"
+                },
+                {
+                  "lineNumber": 187,
+                  "content": "        if compat.is_library_or_override(node_group):"
+                },
+                {
+                  "lineNumber": 216,
+                  "content": "        if compat.is_library_or_override(particle):"
+                },
+                {
+                  "lineNumber": 245,
+                  "content": "        if compat.is_library_or_override(texture):"
+                },
+                {
+                  "lineNumber": 271,
+                  "content": "        if compat.is_library_or_override(world):"
+                }
+              ]
+            },
+            {
+              "file": "ui/preferences_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ops/support_me_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 31,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ops/direct_use_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 33,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ops/main_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 29,
+                  "content": "from ..utils import compat"
+                },
+                {
+                  "lineNumber": 60,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 62,
+                  "content": "                                 if not compat.is_library_or_override(c)])"
+                },
+                {
+                  "lineNumber": 72,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 74,
+                  "content": "                            if not compat.is_library_or_override(i)])"
+                },
+                {
+                  "lineNumber": 84,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 86,
+                  "content": "                           if not compat.is_library_or_override(l)])"
+                },
+                {
+                  "lineNumber": 96,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 98,
+                  "content": "                               if not compat.is_library_or_override(m)])"
+                },
+                {
+                  "lineNumber": 108,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 110,
+                  "content": "                                 if not compat.is_library_or_override(ng)])"
+                },
+                {
+                  "lineNumber": 120,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 122,
+                  "content": "                               if not compat.is_library_or_override(p)])"
+                },
+                {
+                  "lineNumber": 132,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 134,
+                  "content": "                              if not compat.is_library_or_override(t)])"
+                },
+                {
+                  "lineNumber": 144,
+                  "content": "            from ..utils import compat"
+                },
+                {
+                  "lineNumber": 146,
+                  "content": "                           if not compat.is_library_or_override(w)])"
+                }
+              ]
+            },
+            {
+              "file": "ops/missing_file_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 34,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "stats/count.py",
+              "matches": [
+                {
+                  "lineNumber": 26,
+                  "content": "from ..utils import compat"
+                },
+                {
+                  "lineNumber": 36,
+                  "content": "        if not compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 57,
+                  "content": "        if not compat.is_library_or_override(image):"
+                },
+                {
+                  "lineNumber": 84,
+                  "content": "        if not compat.is_library_or_override(light):"
+                },
+                {
+                  "lineNumber": 105,
+                  "content": "        if not compat.is_library_or_override(material):"
+                },
+                {
+                  "lineNumber": 126,
+                  "content": "        if not compat.is_library_or_override(node_group):"
+                },
+                {
+                  "lineNumber": 147,
+                  "content": "        if not compat.is_library_or_override(obj):"
+                },
+                {
+                  "lineNumber": 162,
+                  "content": "        if not compat.is_library_or_override(particle):"
+                },
+                {
+                  "lineNumber": 183,
+                  "content": "        if not compat.is_library_or_override(texture):"
+                },
+                {
+                  "lineNumber": 204,
+                  "content": "        if not compat.is_library_or_override(world):"
+                }
+              ]
+            },
+            {
+              "file": "stats/users.py",
+              "matches": [
+                {
+                  "lineNumber": 228,
+                  "content": "    from ..utils import compat"
+                },
+                {
+                  "lineNumber": 360,
+                  "content": "    from ..utils import compat"
+                },
+                {
+                  "lineNumber": 440,
+                  "content": "    from ..utils import compat"
+                },
+                {
+                  "lineNumber": 498,
+                  "content": "    from ..utils import compat"
+                },
+                {
+                  "lineNumber": 644,
+                  "content": "    from ..utils import compat"
+                },
+                {
+                  "lineNumber": 857,
+                  "content": "    from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ui/inspect_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 27,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ui/missing_file_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 28,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            },
+            {
+              "file": "ui/support_me_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 29,
+                  "content": "from ..utils import compat"
+                }
+              ]
+            }
+          ],
+          "totalLines": 87,
+          "totalMatchedLines": 87
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "is_library_or_override",
+  "path": "E:\\atomic_data_manager",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "is_library_or_override",
+    "path": "E:\\atomic_data_manager",
+    "outputMode": "content",
+    "workspaceResults": {
+      "E:\\atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": ".specstory/history/2025-12-16_23-24Z-blender-library-packed-files-error.md",
+              "matches": [
+                {
+                  "lineNumber": 20557,
+                  "content": "   - &#96;is_library_or_override()&#96; - Checks if a datablock is library-linked or an override"
+                },
+                {
+                  "lineNumber": 21461,
+                  "content": "    if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "stats/missing.py",
+              "matches": [
+                {
+                  "lineNumber": 42,
+                  "content": "        if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "stats/count.py",
+              "matches": [
+                {
+                  "lineNumber": 36,
+                  "content": "        if not compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 57,
+                  "content": "        if not compat.is_library_or_override(image):"
+                },
+                {
+                  "lineNumber": 84,
+                  "content": "        if not compat.is_library_or_override(light):"
+                },
+                {
+                  "lineNumber": 105,
+                  "content": "        if not compat.is_library_or_override(material):"
+                },
+                {
+                  "lineNumber": 126,
+                  "content": "        if not compat.is_library_or_override(node_group):"
+                },
+                {
+                  "lineNumber": 147,
+                  "content": "        if not compat.is_library_or_override(obj):"
+                },
+                {
+                  "lineNumber": 162,
+                  "content": "        if not compat.is_library_or_override(particle):"
+                },
+                {
+                  "lineNumber": 183,
+                  "content": "        if not compat.is_library_or_override(texture):"
+                },
+                {
+                  "lineNumber": 204,
+                  "content": "        if not compat.is_library_or_override(world):"
+                }
+              ]
+            },
+            {
+              "file": "stats/unnamed.py",
+              "matches": [
+                {
+                  "lineNumber": 37,
+                  "content": "        if compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 52,
+                  "content": "        if compat.is_library_or_override(image):"
+                },
+                {
+                  "lineNumber": 67,
+                  "content": "        if compat.is_library_or_override(light):"
+                },
+                {
+                  "lineNumber": 82,
+                  "content": "        if compat.is_library_or_override(material):"
+                },
+                {
+                  "lineNumber": 169,
+                  "content": "        if compat.is_library_or_override(obj):"
+                },
+                {
+                  "lineNumber": 184,
+                  "content": "        if compat.is_library_or_override(node_group):"
+                },
+                {
+                  "lineNumber": 199,
+                  "content": "        if compat.is_library_or_override(particle):"
+                },
+                {
+                  "lineNumber": 214,
+                  "content": "        if compat.is_library_or_override(texture):"
+                },
+                {
+                  "lineNumber": 229,
+                  "content": "        if compat.is_library_or_override(world):"
+                }
+              ]
+            },
+            {
+              "file": "ops/inspect_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 36,
+                  "content": "    if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "stats/unused.py",
+              "matches": [
+                {
+                  "lineNumber": 40,
+                  "content": "        if compat.is_library_or_override(datablock):"
+                },
+                {
+                  "lineNumber": 60,
+                  "content": "        if compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 76,
+                  "content": "        if compat.is_library_or_override(collection):"
+                },
+                {
+                  "lineNumber": 95,
+                  "content": "        if compat.is_library_or_override(image):"
+                },
+                {
+                  "lineNumber": 135,
+                  "content": "        if compat.is_library_or_override(light):"
+                },
+                {
+                  "lineNumber": 161,
+                  "content": "        if compat.is_library_or_override(material):"
+                },
+                {
+                  "lineNumber": 187,
+                  "content": "        if compat.is_library_or_override(node_group):"
+                },
+                {
+                  "lineNumber": 216,
+                  "content": "        if compat.is_library_or_override(particle):"
+                },
+                {
+                  "lineNumber": 245,
+                  "content": "        if compat.is_library_or_override(texture):"
+                },
+                {
+                  "lineNumber": 271,
+                  "content": "        if compat.is_library_or_override(world):"
+                }
+              ]
+            },
+            {
+              "file": "stats\\missing.py",
+              "matches": [
+                {
+                  "lineNumber": 42,
+                  "content": "        if compat.is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "utils/compat.py",
+              "matches": [
+                {
+                  "lineNumber": 157,
+                  "content": "def is_library_or_override(datablock):"
+                }
+              ]
+            },
+            {
+              "file": "ops/main_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 62,
+                  "content": "                                 if not compat.is_library_or_override(c)])"
+                },
+                {
+                  "lineNumber": 74,
+                  "content": "                            if not compat.is_library_or_override(i)])"
+                },
+                {
+                  "lineNumber": 86,
+                  "content": "                           if not compat.is_library_or_override(l)])"
+                },
+                {
+                  "lineNumber": 98,
+                  "content": "                               if not compat.is_library_or_override(m)])"
+                },
+                {
+                  "lineNumber": 110,
+                  "content": "                                 if not compat.is_library_or_override(ng)])"
+                },
+                {
+                  "lineNumber": 122,
+                  "content": "                               if not compat.is_library_or_override(p)])"
+                },
+                {
+                  "lineNumber": 134,
+                  "content": "                              if not compat.is_library_or_override(t)])"
+                },
+                {
+                  "lineNumber": 146,
+                  "content": "                           if not compat.is_library_or_override(w)])"
+                }
+              ]
+            },
+            {
+              "file": "ops/utils/nuke.py",
+              "matches": [
+                {
+                  "lineNumber": 36,
+                  "content": "        if not compat.is_library_or_override(datablock):"
+                }
+              ]
+            }
+          ],
+          "totalLines": 43,
+          "totalMatchedLines": 43
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Verifying imports in files that use `compat`:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\unused.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\count.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\unnamed.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\utils\nuke.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\inspect_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\main_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\utils\clean.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+All files that use `compat.is_library_or_override()` have the correct imports:
+
+- `stats/unused.py` - has `from ..utils import compat`
+- `stats/count.py` - has `from ..utils import compat`
+- `stats/unnamed.py` - has `from ..utils import compat`
+- `stats/missing.py` - fixed: now has `from ..utils import version, compat`
+- `ops/utils/nuke.py` - has `from ...utils import compat`
+- `ops/inspect_ops.py` - has `from ..utils import compat`
+- `ops/main_ops.py` - has `from ..utils import compat` (and local imports in draw method)
+
+`ops/utils/clean.py` doesn't need `compat` because it uses the `unused` functions, which already filter library/override datablocks.
+
+No other import issues found. The only problem was `stats/missing.py`, which is fixed.
 
 ---
 
