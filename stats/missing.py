@@ -38,6 +38,9 @@ def get_missing(data):
     do_not_flag = ["Render Result", "Viewer Node", "D-NOISE Export"]
 
     for datablock in data:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(datablock):
+            continue
 
         # the absolute path to our data-block
         abspath = bpy.path.abspath(datablock.filepath)

@@ -24,11 +24,18 @@ data categories.
 """
 
 import bpy
+from ...utils import compat
 
 
 def nuke_data(data):
     # removes all data-blocks from the indicated set of data
+    # Skip library-linked and override datablocks
+    keys_to_remove = []
     for key in data.keys():
+        datablock = data[key]
+        if not compat.is_library_or_override(datablock):
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
         data.remove(data[key])
 
 

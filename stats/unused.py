@@ -25,6 +25,7 @@ as determined by stats.users.py
 
 import bpy
 from .. import config
+from ..utils import compat
 from . import users
 
 
@@ -35,6 +36,9 @@ def shallow(data):
     unused = []
 
     for datablock in data:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(datablock):
+            continue
 
         # if data-block has no users or if it has a fake user and
         # ignore fake users is enabled
@@ -52,6 +56,9 @@ def collections_deep():
     unused = []
 
     for collection in bpy.data.collections:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(collection):
+            continue
         if not users.collection_all(collection.name):
             unused.append(collection.name)
 
@@ -65,6 +72,9 @@ def collections_shallow():
     unused = []
 
     for collection in bpy.data.collections:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(collection):
+            continue
         if not (collection.objects or collection.children):
             unused.append(collection.name)
 
@@ -81,6 +91,9 @@ def images_deep():
     do_not_flag = ["Render Result", "Viewer Node", "D-NOISE Export"]
 
     for image in bpy.data.images:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(image):
+            continue
         if not users.image_all(image.name):
 
             # check if image has a fake user or if ignore fake users
@@ -118,6 +131,9 @@ def lights_deep():
     unused = []
 
     for light in bpy.data.lights:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(light):
+            continue
         if not users.light_all(light.name):
 
             # check if light has a fake user or if ignore fake users
@@ -141,6 +157,9 @@ def materials_deep():
     unused = []
 
     for material in bpy.data.materials:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(material):
+            continue
         if not users.material_all(material.name):
 
             # check if material has a fake user or if ignore fake users
@@ -164,6 +183,9 @@ def node_groups_deep():
     unused = []
 
     for node_group in bpy.data.node_groups:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(node_group):
+            continue
         if not users.node_group_all(node_group.name):
 
             # check if node group has a fake user or if ignore fake users
@@ -190,6 +212,9 @@ def particles_deep():
     unused = []
 
     for particle in bpy.data.particles:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(particle):
+            continue
         if not users.particle_all(particle.name):
 
             # check if particle system has a fake user or if ignore fake
@@ -216,6 +241,9 @@ def textures_deep():
     unused = []
 
     for texture in bpy.data.textures:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(texture):
+            continue
         if not users.texture_all(texture.name):
 
             # check if texture has a fake user or if ignore fake users
@@ -239,6 +267,9 @@ def worlds():
     unused = []
 
     for world in bpy.data.worlds:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(world):
+            continue
 
         # if data-block has no users or if it has a fake user and
         # ignore fake users is enabled

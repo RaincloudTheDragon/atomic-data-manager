@@ -57,7 +57,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel collections property is toggled
         if atom.collections:
-            collections = sorted(bpy.data.collections.keys())
+            from ..utils import compat
+            collections = sorted([c.name for c in bpy.data.collections 
+                                 if not compat.is_library_or_override(c)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Collections",
@@ -67,7 +69,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel images property is toggled
         if atom.images:
-            images = sorted(bpy.data.images.keys())
+            from ..utils import compat
+            images = sorted([i.name for i in bpy.data.images 
+                            if not compat.is_library_or_override(i)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Images",
@@ -77,7 +81,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel lights property is toggled
         if atom.lights:
-            lights = sorted(bpy.data.lights.keys())
+            from ..utils import compat
+            lights = sorted([l.name for l in bpy.data.lights 
+                           if not compat.is_library_or_override(l)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Lights",
@@ -87,7 +93,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel materials property is toggled
         if atom.materials:
-            materials = sorted(bpy.data.materials.keys())
+            from ..utils import compat
+            materials = sorted([m.name for m in bpy.data.materials 
+                               if not compat.is_library_or_override(m)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Materials",
@@ -97,7 +105,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel node groups property is toggled
         if atom.node_groups:
-            node_groups = sorted(bpy.data.node_groups.keys())
+            from ..utils import compat
+            node_groups = sorted([ng.name for ng in bpy.data.node_groups 
+                                 if not compat.is_library_or_override(ng)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Node Groups",
@@ -107,7 +117,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel particle systems property is toggled
         if atom.particles:
-            particles = sorted(bpy.data.particles.keys())
+            from ..utils import compat
+            particles = sorted([p.name for p in bpy.data.particles 
+                               if not compat.is_library_or_override(p)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Particle Systems",
@@ -117,7 +129,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel textures property is toggled
         if atom.textures:
-            textures = sorted(bpy.data.textures.keys())
+            from ..utils import compat
+            textures = sorted([t.name for t in bpy.data.textures 
+                              if not compat.is_library_or_override(t)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Textures",
@@ -127,7 +141,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
         # display when the main panel worlds property is toggled
         if atom.worlds:
-            worlds = sorted(bpy.data.worlds.keys())
+            from ..utils import compat
+            worlds = sorted([w.name for w in bpy.data.worlds 
+                           if not compat.is_library_or_override(w)])
             ui_layouts.box_list(
                 layout=layout,
                 title="Worlds",

@@ -23,6 +23,7 @@ This file contains functions that count quantities of various sets of data.
 """
 
 import bpy
+from ..utils import compat
 from . import unused
 from . import unnamed
 from . import missing
@@ -30,8 +31,11 @@ from . import missing
 
 def collections():
     # returns the number of collections in the project
-
-    return len(bpy.data.collections)
+    count = 0
+    for collection in bpy.data.collections:
+        if not compat.is_library_or_override(collection):
+            count += 1
+    return count
 
 
 def collections_unused():
@@ -48,8 +52,11 @@ def collections_unnamed():
 
 def images():
     # returns the number of images in the project
-
-    return len(bpy.data.images)
+    count = 0
+    for image in bpy.data.images:
+        if not compat.is_library_or_override(image):
+            count += 1
+    return count
 
 
 def images_unused():
@@ -72,8 +79,11 @@ def images_missing():
 
 def lights():
     # returns the number of lights in the project
-
-    return len(bpy.data.lights)
+    count = 0
+    for light in bpy.data.lights:
+        if not compat.is_library_or_override(light):
+            count += 1
+    return count
 
 
 def lights_unused():
@@ -90,8 +100,11 @@ def lights_unnamed():
 
 def materials():
     # returns the number of materials in the project
-
-    return len(bpy.data.materials)
+    count = 0
+    for material in bpy.data.materials:
+        if not compat.is_library_or_override(material):
+            count += 1
+    return count
 
 
 def materials_unused():
@@ -108,8 +121,11 @@ def materials_unnamed():
 
 def node_groups():
     # returns the number of node groups in the project
-
-    return len(bpy.data.node_groups)
+    count = 0
+    for node_group in bpy.data.node_groups:
+        if not compat.is_library_or_override(node_group):
+            count += 1
+    return count
 
 
 def node_groups_unused():
@@ -126,8 +142,11 @@ def node_groups_unnamed():
 
 def objects():
     # returns the number of objects in the project
-
-    return len(bpy.data.objects)
+    count = 0
+    for obj in bpy.data.objects:
+        if not compat.is_library_or_override(obj):
+            count += 1
+    return count
 
 
 def objects_unnamed():
@@ -138,8 +157,11 @@ def objects_unnamed():
 
 def particles():
     # returns the number of particles in the project
-
-    return len(bpy.data.particles)
+    count = 0
+    for particle in bpy.data.particles:
+        if not compat.is_library_or_override(particle):
+            count += 1
+    return count
 
 
 def particles_unused():
@@ -156,8 +178,11 @@ def particles_unnamed():
 
 def textures():
     # returns the number of textures in the project
-
-    return len(bpy.data.textures)
+    count = 0
+    for texture in bpy.data.textures:
+        if not compat.is_library_or_override(texture):
+            count += 1
+    return count
 
 
 def textures_unused():
@@ -174,8 +199,11 @@ def textures_unnamed():
 
 def worlds():
     # returns the number of worlds in the project
-
-    return len(bpy.data.worlds)
+    count = 0
+    for world in bpy.data.worlds:
+        if not compat.is_library_or_override(world):
+            count += 1
+    return count
 
 
 def worlds_unused():
