@@ -447,16 +447,11 @@ def material_geometry_nodes(material_key):
 
     users = []
     material = bpy.data.materials[material_key]
-    
-    print(f"[DEBUG] material_geometry_nodes: Checking material '{material_key}'")
 
     # Import compat module for version-safe geometry nodes access
     from ..utils import compat
 
-    objects_checked = 0
-    objects_in_scene = 0
     for obj in bpy.data.objects:
-        objects_checked += 1
         # Skip library-linked and override objects
         if compat.is_library_or_override(obj):
             continue
@@ -466,9 +461,6 @@ def material_geometry_nodes(material_key):
         # the material isn't considered used
         obj_scenes = object_all(obj.name)
         is_in_scene = bool(obj_scenes)
-        
-        if is_in_scene:
-            objects_in_scene += 1
 
         if not is_in_scene:
             continue  # Skip objects not in scene collections
@@ -480,10 +472,8 @@ def material_geometry_nodes(material_key):
                     if ng:
                         # Check if this node group or any nested node groups contain the material
                         if node_group_has_material(ng.name, material.name):
-                            print(f"[DEBUG] material_geometry_nodes: Found usage - object '{obj.name}' uses material '{material_key}' via Geometry Nodes modifier (node_group='{ng.name}')")
                             users.append(obj.name)
 
-    print(f"[DEBUG] material_geometry_nodes: Material '{material_key}' - checked {objects_checked} objects, {objects_in_scene} in scenes, found {len(users)} users: {users}")
     return distinct(users)
 
 
@@ -875,30 +865,6 @@ def node_group_has_material(node_group_key, material_key):
     except (KeyError, AttributeError):
         return False
 
-    # Only log for specific node groups we're interested in debugging
-    # (e.g., 'box-highlight' for outline-highlight material)
-    if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-        print(f"[DEBUG] node_group_has_material: Checking node_group '{node_group_key}' for material '{material_key}'")
-        try:
-            print(f"[DEBUG] node_group_has_material: Node group has {len(node_group.nodes)} nodes")
-            # List all nodes and their types for debugging (with error handling)
-            for i, node in enumerate(node_group.nodes):
-                try:
-                    node_type = getattr(node, 'bl_idname', getattr(node, 'type', 'unknown'))
-                    has_material_attr = hasattr(node, 'material')
-                    material_name = None
-                    if has_material_attr:
-                        try:
-                            if node.material:
-                                material_name = node.material.name
-                        except (AttributeError, ReferenceError):
-                            material_name = '<error accessing>'
-                    print(f"[DEBUG] node_group_has_material: Node {i}: type='{node_type}', has_material={has_material_attr}, material='{material_name}'")
-                except (AttributeError, ReferenceError, RuntimeError) as e:
-                    print(f"[DEBUG] node_group_has_material: Error accessing node {i}: {e}")
-        except (AttributeError, ReferenceError, RuntimeError) as e:
-            print(f"[DEBUG] node_group_has_material: Error accessing node_group.nodes: {e}")
-
     try:
         for node in node_group.nodes:
             try:
@@ -918,12 +884,8 @@ def node_group_has_material(node_group_key, material_key):
                                         if hasattr(material_socket, 'default_value'):
                                             socket_material = material_socket.default_value
                                             if socket_material and hasattr(socket_material, 'name'):
-                                                if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                                    print(f"[DEBUG] node_group_has_material: Found GeometryNodeSetMaterial node in '{node_group_key}', socket material='{socket_material.name}'")
                                                 if (socket_material.name == material.name or 
                                                     socket_material == material):
-                                                    if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                                        print(f"[DEBUG] node_group_has_material: Material '{material_key}' matches! Found in Set Material node socket")
                                                     has_material = True
                                     except (KeyError, AttributeError, ReferenceError, RuntimeError, TypeError):
                                         pass
@@ -939,12 +901,8 @@ def node_group_has_material(node_group_key, material_key):
                                                 if hasattr(input_socket, 'default_value') and input_socket.default_value:
                                                     socket_material = input_socket.default_value
                                                     if socket_material and hasattr(socket_material, 'name'):
-                                                        if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                                            print(f"[DEBUG] node_group_has_material: Found GeometryNodeSetMaterial node in '{node_group_key}', socket material='{socket_material.name}'")
                                                         if (socket_material.name == material.name or 
                                                             socket_material == material):
-                                                            if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                                                print(f"[DEBUG] node_group_has_material: Material '{material_key}' matches! Found in Set Material node socket")
                                                             has_material = True
                                                             break  # Found it, no need to continue
                                         except (AttributeError, ReferenceError, RuntimeError, TypeError):
@@ -954,12 +912,8 @@ def node_group_has_material(node_group_key, material_key):
                                 if not has_material and hasattr(node, 'material'):
                                     try:
                                         if node.material:
-                                            if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                                print(f"[DEBUG] node_group_has_material: Found GeometryNodeSetMaterial node in '{node_group_key}', direct material='{node.material.name if node.material else None}'")
                                             if (node.material.name == material.name or 
                                                 node.material == material):
-                                                if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                                    print(f"[DEBUG] node_group_has_material: Material '{material_key}' matches! Found in Set Material node")
                                                 has_material = True
                                                 break  # Found it, no need to continue
                                     except (AttributeError, ReferenceError, RuntimeError):
@@ -967,9 +921,8 @@ def node_group_has_material(node_group_key, material_key):
                                 
                                 if has_material:
                                     break  # Break outer loop if we found it
-                            except (AttributeError, ReferenceError, RuntimeError) as e:
-                                if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                                    print(f"[DEBUG] node_group_has_material: Error checking Set Material node inputs: {e}")
+                            except (AttributeError, ReferenceError, RuntimeError):
+                                pass  # Skip if Set Material node input access fails
                     except (AttributeError, ReferenceError, RuntimeError):
                         pass  # Skip if bl_idname access fails
                 
@@ -1016,15 +969,11 @@ def node_group_has_material(node_group_key, material_key):
 
                 if has_material:
                     break
-            except (AttributeError, ReferenceError, RuntimeError) as e:
+            except (AttributeError, ReferenceError, RuntimeError):
                 # Skip nodes that cause errors (e.g., invalid/corrupted nodes)
-                if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-                    print(f"[DEBUG] node_group_has_material: Error processing node: {e}")
                 continue
-    except (AttributeError, ReferenceError, RuntimeError) as e:
+    except (AttributeError, ReferenceError, RuntimeError):
         # If we can't even iterate nodes, return False
-        if 'box-highlight' in node_group_key or 'outline' in material_key.lower():
-            print(f"[DEBUG] node_group_has_material: Error iterating nodes: {e}")
         return False
 
     return has_material
