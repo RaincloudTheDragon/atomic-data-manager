@@ -50,8 +50,10 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             atom.lights,
             atom.materials,
             atom.node_groups,
+            atom.objects,
             atom.particles,
             atom.textures,
+            atom.armatures,
             atom.worlds
         ]
 
@@ -83,6 +85,23 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
 
         splitcol.operator(
             "atomic.inspect_collections",
+            icon='VIEWZOOM',
+            text=""
+        )
+
+        # objects buttons
+        splitcol = col.split(factor=0.8, align=True)
+
+        splitcol.prop(
+            atom,
+            "objects",
+            text="Objects",
+            icon='OBJECT_DATA',
+            toggle=True
+        )
+
+        splitcol.operator(
+            "atomic.inspect_objects",
             icon='VIEWZOOM',
             text=""
         )
@@ -171,6 +190,23 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
 
         splitcol.operator(
             "atomic.inspect_materials",
+            icon='VIEWZOOM',
+            text=""
+        )
+
+        # armatures buttons
+        splitcol = col.split(factor=0.8, align=True)
+
+        splitcol.prop(
+            atom,
+            "armatures",
+            text="Armatures",
+            icon='ARMATURE_DATA',
+            toggle=True
+        )
+
+        splitcol.operator(
+            "atomic.inspect_armatures",
             icon='VIEWZOOM',
             text=""
         )

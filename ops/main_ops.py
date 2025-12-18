@@ -201,8 +201,10 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     unused_lights = []
     unused_materials = []
     unused_node_groups = []
+    unused_objects = []
     unused_particles = []
     unused_textures = []
+    unused_armatures = []
     unused_worlds = []
 
     def draw(self, context):
@@ -214,8 +216,9 @@ class ATOMIC_OT_clean(bpy.types.Operator):
 
         # display if no main panel properties are toggled
         if not (atom.collections or atom.images or atom.lights or
-                atom.materials or atom.node_groups or atom.particles
-                or atom.textures or atom.worlds):
+                atom.materials or atom.node_groups or atom.objects or
+                atom.particles or atom.textures or atom.armatures or
+                atom.worlds):
 
             ui_layouts.box_list(
                 layout=layout,
@@ -266,6 +269,15 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 icon="NODETREE"
             )
 
+        # display when the main panel objects property is toggled
+        if atom.objects:
+            ui_layouts.box_list(
+                layout=layout,
+                title="Objects",
+                items=self.unused_objects,
+                icon="OBJECT_DATA"
+            )
+
         # display when the main panel particle systems property is toggled
         if atom.particles:
             ui_layouts.box_list(
@@ -282,6 +294,15 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 title="Textures",
                 items=self.unused_textures,
                 icon="TEXTURE"
+            )
+
+        # display when the main panel armatures property is toggled
+        if atom.armatures:
+            ui_layouts.box_list(
+                layout=layout,
+                title="Armatures",
+                items=self.unused_armatures,
+                icon="ARMATURE_DATA"
             )
 
         # display when the main panel worlds property is toggled
@@ -313,11 +334,17 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         if atom.node_groups:
             clean.node_groups()
 
+        if atom.objects:
+            clean.objects()
+
         if atom.particles:
             clean.particles()
 
         if atom.textures:
             clean.textures()
+
+        if atom.armatures:
+            clean.armatures()
 
         if atom.worlds:
             clean.worlds()
@@ -348,11 +375,17 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         if atom.node_groups:
             self.unused_node_groups = all_unused['node_groups']
 
+        if atom.objects:
+            self.unused_objects = all_unused['objects']
+
         if atom.particles:
             self.unused_particles = all_unused['particles']
 
         if atom.textures:
             self.unused_textures = all_unused['textures']
+
+        if atom.armatures:
+            self.unused_armatures = all_unused['armatures']
 
         if atom.worlds:
             self.unused_worlds = all_unused['worlds']
@@ -387,8 +420,10 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
         atom.lights = unused_flags['lights']
         atom.materials = unused_flags['materials']
         atom.node_groups = unused_flags['node_groups']
+        atom.objects = unused_flags['objects']
         atom.particles = unused_flags['particles']
         atom.textures = unused_flags['textures']
+        atom.armatures = unused_flags['armatures']
         atom.worlds = unused_flags['worlds']
 
         return {'FINISHED'}
