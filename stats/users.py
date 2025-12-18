@@ -1098,11 +1098,12 @@ def object_all(object_key):
 def armature_all(armature_key):
     # returns a list of object names that use the armature
     # Checks direct usage, modifier usage, and constraint usage
+    # Only counts objects that are actually in scene collections (recursive check)
 
     users = []
     armature = bpy.data.armatures[armature_key]
 
-    # Check all objects in scene collections
+    # Check all objects - but only count those that are in scene collections
     for obj in bpy.data.objects:
         # Skip library-linked and override objects
         from ..utils import compat
@@ -1110,30 +1111,37 @@ def armature_all(armature_key):
             continue
 
         # Check if object is in any scene collection (reuse object_all logic)
-        if not object_all(obj.name):
-            continue  # Skip objects not in scene collections
+        obj_scenes = object_all(obj.name)
+        is_in_scene = bool(obj_scenes)
 
+        # Check for usage regardless of scene status (we'll filter later)
+        found_usage = False
+        
         # 1. Direct usage: ARMATURE objects where object.data == armature
         if obj.type == 'ARMATURE' and obj.data == armature:
-            users.append(obj.name)
-            continue  # Already found usage, no need to check further
+            found_usage = True
 
         # 2. Modifier usage: Armature modifiers where modifier.object.data == armature
-        if hasattr(obj, 'modifiers'):
+        if not found_usage and hasattr(obj, 'modifiers'):
             for modifier in obj.modifiers:
                 if modifier.type == 'ARMATURE':
                     if hasattr(modifier, 'object') and modifier.object:
                         if modifier.object.type == 'ARMATURE' and modifier.object.data == armature:
-                            users.append(obj.name)
-                            break  # Found usage, no need to check more modifiers
+                            found_usage = True
+                            break
 
         # 3. Constraint usage: Constraints that target ARMATURE objects using this armature
-        if hasattr(obj, 'constraints'):
+        if not found_usage and hasattr(obj, 'constraints'):
             for constraint in obj.constraints:
                 if hasattr(constraint, 'target') and constraint.target:
                     if constraint.target.type == 'ARMATURE' and constraint.target.data == armature:
-                        users.append(obj.name)
-                        break  # Found usage, no need to check more constraints
+                        found_usage = True
+                        break
+
+        # Only add to users if the object is actually in a scene
+        # This implements recursive checking: if the user object is unused, it doesn't count
+        if found_usage and is_in_scene:
+            users.append(obj.name)
 
     return distinct(users)
 
