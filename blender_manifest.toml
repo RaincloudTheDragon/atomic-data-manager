@@ -2,14 +2,14 @@ schema_version = "1.0.0"
 
 id = "atomic_data_manager"
 name = "Atomic Data Manager"
-version = "2.0.3"
+version = "2.0.4"
 type = "add-on"
 author = "RaincloudTheDragon"
 maintainer = "RaincloudTheDragon"
 blender_version_min = "4.2.0"
 license = ["GPL-3.0-or-later"]
 description = "An Intelligent Data Manager for Blender."
-homepage = "https://github.com/grantwilk/atomic-data-manager"
+homepage = "https://github.com/RaincloudTheDragon/atomic-data-manager/"
 tagline = "Smart cleanup and inspection of Blender data-blocks"
 
 tags = ["utility", "management", "cleanup"]
