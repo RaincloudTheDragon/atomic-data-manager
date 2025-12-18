@@ -427,7 +427,8 @@ def light_objects(light_key):
 def material_all(material_key):
     # returns a list of keys of every data-block that uses this material
     return material_objects(material_key) + \
-           material_geometry_nodes(material_key)
+           material_geometry_nodes(material_key) + \
+           material_node_groups(material_key)
 
 
 def material_geometry_nodes(material_key):
@@ -449,6 +450,65 @@ def material_geometry_nodes(material_key):
                             users.append(obj.name)
 
     return distinct(users)
+
+
+def material_node_groups(material_key):
+    # returns a list of keys indicating where the material is used via node groups
+    # This checks if the material is used in any node group, and if that node group
+    # is itself used anywhere. This complements material_geometry_nodes() by checking
+    # additional usage contexts (materials, other node groups, compositor, etc.)
+    # Note: Geometry Nodes usage is already checked by material_geometry_nodes()
+    # Optimized to return early when usage is found
+    
+    material = bpy.data.materials[material_key]
+
+    # Check all node groups to see if they contain this material
+    for node_group in bpy.data.node_groups:
+        if node_group_has_material(node_group.name, material.name):
+            # This node group contains the material, check if the node group is used
+            # Check usage contexts in order of likelihood, return early when found
+            
+            # First check: is it used in Geometry Nodes modifiers? (most common case)
+            # Note: material_geometry_nodes() already checks this, but we verify here too
+            obj_users = node_group_objects(node_group.name)
+            if obj_users:
+                return obj_users  # Return immediately - material is used
+            
+            # Second check: is it used in materials?
+            mat_users = node_group_materials(node_group.name)
+            if mat_users:
+                return mat_users  # Return immediately - material is used
+            
+            # Third check: is it used in compositor?
+            comp_users = node_group_compositors(node_group.name)
+            if comp_users:
+                return comp_users  # Return immediately - material is used
+            
+            # Fourth check: is it used in textures?
+            tex_users = node_group_textures(node_group.name)
+            if tex_users:
+                return tex_users  # Return immediately - material is used
+            
+            # Fifth check: is it used in worlds?
+            world_users = node_group_worlds(node_group.name)
+            if world_users:
+                return world_users  # Return immediately - material is used
+            
+            # Last check: is it used in other node groups? (recursive, but only if needed)
+            ng_users = node_group_node_groups(node_group.name)
+            if ng_users:
+                # Check if any parent node groups are used (quick check only)
+                for parent_ng_name in ng_users:
+                    # Quick check: see if parent is used in objects (most common)
+                    parent_obj_users = node_group_objects(parent_ng_name)
+                    if parent_obj_users:
+                        return parent_obj_users
+                    # Quick check: see if parent is used in materials
+                    parent_mat_users = node_group_materials(parent_ng_name)
+                    if parent_mat_users:
+                        return parent_mat_users
+
+    return []  # Material not used in any node groups
 
 
 def material_objects(material_key):
