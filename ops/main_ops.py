@@ -28,6 +28,7 @@ import bpy
 from bpy.utils import register_class
 from ..utils import compat
 from ..stats import unused
+from ..stats import unused_parallel
 from .utils import clean
 from .utils import nuke
 from ..ui.utils import ui_layouts
@@ -276,11 +277,10 @@ class ATOMIC_OT_clean(bpy.types.Operator):
 
         # display when the main panel textures property is toggled
         if atom.textures:
-            textures = sorted(unused.textures_deep())
             ui_layouts.box_list(
                 layout=layout,
                 title="Textures",
-                items=textures,
+                items=self.unused_textures,
                 icon="TEXTURE"
             )
 
@@ -330,29 +330,32 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         wm = context.window_manager
         atom = bpy.context.scene.atomic
 
+        # Use parallel execution for better performance
+        all_unused = unused_parallel.get_all_unused_parallel()
+
         if atom.collections:
-            self.unused_collections = unused.collections_deep()
+            self.unused_collections = all_unused['collections']
 
         if atom.images:
-            self.unused_images = unused.images_deep()
+            self.unused_images = all_unused['images']
 
         if atom.lights:
-            self.unused_lights = unused.lights_deep()
+            self.unused_lights = all_unused['lights']
 
         if atom.materials:
-            self.unused_materials = unused.materials_deep()
+            self.unused_materials = all_unused['materials']
 
         if atom.node_groups:
-            self.unused_node_groups = unused.node_groups_deep()
+            self.unused_node_groups = all_unused['node_groups']
 
         if atom.particles:
-            self.unused_particles = unused.particles_deep()
+            self.unused_particles = all_unused['particles']
 
         if atom.textures:
-            self.unused_textures = unused.textures_deep()
+            self.unused_textures = all_unused['textures']
 
         if atom.worlds:
-            self.unused_worlds = unused.worlds()
+            self.unused_worlds = all_unused['worlds']
 
         return wm.invoke_props_dialog(self)
 
@@ -375,30 +378,18 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
     bl_label = "Smart Select"
 
     def execute(self, context):
-
-        bpy.context.scene.atomic.collections = \
-            any(unused.collections_deep())
-
-        bpy.context.scene.atomic.images = \
-            any(unused.images_deep())
-
-        bpy.context.scene.atomic.lights = \
-            any(unused.lights_deep())
-
-        bpy.context.scene.atomic.materials = \
-            any(unused.materials_deep())
-
-        bpy.context.scene.atomic.node_groups = \
-            any(unused.node_groups_deep())
-
-        bpy.context.scene.atomic.particles = \
-            any(unused.particles_deep())
-
-        bpy.context.scene.atomic.textures = \
-            any(unused.textures_deep())
-
-        bpy.context.scene.atomic.worlds = \
-            any(unused.worlds())
+        # Use parallel execution for better performance
+        unused_flags = unused_parallel.get_unused_for_smart_select()
+        
+        atom = bpy.context.scene.atomic
+        atom.collections = unused_flags['collections']
+        atom.images = unused_flags['images']
+        atom.lights = unused_flags['lights']
+        atom.materials = unused_flags['materials']
+        atom.node_groups = unused_flags['node_groups']
+        atom.particles = unused_flags['particles']
+        atom.textures = unused_flags['textures']
+        atom.worlds = unused_flags['worlds']
 
         return {'FINISHED'}
 

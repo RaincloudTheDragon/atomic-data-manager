@@ -33,6 +33,7 @@ from bpy.utils import register_class
 from ..utils import compat
 from .. import config
 from ..stats import unused
+from ..stats import unused_parallel
 from .utils import nuke
 from .utils import clean
 from ..ui.utils import ui_layouts
@@ -167,67 +168,60 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
         col = layout.column()
         col.label(text="Remove the following data-blocks?")
 
-        collections = sorted(unused.collections_deep())
+        # Use cached values from invoke() instead of recalculating
         ui_layouts.box_list(
             layout=layout,
             title="Collections",
-            items=collections,
+            items=sorted(self.unused_collections),
             icon="OUTLINER_OB_GROUP_INSTANCE"
         )
 
-        images = sorted(unused.images_deep())
         ui_layouts.box_list(
             layout=layout,
             title="Images",
-            items=images,
+            items=sorted(self.unused_images),
             icon="IMAGE_DATA"
         )
 
-        lights = sorted(unused.lights_deep())
         ui_layouts.box_list(
             layout=layout,
             title="Lights",
-            items=lights,
+            items=sorted(self.unused_lights),
             icon="OUTLINER_OB_LIGHT"
         )
 
-        materials = sorted(unused.materials_deep())
         ui_layouts.box_list(
             layout=layout,
             title="Materials",
-            items=materials,
+            items=sorted(self.unused_materials),
             icon="MATERIAL"
         )
 
-        node_groups = sorted(unused.node_groups_deep())
         ui_layouts.box_list(
             layout=layout,
             title="Node Groups",
-            items=node_groups,
+            items=sorted(self.unused_node_groups),
             icon="NODETREE"
         )
 
-        particles = sorted(unused.particles_deep())
         ui_layouts.box_list(
             layout=layout,
             title="Particle Systems",
-            items=particles,
+            items=sorted(self.unused_particles),
             icon="PARTICLES"
         )
 
-        textures = sorted(unused.textures_deep())
         ui_layouts.box_list(
             layout=layout,
             title="Textures",
-            items=textures,
+            items=sorted(self.unused_textures),
             icon="TEXTURE"
         )
 
-        worlds = sorted(unused.worlds())
         ui_layouts.box_list(
             layout=layout,
             title="Worlds",
-            items=worlds,
+            items=sorted(self.unused_worlds),
             icon="WORLD"
         )
 
@@ -249,14 +243,17 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
     def invoke(self, context, event):
         wm = context.window_manager
 
-        self.unused_collections = unused.collections_deep()
-        self.unused_images = unused.images_deep()
-        self.unused_lights = unused.lights_deep()
-        self.unused_materials = unused.materials_deep()
-        self.unused_node_groups = unused.node_groups_deep()
-        self.unused_particles = unused.particles_deep()
-        self.unused_textures = unused.textures_deep()
-        self.unused_worlds = unused.worlds()
+        # Use parallel execution for better performance
+        all_unused = unused_parallel.get_all_unused_parallel()
+        
+        self.unused_collections = all_unused['collections']
+        self.unused_images = all_unused['images']
+        self.unused_lights = all_unused['lights']
+        self.unused_materials = all_unused['materials']
+        self.unused_node_groups = all_unused['node_groups']
+        self.unused_particles = all_unused['particles']
+        self.unused_textures = all_unused['textures']
+        self.unused_worlds = all_unused['worlds']
 
         return wm.invoke_props_dialog(self)
 
