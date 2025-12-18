@@ -25995,3 +25995,960 @@ note that I removed the remington creative copyright from unused_parallel, becau
 
 ---
 
+_**Agent (model default, mode Agent)**_
+
+
+Correct: `unused_parallel.py` is new code, so it shouldn't carry the Remington Creative copyright. Removing the copyright header is appropriate.
+
+The file now only contains the necessary imports and functions without the copyright notice, which is fine for new code.
+
+Is the material detection working correctly now? The `material_node_groups()` function should detect materials used in node groups (including "Set Material" nodes), and the early returns should improve performance.
+
+---
+
+_**User**_
+
+the last commit by the remington guy was 0eda0a88eb7261720cee3353a33b99725e99d81d, were there any other source code elements that we created new that weren't supposed to have the remington copyright notice, but do?
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Searching for files with the Remington Creative copyright notice to identify any that shouldn't have it:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "Copyright \\(C\\) 2019 Remington Creative|Remington Creative",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "Copyright \\(C\\) 2019 Remington Creative|Remington Creative",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:\\atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": "ops/direct_use_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": ".specstory/history/2025-12-16_23-24Z-blender-library-packed-files-error.md",
+              "matches": [
+                {
+                  "lineNumber": 1409,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that detect missing files in the Blender\\nproject.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nimport os\\n\\n\\ndef get_missing(data):\\n    # returns a list of keys of unpacked data-blocks with non-existent\\n    # fi"
+                },
+                {
+                  "lineNumber": 1417,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 1661,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis module provides version detection and comparison utilities for\\nmulti-version Blender support (4.2 LTS, 4.5 LTS, and 5.0).\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\n\\n# Version constants\\nVERSION_4_2_LTS = (4, 2, 0)\\nVERSION_4_5_LTS = ("
+                },
+                {
+                  "lineNumber": 1669,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 2362,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains operations for missing file handling. This includes\\nthe option to reload, remove, replace, and search for these missing files.\\n\\nIt also contains the post-reload report dialog that appears after\\nattempt"
+                },
+                {
+                  "lineNumber": 2370,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 2888,
+                  "content": "        \"contents\": \"# Changelog\\n\\nAll notable changes to this project will be documented in this file.\\n\\n## [v2.0.0] - Raincloud's first re-release\\n\\n### Feature\\n- Multi-version Blender support (4.2 LTS, 4.5 LTS, and 5.0)\\n    - Version detection utilities in &amp;#96;utils/version.py&amp;#96;\\n    - API compatibility layer in &amp;#96;utils/compat.py&amp;#96; for handling version differences\\n\\n### Fixes\\n- Blender 5.0 compatibility: Fixed &amp;#96;AttributeError&amp;#96; when accessing scene compositor node tree (changed from &amp;#96;scene.node_tree&amp;#96; to &amp;#96;scene.compositing_node_tree&amp;#96;)\\n- Collections assigned to &amp;#96;rigidbody_world.collection&amp;#96; are now correctly detected as used\\n\\n### Internal\\n- GitHub Actions release workflow\\n- Integrated &amp;#96;rainys_repo_bootstrap&amp;#96; into &amp;#96;__init__.py&amp;#96; so the Rainy's Extensions repository is registered on add-on enable and the bootstrap guard resets on disable.\\n- Removed \\\"Support Remington Creative\\\" popup and all related functionality\\n    "
+                },
+                {
+                  "lineNumber": 2959,
+                  "content": "            \"text\": \"- Removed \\\"Support Remington Creative\\\" popup and all related functionality\","
+                },
+                {
+                  "lineNumber": 2979,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis module provides API compatibility functions for handling differences\\nbetween Blender 4.2 LTS, 4.5 LTS, and 5.0.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import register_class, unregister_class\\nfrom . import version\\n\\n"
+                },
+                {
+                  "lineNumber": 2987,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 3417,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains miscellaneous statistics functions.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nimport os\\n\\n\\ndef blend_size():\\n    # returns the size of the current Blender file as a string\\n\\n    filepath = bpy.data.filepath\\n    size_b"
+                },
+                {
+                  "lineNumber": 3425,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 8042,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that detect data-blocks that have no users,\\nas determined by stats.users.py\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom .. import config\\nfrom . import users\\n\\n\\ndef shallow(data):\\n    # returns a list of k"
+                },
+                {
+                  "lineNumber": 8050,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 8255,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions for duplicating data-blocks from Atomic's\\ninspection interface.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\n\\n\\ndef duplicate_data(data, key):\\n    # creates a copy of the specified data-block and returns its key\\"
+                },
+                {
+                  "lineNumber": 8263,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 8987,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions for deleting individual data-blocks from\\nAtomic's inspection inteface.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\n\\n\\ndef delete_datablock(data, key):\\n    # deletes a specific data-block from a set of data\\n    "
+                },
+                {
+                  "lineNumber": 8995,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 9142,
+                  "content": "        \"contents\": \"## [v2.0.1] - 2025-12-16\\n\\n### Fixes\\n- Blender 5.0 compatibility: Fixed &amp;#96;AttributeError&amp;#96; when detecting missing library files (Library objects use &amp;#96;packed_file&amp;#96; singular, Image objects use &amp;#96;packed_files&amp;#96; plural in 5.0)\\n- Fixed unregistration errors in Blender 4.5 by using safe unregister functions throughout the codebase\\n\\n## [v2.0.0] - Raincloud's first re-release\\n\\n### Feature\\n- Multi-version Blender support (4.2 LTS, 4.5 LTS, and 5.0)\\n    - Version detection utilities in &amp;#96;utils/version.py&amp;#96;\\n    - API compatibility layer in &amp;#96;utils/compat.py&amp;#96; for handling version differences\\n\\n### Fixes\\n- Blender 5.0 compatibility: Fixed &amp;#96;AttributeError&amp;#96; when accessing scene compositor node tree (changed from &amp;#96;scene.node_tree&amp;#96; to &amp;#96;scene.compositing_node_tree&amp;#96;)\\n- Collections assigned to &amp;#96;rigidbody_world.collection&amp;#96; are now correctly detected as used\\n\\n### Internal\\n- GitHub Actions release workflow\\n"
+                },
+                {
+                  "lineNumber": 9221,
+                  "content": "            \"text\": \"- Removed \\\"Support Remington Creative\\\" popup and all related functionality\","
+                },
+                {
+                  "lineNumber": 10066,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains the Atomic preferences UI, preferences properties, and\\nsome functions for syncing the preference properties with external factors.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import register_class\\nfrom ..uti"
+                },
+                {
+                  "lineNumber": 10074,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 10270,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis module provides version detection and comparison utilities for\\nmulti-version Blender support (4.2 LTS, 4.5 LTS, and 5.0).\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\n\\n# Version constants\\nVERSION_4_2_LTS = (4, 2, 0)\\nVERSION_4_5_LTS = ("
+                },
+                {
+                  "lineNumber": 10278,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 10948,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that return the keys of data-blocks that\\nuse other data-blocks.\\n\\nThey are titled as such that the first part of the function name is the\\ntype of the data being passed in and the second part o"
+                },
+                {
+                  "lineNumber": 10956,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 11162,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis module provides API compatibility functions for handling differences\\nbetween Blender 4.2 LTS, 4.5 LTS, and 5.0.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import register_class, unregister_class\\nfrom . import version\\n\\n"
+                },
+                {
+                  "lineNumber": 11170,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 11819,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains operations for missing file handling. This includes\\nthe option to reload, remove, replace, and search for these missing files.\\n\\nIt also contains the post-reload report dialog that appears after\\nattempt"
+                },
+                {
+                  "lineNumber": 11827,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 12182,
+                  "content": "                  \"content\": \"        \\\"contents\\\": \\\"\\\\\\\"\\\\\\\"\\\\\\\"\\\\nCopyright (C) 2019 Remington Creative\\\\n\\\\nThis file is part of Atomic Data Manager.\\\\n\\\\nAtomic Data Manager is free software: you can redistribute\\\\nit and/or modify it under the terms of the GNU General Public License\\\\nas published by the Free Software Foundation, either version 3 of the\\\\nLicense, or (at your option) any later version.\\\\n\\\\nAtomic Data Manager is distributed in the hope that it will\\\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\\\nGeneral Public License for more details.\\\\n\\\\nYou should have received a copy of the GNU General Public License along\\\\nwith Atomic Data Manager.  If not, see &amp;amp;lt;https://www.gnu.org/licenses/&amp;amp;gt;.\\\\n\\\\n---\\\\n\\\\nThis file contains functions that detect missing files in the Blender\\\\nproject.\\\\n\\\\n\\\\\\\"\\\\\\\"\\\\\\\"\\\\n\\\\nimport bpy\\\\nimport os\\\\n\\\\n\\\\ndef get_missing(data):"
+                },
+                {
+                  "lineNumber": 12190,
+                  "content": "                  \"content\": \"        \\\"contents\\\": \\\"\\\\\\\"\\\\\\\"\\\\\\\"\\\\nCopyright (C) 2019 Remington Creative\\\\n\\\\nThis file is part of Atomic Data Manager.\\\\n\\\\nAtomic Data Manager is free software: you can redistribute\\\\nit and/or modify it under the terms of the GNU General Public License\\\\nas published by the Free Software Foundation, either version 3 of the\\\\nLicense, or (at your option) any later version.\\\\n\\\\nAtomic Data Manager is distributed in the hope that it will\\\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\\\nGeneral Public License for more details.\\\\n\\\\nYou should have received a copy of the GNU General Public License along\\\\nwith Atomic Data Manager.  If not, see &amp;amp;lt;https://www.gnu.org/licenses/&amp;amp;gt;.\\\\n\\\\n---\\\\n\\\\nThis file contains operations for missing file handling. This includes\\\\nthe option to reload, remove, replace, and search for these missing files.\\\\n\\\\nIt a"
+                },
+                {
+                  "lineNumber": 12372,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that return the keys of data-blocks that\\nuse other data-blocks.\\n\\nThey are titled as such that the first part of the function name is the\\ntype of the data being passed in and the second part o"
+                },
+                {
+                  "lineNumber": 12380,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 21773,
+                  "content": "                  \"content\": \"        \\\"contents\\\": \\\"\\\\\\\"\\\\\\\"\\\\\\\"\\\\nCopyright (C) 2019 Remington Creative\\\\n\\\\nThis file is part of Atomic Data Manager.\\\\n\\\\nAtomic Data Manager is free software: you can redistribute\\\\nit and/or modify it under the terms of the GNU General Public License\\\\nas published by the Free Software Foundation, either version 3 of the\\\\nLicense, or (at your option) any later version.\\\\n\\\\nAtomic Data Manager is distributed in the hope that it will\\\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\\\nGeneral Public License for more details.\\\\n\\\\nYou should have received a copy of the GNU General Public License along\\\\nwith Atomic Data Manager.  If not, see &amp;amp;lt;https://www.gnu.org/licenses/&amp;amp;gt;.\\\\n\\\\n---\\\\n\\\\nThis file contains the Atomic preferences UI, preferences properties, and\\\\nsome functions for syncing the preference properties with external factors.\\\\n\\\\n"
+                },
+                {
+                  "lineNumber": 21781,
+                  "content": "                  \"content\": \"        \\\"contents\\\": \\\"\\\\\\\"\\\\\\\"\\\\\\\"\\\\nCopyright (C) 2019 Remington Creative\\\\n\\\\nThis file is part of Atomic Data Manager.\\\\n\\\\nAtomic Data Manager is free software: you can redistribute\\\\nit and/or modify it under the terms of the GNU General Public License\\\\nas published by the Free Software Foundation, either version 3 of the\\\\nLicense, or (at your option) any later version.\\\\n\\\\nAtomic Data Manager is distributed in the hope that it will\\\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\\\nGeneral Public License for more details.\\\\n\\\\nYou should have received a copy of the GNU General Public License along\\\\nwith Atomic Data Manager.  If not, see &amp;amp;lt;https://www.gnu.org/licenses/&amp;amp;gt;.\\\\n\\\\n---\\\\n\\\\nThis file contains operations for missing file handling. This includes\\\\nthe option to reload, remove, replace, and search for these missing files.\\\\n\\\\nIt a"
+                }
+              ]
+            },
+            {
+              "file": "ui/inspect_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "CHANGELOG.md",
+              "matches": [
+                {
+                  "lineNumber": 31,
+                  "content": "- Removed \"Support Remington Creative\" popup and all related functionality"
+                }
+              ]
+            },
+            {
+              "file": "utils/version.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops\\main_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/support_me_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                },
+                {
+                  "lineNumber": 22,
+                  "content": "support Remington Creative popup."
+                },
+                {
+                  "lineNumber": 97,
+                  "content": "            text=\"Support Remington Creative\","
+                }
+              ]
+            },
+            {
+              "file": "ops\\direct_use_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "stats/missing.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "stats/unused.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/utils/clean.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/inspect_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/main_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/utils/duplicate.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/utils/ui_layouts.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "stats/misc.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/pie_menu_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/missing_file_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/utils/delete.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/utils/nuke.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/stats_panel_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/main_panel_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "stats\\users.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "config.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "stats/unnamed.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "utils/__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "utils/compat.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "README.md",
+              "matches": [
+                {
+                  "lineNumber": 46,
+                  "content": "**Like the Add-on?** [Consider Supporting Remington Creative](https://remington.pro/support/)!"
+                }
+              ]
+            },
+            {
+              "file": "ui/missing_file_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "stats/users.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ui/preferences_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": ".specstory/history/2025-12-18_18-37Z-blender-library-packed-files-error.md",
+              "matches": [
+                {
+                  "lineNumber": 2532,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains the main operators found in the main panel of the\\nAtomic Data Manager interface. This includes nuke, clean, undo, and the\\nvarious selection operations.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import regi"
+                },
+                {
+                  "lineNumber": 2540,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 4137,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains operations for missing file handling. This includes\\nthe option to reload, remove, replace, and search for these missing files.\\n\\nIt also contains the post-reload report dialog that appears after\\nattempt"
+                },
+                {
+                  "lineNumber": 4145,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 6379,
+                  "content": "        \"contents\": \"## [v2.0.3] - 2025-12-17\\n\\n### Fixes\\n- Fixed missing import error in missing file detection\\n\\n## [v2.0.2] - 2025-12-17\\n\\n### Fixes\\n- Atomic now completely ignores all library-linked and override datablocks across all operations, as originally intended.\\n\\n## [v2.0.1] - 2025-12-16\\n\\n### Fixes\\n- Blender 5.0 compatibility: Fixed &amp;#96;AttributeError&amp;#96; when detecting missing library files (Library objects use &amp;#96;packed_file&amp;#96; singular, Image objects use &amp;#96;packed_files&amp;#96; plural in 5.0)\\n- Fixed unregistration errors in Blender 4.5 by using safe unregister functions throughout the codebase\\n\\n## [v2.0.0] - Raincloud's first re-release\\n\\n### Feature\\n- Multi-version Blender support (4.2 LTS, 4.5 LTS, and 5.0)\\n    - Version detection utilities in &amp;#96;utils/version.py&amp;#96;\\n    - API compatibility layer in &amp;#96;utils/compat.py&amp;#96; for handling version differences\\n\\n### Fixes\\n- Blender 5.0 compatibility: Fixed &amp;#96;AttributeError&amp;#96; when accessing"
+                },
+                {
+                  "lineNumber": 6494,
+                  "content": "            \"text\": \"- Removed \\\"Support Remington Creative\\\" popup and all related functionality\","
+                },
+                {
+                  "lineNumber": 7210,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains the direct use operators, intended to be used with\\nAtomic's pie menu interface. However, they can be implemented anywhere\\nif they need to be.\\n\\nThese operators basically wrap the functions from ops.util"
+                },
+                {
+                  "lineNumber": 7218,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 7660,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains operations for missing file handling. This includes\\nthe option to reload, remove, replace, and search for these missing files.\\n\\nIt also contains the post-reload report dialog that appears after\\nattempt"
+                },
+                {
+                  "lineNumber": 7668,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 7906,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file handles the registration of the atomic_data_manager.ops package\\n\\n\\\"\\\"\\\"\\n\\nfrom . import main_ops\\nfrom . import inspect_ops\\nfrom . import direct_use_ops\\nfrom . import missing_file_ops\\n\\n\\ndef register():\\n   "
+                },
+                {
+                  "lineNumber": 7914,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 8355,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains the main operators found in the main panel of the\\nAtomic Data Manager interface. This includes nuke, clean, undo, and the\\nvarious selection operations.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import regi"
+                },
+                {
+                  "lineNumber": 8363,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 8688,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file handles the registration of the atomic_data_manager.ui package\\n\\n\\\"\\\"\\\"\\n\\nfrom . import main_panel_ui\\nfrom . import stats_panel_ui\\nfrom . import inspect_ui\\nfrom . import missing_file_ui\\nfrom . import missing_"
+                },
+                {
+                  "lineNumber": 8696,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 9350,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains Atomic's global properties and handles the\\nregistration for all packages within the add-on.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import register_class\\nfrom .utils import compat\\nfrom . import ops\\nfro"
+                },
+                {
+                  "lineNumber": 9358,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 9862,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains global copies of Atomic's preferences so that they\\ncan be easily access throughout the add-on.\\n\\nNOTE:\\nChanging the values of these variables will NOT change the values in the\\nAtomic's preferences. If "
+                },
+                {
+                  "lineNumber": 9870,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 10221,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions for duplicating data-blocks from Atomic's\\ninspection interface.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\n\\n\\ndef duplicate_data(data, key):\\n    # creates a copy of the specified data-block and returns its key\\"
+                },
+                {
+                  "lineNumber": 10229,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 10472,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that return the keys of data-blocks that\\nuse other data-blocks.\\n\\nThey are titled as such that the first part of the function name is the\\ntype of the data being passed in and the second part o"
+                },
+                {
+                  "lineNumber": 10480,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 11782,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains parallelized versions of unused data detection functions.\\nUses threading with locks to safely access Blender's API from multiple threads.\\n\\n\\\"\\\"\\\"\\n\\nimport threading\\nfrom concurrent.futures import Thre"
+                },
+                {
+                  "lineNumber": 11790,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 12211,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that detect data-blocks that have no users,\\nas determined by stats.users.py\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom .. import config\\nfrom ..utils import compat\\nfrom . import users\\n\\n\\ndef shallow(data)"
+                },
+                {
+                  "lineNumber": 12219,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 14283,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that detect data-blocks that have no users,\\nas determined by stats.users.py\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom .. import config\\nfrom ..utils import compat\\nfrom . import users\\n\\n\\ndef shallow(data)"
+                },
+                {
+                  "lineNumber": 14291,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 15233,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that return the keys of data-blocks that\\nuse other data-blocks.\\n\\nThey are titled as such that the first part of the function name is the\\ntype of the data being passed in and the second part o"
+                },
+                {
+                  "lineNumber": 15241,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 15563,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions that detect unnamed data-blocks in the\\nBlender project.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nimport re\\nfrom ..utils import compat\\n\\n\\ndef collections():\\n    # returns the keys of all unnamed collections "
+                },
+                {
+                  "lineNumber": 15571,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 15902,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains optimized batched versions of unused data detection functions.\\nSince Blender's Python API is not thread-safe, we batch calls efficiently\\ninstead of using threading (which would serialize anyway due to lo"
+                },
+                {
+                  "lineNumber": 15910,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 19179,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains functions for cleaning out specific data categories.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom ...stats import unused\\n\\n\\ndef collections():\\n    # removes all unused collections from the project\\n    for collection_"
+                },
+                {
+                  "lineNumber": 19187,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                },
+                {
+                  "lineNumber": 21063,
+                  "content": "        \"contents\": \"\\\"\\\"\\\"\\nCopyright (C) 2019 Remington Creative\\n\\nThis file is part of Atomic Data Manager.\\n\\nAtomic Data Manager is free software: you can redistribute\\nit and/or modify it under the terms of the GNU General Public License\\nas published by the Free Software Foundation, either version 3 of the\\nLicense, or (at your option) any later version.\\n\\nAtomic Data Manager is distributed in the hope that it will\\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\\nGeneral Public License for more details.\\n\\nYou should have received a copy of the GNU General Public License along\\nwith Atomic Data Manager.  If not, see &amp;lt;https://www.gnu.org/licenses/&amp;gt;.\\n\\n---\\n\\nThis file contains the main operators found in the main panel of the\\nAtomic Data Manager interface. This includes nuke, clean, undo, and the\\nvarious selection operations.\\n\\n\\\"\\\"\\\"\\n\\nimport bpy\\nfrom bpy.utils import regi"
+                },
+                {
+                  "lineNumber": 21071,
+                  "content": "            \"text\": \"Copyright (C) 2019 Remington Creative\","
+                }
+              ]
+            },
+            {
+              "file": "stats/count.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            },
+            {
+              "file": "ops/support_me_ops.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                },
+                {
+                  "lineNumber": 22,
+                  "content": "This file contains the operator for opening the Remington Creative"
+                },
+                {
+                  "lineNumber": 36,
+                  "content": "    \"\"\"Opens the Remington Creative \\\"Support Me\\\" webpage\"\"\""
+                }
+              ]
+            },
+            {
+              "file": "ops/__init__.py",
+              "matches": [
+                {
+                  "lineNumber": 2,
+                  "content": "Copyright (C) 2019 Remington Creative"
+                }
+              ]
+            }
+          ],
+          "totalLines": 115,
+          "totalMatchedLines": 115
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="list_dir_v2">
+<details>
+<summary>Tool use: **list_dir_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "targetDirectory": "E:\\atomic_data_manager"
+}
+```
+Result:
+
+```json
+{
+  "directoryTreeRoot": {
+    "absPath": "E:\\atomic_data_manager",
+    "childrenDirs": [
+      {
+        "absPath": "E:\\atomic_data_manager\\.github",
+        "childrenDirs": [
+          {
+            "absPath": "E:\\atomic_data_manager\\.github\\workflows",
+            "childrenFiles": [
+              {
+                "name": "release.yml"
+              }
+            ],
+            "childrenWereProcessed": true
+          }
+        ],
+        "childrenWereProcessed": true
+      },
+      {
+        "absPath": "E:\\atomic_data_manager\\.specstory",
+        "childrenDirs": [
+          {
+            "absPath": "E:\\atomic_data_manager\\.specstory\\history",
+            "childrenFiles": [
+              {
+                "name": "2025-10-09_00-08Z-update-blender-addon-for-version-4-5.md"
+              },
+              {
+                "name": "2025-12-01_19-37Z-integrate-multi-blender-version-support.md"
+              },
+              {
+                "name": "2025-12-01_20-15Z-blender-integration-error-troubleshooting.md"
+              },
+              {
+                "name": "2025-12-01_20-46Z-setting-up-a-blender-extension-api.md"
+              },
+              {
+                "name": "2025-12-16_23-24Z-blender-library-packed-files-error.md"
+              },
+              {
+                "name": "2025-12-18_18-37Z-blender-library-packed-files-error.md"
+              }
+            ],
+            "childrenWereProcessed": true
+          }
+        ],
+        "childrenFiles": [
+          {
+            "name": ".gitignore"
+          }
+        ],
+        "childrenWereProcessed": true
+      },
+      {
+        "absPath": "E:\\atomic_data_manager\\ops",
+        "childrenDirs": [
+          {
+            "absPath": "E:\\atomic_data_manager\\ops\\utils",
+            "childrenFiles": [
+              {
+                "name": "clean.py"
+              },
+              {
+                "name": "delete.py"
+              },
+              {
+                "name": "duplicate.py"
+              },
+              {
+                "name": "nuke.py"
+              }
+            ],
+            "childrenWereProcessed": true
+          }
+        ],
+        "childrenFiles": [
+          {
+            "name": "__init__.py"
+          },
+          {
+            "name": "direct_use_ops.py"
+          },
+          {
+            "name": "inspect_ops.py"
+          },
+          {
+            "name": "main_ops.py"
+          },
+          {
+            "name": "missing_file_ops.py"
+          },
+          {
+            "name": "support_me_ops.py"
+          }
+        ],
+        "childrenWereProcessed": true
+      },
+      {
+        "absPath": "E:\\atomic_data_manager\\stats",
+        "childrenFiles": [
+          {
+            "name": "count.py"
+          },
+          {
+            "name": "misc.py"
+          },
+          {
+            "name": "missing.py"
+          },
+          {
+            "name": "unnamed.py"
+          },
+          {
+            "name": "unused_parallel.py"
+          },
+          {
+            "name": "unused.py"
+          },
+          {
+            "name": "users.py"
+          }
+        ],
+        "childrenWereProcessed": true
+      },
+      {
+        "absPath": "E:\\atomic_data_manager\\ui",
+        "childrenDirs": [
+          {
+            "absPath": "E:\\atomic_data_manager\\ui\\utils",
+            "childrenFiles": [
+              {
+                "name": "ui_layouts.py"
+              }
+            ],
+            "childrenWereProcessed": true
+          }
+        ],
+        "childrenFiles": [
+          {
+            "name": "__init__.py"
+          },
+          {
+            "name": "inspect_ui.py"
+          },
+          {
+            "name": "main_panel_ui.py"
+          },
+          {
+            "name": "missing_file_ui.py"
+          },
+          {
+            "name": "pie_menu_ui.py"
+          },
+          {
+            "name": "preferences_ui.py"
+          },
+          {
+            "name": "stats_panel_ui.py"
+          },
+          {
+            "name": "support_me_ui.py"
+          }
+        ],
+        "childrenWereProcessed": true
+      },
+      {
+        "absPath": "E:\\atomic_data_manager\\utils",
+        "childrenFiles": [
+          {
+            "name": "__init__.py"
+          },
+          {
+            "name": "compat.py"
+          },
+          {
+            "name": "version.py"
+          }
+        ],
+        "childrenWereProcessed": true
+      }
+    ],
+    "childrenFiles": [
+      {
+        "name": "__init__.py"
+      },
+      {
+        "name": ".cursorindexingignore"
+      },
+      {
+        "name": ".gitignore"
+      },
+      {
+        "name": "blender_manifest.toml"
+      },
+      {
+        "name": "CHANGELOG.md"
+      },
+      {
+        "name": "config.py"
+      },
+      {
+        "name": "LICENSE.txt"
+      },
+      {
+        "name": "rainys_repo_bootstrap.py"
+      },
+      {
+        "name": "README.md"
+      }
+    ],
+    "childrenWereProcessed": true
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\rainys_repo_bootstrap.py</summary>
+
+</details>
+</tool-use>
+
+---
+
