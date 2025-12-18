@@ -700,14 +700,138 @@ class ATOMIC_OT_inspect_worlds(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+# Atomic Data Manager Inspect Objects UI Operator
+class ATOMIC_OT_inspect_objects(bpy.types.Operator):
+    """Inspect Objects"""
+    bl_idname = "atomic.inspect_objects"
+    bl_label = "Inspect Objects"
+
+    # user lists
+    users_scenes = []
+
+    def draw(self, context):
+        global inspection_update_trigger
+        atom = bpy.context.scene.atomic
+
+        layout = self.layout
+
+        # inspect objects header
+        ui_layouts.inspect_header(
+            layout=layout,
+            atom_prop="objects_field",
+            data="objects"
+        )
+
+        # inspection update code
+        if inspection_update_trigger:
+            # if key is valid, update the user lists
+            if atom.objects_field in bpy.data.objects.keys():
+                self.users_scenes = users.object_all(atom.objects_field)
+
+            # if key is invalid, empty the user lists
+            else:
+                self.users_scenes = []
+
+            inspection_update_trigger = False
+
+        # scenes box list
+        ui_layouts.box_list(
+            layout=layout,
+            title="Scenes",
+            items=self.users_scenes,
+            icon="SCENE_DATA"
+        )
+
+        row = layout.row()  # extra row for spacing
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        # update inspection context
+        atom = bpy.context.scene.atomic
+        atom.active_inspection = "OBJECTS"
+
+        # trigger update on invoke
+        global inspection_update_trigger
+        inspection_update_trigger = True
+
+        # invoke inspect dialog
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
+# Atomic Data Manager Inspect Armatures UI Operator
+class ATOMIC_OT_inspect_armatures(bpy.types.Operator):
+    """Inspect Armatures"""
+    bl_idname = "atomic.inspect_armatures"
+    bl_label = "Inspect Armatures"
+
+    # user lists
+    users_objects = []
+
+    def draw(self, context):
+        global inspection_update_trigger
+        atom = bpy.context.scene.atomic
+
+        layout = self.layout
+
+        # inspect armatures header
+        ui_layouts.inspect_header(
+            layout=layout,
+            atom_prop="armatures_field",
+            data="armatures"
+        )
+
+        # inspection update code
+        if inspection_update_trigger:
+            # if key is valid, update the user lists
+            if atom.armatures_field in bpy.data.armatures.keys():
+                self.users_objects = users.armature_all(atom.armatures_field)
+
+            # if key is invalid, empty the user lists
+            else:
+                self.users_objects = []
+
+            inspection_update_trigger = False
+
+        # objects box list
+        ui_layouts.box_list(
+            layout=layout,
+            title="Objects",
+            items=self.users_objects,
+            icon="OBJECT_DATA"
+        )
+
+        row = layout.row()  # extra row for spacing
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        # update inspection context
+        atom = bpy.context.scene.atomic
+        atom.active_inspection = "ARMATURES"
+
+        # trigger update on invoke
+        global inspection_update_trigger
+        inspection_update_trigger = True
+
+        # invoke inspect dialog
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
 reg_list = [
     ATOMIC_OT_inspect_collections,
     ATOMIC_OT_inspect_images,
     ATOMIC_OT_inspect_lights,
     ATOMIC_OT_inspect_materials,
     ATOMIC_OT_inspect_node_groups,
+    ATOMIC_OT_inspect_objects,
     ATOMIC_OT_inspect_particles,
     ATOMIC_OT_inspect_textures,
+    ATOMIC_OT_inspect_armatures,
     ATOMIC_OT_inspect_worlds
 ]
 

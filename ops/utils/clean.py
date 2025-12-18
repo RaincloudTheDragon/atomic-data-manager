@@ -72,3 +72,15 @@ def worlds():
     # removes all unused worlds from the project
     for world_key in unused.worlds():
         bpy.data.worlds.remove(bpy.data.worlds[world_key])
+
+
+def objects():
+    # removes all unused objects from the project
+    for object_key in unused.objects_deep():
+        bpy.data.objects.remove(bpy.data.objects[object_key])
+
+
+def armatures():
+    # removes all unused armatures from the project
+    for armature_key in unused.armatures_deep():
+        bpy.data.armatures.remove(bpy.data.armatures[armature_key])

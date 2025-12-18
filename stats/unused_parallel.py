@@ -15,8 +15,10 @@ def get_all_unused_parallel():
     - lights: list of unused light names
     - materials: list of unused material names
     - node_groups: list of unused node group names
+    - objects: list of unused object names
     - particles: list of unused particle names
     - textures: list of unused texture names
+    - armatures: list of unused armature names
     - worlds: list of unused world names
     """
     # Execute all checks sequentially but in a clean batch
@@ -27,8 +29,10 @@ def get_all_unused_parallel():
         'lights': unused.lights_deep(),
         'materials': unused.materials_deep(),
         'node_groups': unused.node_groups_deep(),
+        'objects': unused.objects_deep(),
         'particles': unused.particles_deep(),
         'textures': unused.textures_deep(),
+        'armatures': unused.armatures_deep(),
         'worlds': unused.worlds(),
     }
 
@@ -130,6 +134,28 @@ def _has_any_unused_worlds():
     return False
 
 
+def _has_any_unused_objects():
+    """Check if there are any unused objects (short-circuits early)."""
+    for obj in bpy.data.objects:
+        if compat.is_library_or_override(obj):
+            continue
+        if not users.object_all(obj.name):
+            if not obj.use_fake_user or config.include_fake_users:
+                return True
+    return False
+
+
+def _has_any_unused_armatures():
+    """Check if there are any unused armatures (short-circuits early)."""
+    for armature in bpy.data.armatures:
+        if compat.is_library_or_override(armature):
+            continue
+        if not users.armature_all(armature.name):
+            if not armature.use_fake_user or config.include_fake_users:
+                return True
+    return False
+
+
 def get_unused_for_smart_select():
     """
     Get unused data for smart select operation (returns booleans).
@@ -148,8 +174,10 @@ def get_unused_for_smart_select():
         'lights': _has_any_unused_lights(),
         'materials': _has_any_unused_materials(),
         'node_groups': _has_any_unused_node_groups(),
+        'objects': _has_any_unused_objects(),
         'particles': _has_any_unused_particles(),
         'textures': _has_any_unused_textures(),
+        'armatures': _has_any_unused_armatures(),
         'worlds': _has_any_unused_worlds(),
     }
 

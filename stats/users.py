@@ -426,9 +426,19 @@ def light_objects(light_key):
 
 def material_all(material_key):
     # returns a list of keys of every data-block that uses this material
-    return material_objects(material_key) + \
-           material_geometry_nodes(material_key) + \
-           material_node_groups(material_key)
+    # Use comprehensive custom detection that covers all usage contexts
+    users = []
+    
+    # Check direct object usage (material slots)
+    users.extend(material_objects(material_key))
+    
+    # Check Geometry Nodes usage (materials in node groups used by objects)
+    users.extend(material_geometry_nodes(material_key))
+    
+    # Check node group usage (materials in node groups used elsewhere)
+    users.extend(material_node_groups(material_key))
+    
+    return distinct(users)
 
 
 def material_geometry_nodes(material_key):
@@ -446,6 +456,7 @@ def material_geometry_nodes(material_key):
                 if compat.is_geometry_nodes_modifier(modifier):
                     ng = compat.get_geometry_nodes_modifier_node_group(modifier)
                     if ng:
+                        # Check if this node group or any nested node groups contain the material
                         if node_group_has_material(ng.name, material.name):
                             users.append(obj.name)
 
@@ -460,10 +471,14 @@ def material_node_groups(material_key):
     # Note: Geometry Nodes usage is already checked by material_geometry_nodes()
     # Optimized to return early when usage is found
     
+    from ..utils import compat
     material = bpy.data.materials[material_key]
 
     # Check all node groups to see if they contain this material
     for node_group in bpy.data.node_groups:
+        # Skip library-linked and override node groups
+        if compat.is_library_or_override(node_group):
+            continue
         if node_group_has_material(node_group.name, material.name):
             # This node group contains the material, check if the node group is used
             # Check usage contexts in order of likelihood, return early when found
@@ -507,6 +522,16 @@ def material_node_groups(material_key):
                     parent_mat_users = node_group_materials(parent_ng_name)
                     if parent_mat_users:
                         return parent_mat_users
+                    # Also check if parent is used in compositor, textures, worlds
+                    parent_comp_users = node_group_compositors(parent_ng_name)
+                    if parent_comp_users:
+                        return parent_comp_users
+                    parent_tex_users = node_group_textures(parent_ng_name)
+                    if parent_tex_users:
+                        return parent_tex_users
+                    parent_world_users = node_group_worlds(parent_ng_name)
+                    if parent_world_users:
+                        return parent_world_users
 
     return []  # Material not used in any node groups
 
@@ -820,19 +845,42 @@ def node_group_has_material(node_group_key, material_key):
     # returns true if a node group contains this material (directly or nested)
 
     has_material = False
-    node_group = bpy.data.node_groups[node_group_key]
-    material = bpy.data.materials[material_key]
+    try:
+        node_group = bpy.data.node_groups[node_group_key]
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return False
 
     for node in node_group.nodes:
         # base case: nodes with a material property (e.g., Set Material)
+        # Check for Set Material nodes explicitly by type as well
         if hasattr(node, 'material') and node.material:
-            if node.material.name == material.name:
+            # Check both by name and by direct reference for robustness
+            if (node.material.name == material.name or 
+                node.material == material):
                 has_material = True
+                break  # Found it, no need to continue
+        
+        # Also check node type explicitly for Set Material nodes
+        # Some nodes might have material but we should verify the type
+        if hasattr(node, 'bl_idname'):
+            node_type = node.bl_idname
+            # Check for Geometry Nodes Set Material node type
+            if 'SetMaterial' in node_type or 'SET_MATERIAL' in node_type.upper():
+                if hasattr(node, 'material') and node.material:
+                    if (node.material.name == material.name or 
+                        node.material == material):
+                        has_material = True
+                        break
 
         # recurse case: nested node groups
-        elif hasattr(node, 'node_tree') and node.node_tree:
-            has_material = node_group_has_material(
-                node.node_tree.name, material.name)
+        # Check this separately (not elif) in case we need to recurse
+        if not has_material and hasattr(node, 'node_tree') and node.node_tree:
+            try:
+                has_material = node_group_has_material(
+                    node.node_tree.name, material.name)
+            except (KeyError, AttributeError):
+                continue  # Skip invalid node groups
 
         if has_material:
             break
@@ -1025,6 +1073,67 @@ def texture_particles(texture_key):
                 # if texture in texture slot is our texture
                 if texture_slot.texture.name == texture.name:
                     users.append(particle.name)
+
+    return distinct(users)
+
+
+def object_all(object_key):
+    # returns a list of scene names where the object is used
+    # An object is "used" if it's in any collection that's part of any scene's collection hierarchy
+
+    users = []
+    obj = bpy.data.objects[object_key]
+
+    # Get all collections that contain this object
+    for collection in obj.users_collection:
+        # Check if this collection is in any scene's hierarchy
+        for scene in bpy.data.scenes:
+            if _scene_collection_contains(scene.collection, collection):
+                if scene.name not in users:
+                    users.append(scene.name)
+
+    return distinct(users)
+
+
+def armature_all(armature_key):
+    # returns a list of object names that use the armature
+    # Checks direct usage, modifier usage, and constraint usage
+
+    users = []
+    armature = bpy.data.armatures[armature_key]
+
+    # Check all objects in scene collections
+    for obj in bpy.data.objects:
+        # Skip library-linked and override objects
+        from ..utils import compat
+        if compat.is_library_or_override(obj):
+            continue
+
+        # Check if object is in any scene collection (reuse object_all logic)
+        if not object_all(obj.name):
+            continue  # Skip objects not in scene collections
+
+        # 1. Direct usage: ARMATURE objects where object.data == armature
+        if obj.type == 'ARMATURE' and obj.data == armature:
+            users.append(obj.name)
+            continue  # Already found usage, no need to check further
+
+        # 2. Modifier usage: Armature modifiers where modifier.object.data == armature
+        if hasattr(obj, 'modifiers'):
+            for modifier in obj.modifiers:
+                if modifier.type == 'ARMATURE':
+                    if hasattr(modifier, 'object') and modifier.object:
+                        if modifier.object.type == 'ARMATURE' and modifier.object.data == armature:
+                            users.append(obj.name)
+                            break  # Found usage, no need to check more modifiers
+
+        # 3. Constraint usage: Constraints that target ARMATURE objects using this armature
+        if hasattr(obj, 'constraints'):
+            for constraint in obj.constraints:
+                if hasattr(constraint, 'target') and constraint.target:
+                    if constraint.target.type == 'ARMATURE' and constraint.target.data == armature:
+                        users.append(obj.name)
+                        break  # Found usage, no need to check more constraints
 
     return distinct(users)
 

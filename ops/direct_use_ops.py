@@ -158,8 +158,10 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
     unused_lights = []
     unused_materials = []
     unused_node_groups = []
+    unused_objects = []
     unused_particles = []
     unused_textures = []
+    unused_armatures = []
     unused_worlds = []
 
     def draw(self, context):
@@ -206,6 +208,13 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
 
         ui_layouts.box_list(
             layout=layout,
+            title="Objects",
+            items=sorted(self.unused_objects),
+            icon="OBJECT_DATA"
+        )
+
+        ui_layouts.box_list(
+            layout=layout,
             title="Particle Systems",
             items=sorted(self.unused_particles),
             icon="PARTICLES"
@@ -216,6 +225,13 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
             title="Textures",
             items=sorted(self.unused_textures),
             icon="TEXTURE"
+        )
+
+        ui_layouts.box_list(
+            layout=layout,
+            title="Armatures",
+            items=sorted(self.unused_armatures),
+            icon="ARMATURE_DATA"
         )
 
         ui_layouts.box_list(
@@ -234,8 +250,10 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
         clean.lights()
         clean.materials()
         clean.node_groups()
+        clean.objects()
         clean.particles()
         clean.textures()
+        clean.armatures()
         clean.worlds()
 
         return {'FINISHED'}
@@ -251,8 +269,10 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
         self.unused_lights = all_unused['lights']
         self.unused_materials = all_unused['materials']
         self.unused_node_groups = all_unused['node_groups']
+        self.unused_objects = all_unused['objects']
         self.unused_particles = all_unused['particles']
         self.unused_textures = all_unused['textures']
+        self.unused_armatures = all_unused['armatures']
         self.unused_worlds = all_unused['worlds']
 
         return wm.invoke_props_dialog(self)

@@ -279,3 +279,55 @@ def worlds():
             unused.append(world.name)
 
     return unused
+
+
+def objects_deep():
+    # returns a list of keys of unused objects
+
+    unused = []
+
+    for obj in bpy.data.objects:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(obj):
+            continue
+        if not users.object_all(obj.name):
+
+            # check if object has a fake user or if ignore fake users
+            # is enabled
+            if not obj.use_fake_user or config.include_fake_users:
+                unused.append(obj.name)
+
+    return unused
+
+
+def objects_shallow():
+    # returns a list of keys of unused objects that may be
+    # incomplete, but is significantly faster than doing a deep search
+
+    return shallow(bpy.data.objects)
+
+
+def armatures_deep():
+    # returns a list of keys of unused armatures
+
+    unused = []
+
+    for armature in bpy.data.armatures:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(armature):
+            continue
+        if not users.armature_all(armature.name):
+
+            # check if armature has a fake user or if ignore fake users
+            # is enabled
+            if not armature.use_fake_user or config.include_fake_users:
+                unused.append(armature.name)
+
+    return unused
+
+
+def armatures_shallow():
+    # returns a list of keys of unused armatures that may be
+    # incomplete, but is significantly faster than doing a deep search
+
+    return shallow(bpy.data.armatures)
