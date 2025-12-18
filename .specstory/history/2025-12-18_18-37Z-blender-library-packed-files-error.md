@@ -68043,3 +68043,4536 @@ Status: **completed**
 
 ---
 
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [-] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [ ] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [ ] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [ ] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [ ] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [ ] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [ ] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [ ] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\unused.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Adding unused detection functions to `stats/unused.py`:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\unused.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "6b0fc8a5-5981-44e5-9d7f-aeab8eed445e"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [-] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [ ] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [ ] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [ ] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [ ] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [ ] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [ ] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\__init__.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the property group in `__init__.py`:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\__init__.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "8f7c902e-fa92-4494-a0c9-f8fe0ab43307"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\__init__.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "1b3f0cc0-4053-44e9-8f41-ec55dc995980"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\__init__.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "9ea91bef-d561-475a-96c5-fe4a6dcbca72"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\__init__.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "722ca3c0-342f-4ddd-9e93-97c9b2a59979"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [-] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [ ] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [ ] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [ ] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [ ] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [ ] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\main_panel_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the main panel UI:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ui\\main_panel_ui.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "b3737e82-3d50-475a-ba4a-cb4d5dea938c"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ui\\main_panel_ui.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "ae89785e-2134-4221-8b80-4d0a0bf775c0"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ui\\main_panel_ui.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "b3084df1-0143-4db7-b83b-95cb5f60240f"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [x] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [-] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [ ] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [ ] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [ ] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [ ] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\unused_parallel.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating `unused_parallel.py`:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\unused_parallel.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "d29e627e-890e-4341-a291-6eeaf2d07b0e"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\unused_parallel.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "80f455cd-8c1e-417c-a355-c5b301f9ae14"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\unused_parallel.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "97ef58dd-6b61-4207-a931-431096d1e2d6"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [x] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [x] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [-] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [ ] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [ ] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [ ] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\utils\clean.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Adding clean functions for objects and armatures:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\utils\\clean.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "c9bb5b24-f749-4bce-98a6-bee53a813f49"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [x] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [x] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [x] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [-] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [ ] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [ ] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\main_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the clean operator:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "c83d43c3-0aaf-46e4-831d-03c6534509b5"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "cc274d3a-681f-410d-976c-1de4cb79a751"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "48ba3fd9-db7a-4329-82db-d470dc25921e"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "b9a8a14a-8fc1-4f7b-b7d1-696f8ec45df4"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "1faf9864-360f-44c8-8a25-78d71277581d"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "8b2fdc04-5d6c-42d5-a3d5-a5c4698647cb"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\main_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the smart select operator:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\main_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\main_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "3de049a1-9286-4111-bc45-7359149e7d8b"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [x] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [x] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [x] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [x] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [x] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [-] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [ ] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ops\direct_use_ops.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Updating the clean_all operator:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\direct_use_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "50dc9b4f-276b-4c68-83c6-e8759434cdd7"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\direct_use_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "8b9df1f6-a44a-49cc-b301-a69dbb850227"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\direct_use_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "b21798d0-3c23-4eca-8382-d7ff31107928"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\direct_use_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "336db6b3-8e95-4d12-bb04-989a7cd10bc6"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ops\\direct_use_ops.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "0ad67632-a99e-4940-ade1-b77f462d43be"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [x] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [x] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [x] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [x] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [x] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [x] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [-] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "ATOMIC_OT_inspect_",
+  "path": "ops/inspect_ops.py",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "ATOMIC_OT_inspect_",
+    "path": "ops/inspect_ops.py",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:\\atomic_data_manager": {
+        "content": {}
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Checking how inspect operators are structured:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "inspect_collections|inspect_images|inspect_materials",
+  "path": "ui",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "inspect_collections|inspect_images|inspect_materials",
+    "path": "ui",
+    "outputMode": "content",
+    "workspaceResults": {
+      "e:\\atomic_data_manager": {
+        "content": {
+          "matches": [
+            {
+              "file": "ui\\main_panel_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 87,
+                  "content": "            \"atomic.inspect_collections\","
+                },
+                {
+                  "lineNumber": 175,
+                  "content": "            \"atomic.inspect_images\","
+                },
+                {
+                  "lineNumber": 192,
+                  "content": "            \"atomic.inspect_materials\","
+                }
+              ]
+            },
+            {
+              "file": "ui/main_panel_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 87,
+                  "content": "            \"atomic.inspect_collections\","
+                },
+                {
+                  "lineNumber": 175,
+                  "content": "            \"atomic.inspect_images\","
+                },
+                {
+                  "lineNumber": 192,
+                  "content": "            \"atomic.inspect_materials\","
+                }
+              ]
+            },
+            {
+              "file": "ui/pie_menu_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 164,
+                  "content": "        pie.operator(\"atomic.inspect_materials\", icon=\"MATERIAL\")"
+                },
+                {
+                  "lineNumber": 170,
+                  "content": "        pie.operator(\"atomic.inspect_collections\", icon=\"GROUP\")"
+                },
+                {
+                  "lineNumber": 176,
+                  "content": "        pie.operator(\"atomic.inspect_images\", icon=\"IMAGE_DATA\")"
+                }
+              ]
+            },
+            {
+              "file": "ui/inspect_ui.py",
+              "matches": [
+                {
+                  "lineNumber": 43,
+                  "content": "class ATOMIC_OT_inspect_collections(bpy.types.Operator):"
+                },
+                {
+                  "lineNumber": 45,
+                  "content": "    bl_idname = \"atomic.inspect_collections\""
+                },
+                {
+                  "lineNumber": 153,
+                  "content": "class ATOMIC_OT_inspect_images(bpy.types.Operator):"
+                },
+                {
+                  "lineNumber": 155,
+                  "content": "    bl_idname = \"atomic.inspect_images\""
+                },
+                {
+                  "lineNumber": 324,
+                  "content": "class ATOMIC_OT_inspect_materials(bpy.types.Operator):"
+                },
+                {
+                  "lineNumber": 326,
+                  "content": "    bl_idname = \"atomic.inspect_materials\""
+                },
+                {
+                  "lineNumber": 704,
+                  "content": "    ATOMIC_OT_inspect_collections,"
+                },
+                {
+                  "lineNumber": 705,
+                  "content": "    ATOMIC_OT_inspect_images,"
+                },
+                {
+                  "lineNumber": 707,
+                  "content": "    ATOMIC_OT_inspect_materials,"
+                }
+              ]
+            }
+          ],
+          "totalLines": 18,
+          "totalMatchedLines": 18
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\inspect_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Reading more of `inspect_ui.py` to understand the pattern:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\inspect_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\inspect_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Adding inspect operators for objects and armatures. Finding where to insert them:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\ui\inspect_ui.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\ui\\inspect_ui.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "a0cb4d1d-8c26-4ed7-81ca-b406b433350c"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Add object_all() and armature_all() functions to stats/users.py
+- [x] Add objects_deep(), objects_shallow(), armatures_deep(), armatures_shallow() to stats/unused.py
+- [x] Add objects and armatures properties to ATOMIC_PG_main in __init__.py
+- [x] Add objects and armatures UI elements to ui/main_panel_ui.py
+- [x] Add objects and armatures support to stats/unused_parallel.py for smart select
+- [x] Add objects() and armatures() clean functions to ops/utils/clean.py
+- [x] Update ATOMIC_OT_clean in ops/main_ops.py to support objects and armatures
+- [x] Update ATOMIC_OT_smart_select in ops/main_ops.py to include objects and armatures
+- [x] Update ATOMIC_OT_clean_all in ops/direct_use_ops.py to support objects and armatures
+- [x] Add inspect operators for objects and armatures in ops/inspect_ops.py (if pattern exists)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "stats/users.py",
+    "stats/unused.py",
+    "__init__.py",
+    "ui/main_panel_ui.py",
+    "stats/unused_parallel.py",
+    "ops/utils/clean.py",
+    "ops/main_ops.py",
+    "ops/direct_use_ops.py",
+    "ui/inspect_ui.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "stats/users.py"
+    },
+    {
+      "relativeWorkspacePath": "stats/unused.py"
+    },
+    {
+      "relativeWorkspacePath": "__init__.py"
+    },
+    {
+      "relativeWorkspacePath": "ui/main_panel_ui.py"
+    },
+    {
+      "relativeWorkspacePath": "stats/unused_parallel.py"
+    },
+    {
+      "relativeWorkspacePath": "ops/utils/clean.py"
+    },
+    {
+      "relativeWorkspacePath": "ops/main_ops.py"
+    },
+    {
+      "relativeWorkspacePath": "ops/direct_use_ops.py"
+    },
+    {
+      "relativeWorkspacePath": "ui/inspect_ui.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Checking for import issues:
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Refactoring `armature_all()` to reuse `object_all()` for consistency:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\users.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "ced44a8b-fcc8-42a2-b52e-010670463552"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "stats/users.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "stats/users.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+All todos are completed. Summary of changes:
+
+## Implementation complete
+
+### 1. User detection functions (`stats/users.py`)
+- Added `object_all()`: detects scenes where an object is used (via collection hierarchy)
+- Added `armature_all()`: detects objects using an armature (direct usage, modifiers, constraints including Child Of)
+
+### 2. Unused detection functions (`stats/unused.py`)
+- Added `objects_deep()` and `objects_shallow()`: detect unused objects
+- Added `armatures_deep()` and `armatures_shallow()`: detect unused armatures
+
+### 3. Property group (`__init__.py`)
+- Added `objects` and `armatures` boolean properties
+- Added `objects_field` and `armatures_field` search fields
+- Added 'OBJECTS' and 'ARMATURES' to inspection and stats enums
+
+### 4. Main panel UI (`ui/main_panel_ui.py`)
+- Added Objects toggle button and inspect operator (left column, after collections)
+- Added Armatures toggle button and inspect operator (right column, after materials)
+- Updated category_props list
+
+### 5. Smart select (`stats/unused_parallel.py`)
+- Added `_has_any_unused_objects()` and `_has_any_unused_armatures()` short-circuit functions
+- Updated `get_unused_for_smart_select()` and `get_all_unused_parallel()` to include objects and armatures
+
+### 6. Clean functions (`ops/utils/clean.py`)
+- Added `objects()` and `armatures()` clean functions
+
+### 7. Clean operator (`ops/main_ops.py`)
+- Updated `ATOMIC_OT_clean` to support objects and armatures in draw, execute, and invoke methods
+
+### 8. Smart select operator (`ops/main_ops.py`)
+- Updated `ATOMIC_OT_smart_select` to include objects and armatures
+
+### 9. Clean all operator (`ops/direct_use_ops.py`)
+- Updated `ATOMIC_OT_clean_all` to support objects and armatures
+
+### 10. Inspect operators (`ui/inspect_ui.py`)
+- Added `ATOMIC_OT_inspect_objects`: shows scenes where an object is used
+- Added `ATOMIC_OT_inspect_armatures`: shows objects that use an armature
+- Added both to the registration list
+
+All code follows existing patterns, handles library/override datablocks, respects fake users, and includes constraint-based armature detection (e.g., Child Of constraints targeting armature bones). No linter errors detected.
+
+---
+
+_**User**_
+
+smart select didn't detect any unused armatures. we need to add debug so we can actually see what's going on.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Adding debug logging to the armature detection functions to diagnose the issue.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\unused_parallel.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\unused.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+Adding debug logging to the armature detection functions:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\users.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "496a3c7c-b118-4a38-bbf7-fcce2653f32e"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\unused_parallel.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "5dc28635-1b9e-4e35-8d05-eea46e7ef431"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\unused.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "d6a30138-dca2-426e-a92d-52276ddf8923"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "stats/users.py",
+    "stats/unused_parallel.py",
+    "stats/unused.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "stats/users.py"
+    },
+    {
+      "relativeWorkspacePath": "stats/unused_parallel.py"
+    },
+    {
+      "relativeWorkspacePath": "stats/unused.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Added debug logging to the armature detection functions. When you run smart select or clean, the console will show:
+
+1. **`armature_all()`** — For each armature:
+   - Which armature is being checked
+   - How many objects are checked
+   - How many objects are in scene collections
+   - What users are found (direct, modifier, or constraint usage)
+
+2. **`_has_any_unused_armatures()`** — For smart select:
+   - Total number of armatures being checked
+   - Each armature's user count and fake_user status
+   - Whether each armature is considered unused
+
+3. **`armatures_deep()`** — For the deep search:
+   - Total number of armatures
+   - Each armature's status and why it's included/excluded
+
+Run smart select and check Blender's console (Window > Toggle System Console on Windows, or check the terminal where Blender was launched). The debug output will show:
+- Which armatures exist
+- Whether they're being skipped (library/override)
+- How many users each armature has
+- Whether fake_user settings are affecting detection
+- Whether objects are being filtered out because they're not in scene collections
+
+This should help identify why unused armatures aren't being detected.
+
+---
+
+_**User**_
+
+@blender (374-463) oh, I see what's happening. the materials/meshes are being driven by the armature, and the armature is being used by objects that contain materials. that's why they aren't detected as unused.
+
+such a loop should be detected recursively; if none of the users are in ANY scene, they should be detected as cleanable.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+Updating `armature_all()` to recursively check if the objects using the armature are themselves unused (not in any scene). If all users are unused, the armature should be considered unused.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:\atomic_data_manager\stats\users.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="semantic_search_full">
+<details>
+<summary>Tool use: **semantic_search_full**</summary>
+
+
+Parameters:
+
+```json
+{
+  "query": "How do we check if an object is unused or not in any scene?",
+  "topK": 10,
+  "explanation": ""
+}
+```
+Result:
+
+```json
+{
+  "codeResults": [
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 280,
+            "column": 17
+          },
+          "endPosition": {
+            "line": 306,
+            "column": 4
+          }
+        },
+        "contents": "def objects_deep():\n    # returns a list of keys of unused objects\n\n    unused = []\n\n    for obj in bpy.data.objects:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(obj):\n            continue\n        if not users.object_all(obj.name):\n\n            # check if object has a fake user or if ignore fake users\n            # is enabled\n            if not obj.use_fake_user or config.include_fake_users:\n                unused.append(obj.name)\n\n    return unused\n\n\ndef objects_shallow():\n    # returns a list of keys of unused objects that may be\n    # incomplete, but is significantly faster than doing a deep search\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def objects_deep():",
+            "lineNumber": 284,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused objects",
+            "lineNumber": 285,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 286
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 287
+          },
+          {
+            "lineNumber": 288
+          },
+          {
+            "text": "    for obj in bpy.data.objects:",
+            "lineNumber": 289
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 290
+          },
+          {
+            "text": "        if compat.is_library_or_override(obj):",
+            "lineNumber": 291
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 292
+          },
+          {
+            "text": "        if not users.object_all(obj.name):",
+            "lineNumber": 293
+          },
+          {
+            "lineNumber": 294
+          },
+          {
+            "text": "            # check if object has a fake user or if ignore fake users",
+            "lineNumber": 295
+          },
+          {
+            "text": "            # is enabled",
+            "lineNumber": 296
+          },
+          {
+            "text": "            if not obj.use_fake_user or config.include_fake_users:",
+            "lineNumber": 297
+          },
+          {
+            "text": "                unused.append(obj.name)",
+            "lineNumber": 298
+          },
+          {
+            "lineNumber": 299
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 300,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 301
+          },
+          {
+            "lineNumber": 302
+          },
+          {
+            "text": "def objects_shallow():",
+            "lineNumber": 303,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused objects that may be",
+            "lineNumber": 304,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster than doing a deep search",
+            "lineNumber": 305,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 306
+          },
+          {
+            "text": "    ",
+            "lineNumber": 307,
+            "isSignature": true
+          }
+        ]
+      },
+      "score": 0.48000308871269226
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 133,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 161
+          }
+        },
+        "contents": "def _has_any_unused_objects():\n    \"\"\"Check if there are any unused objects (short-circuits early).\"\"\"\n    for obj in bpy.data.objects:\n        if compat.is_library_or_override(obj):\n            continue\n        if not users.object_all(obj.name):\n            if not obj.use_fake_user or config.include_fake_users:\n                return True\n    return False\n\n\ndef _has_any_unused_armatures():\n    \"\"\"Check if there are any unused armatures (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_objects():",
+            "lineNumber": 137,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused objects (short-circuits early).\"\"\"",
+            "lineNumber": 138
+          },
+          {
+            "text": "    for obj in bpy.data.objects:",
+            "lineNumber": 139
+          },
+          {
+            "text": "        if compat.is_library_or_override(obj):",
+            "lineNumber": 140
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 141
+          },
+          {
+            "text": "        if not users.object_all(obj.name):",
+            "lineNumber": 142
+          },
+          {
+            "text": "            if not obj.use_fake_user or config.include_fake_users:",
+            "lineNumber": 143
+          },
+          {
+            "text": "                return True",
+            "lineNumber": 144
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 145,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 146
+          },
+          {
+            "lineNumber": 147
+          },
+          {
+            "text": "def _has_any_unused_armatures():",
+            "lineNumber": 148,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused armatures (short-circuits early).\"\"\"",
+            "lineNumber": 149
+          }
+        ]
+      },
+      "score": 0.44454145431518555
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {},
+          "endPosition": {
+            "line": 46
+          }
+        },
+        "contents": "import bpy\nfrom ..stats import unused\nfrom ..stats import users\nfrom .. import config\nfrom ..utils import compat\n\n\ndef get_all_unused_parallel():\n    \"\"\"\n    Get all unused data-blocks efficiently in a single batch.\n    \n    Returns a dictionary with keys:\n    - collections: list of unused collection names\n    - images: list of unused image names\n    - lights: list of unused light names\n    - materials: list of unused material names\n    - node_groups: list of unused node group names\n    - objects: list of unused object names\n    - particles: list of unused particle names\n    - textures: list of unused texture names\n    - armatures: list of unused armature names\n    - worlds: list of unused world names\n    \"\"\"\n    # Execute all checks sequentially but in a clean batch\n    # This avoids threading overhead while keeping code organized\n    return {\n        'collections': unused.collections_deep(),\n        'images': unused.images_deep(),\n        'lights': unused.lights_deep(),\n        'materials': unused.materials_deep(),\n        'node_groups': unused.node_groups_deep(),\n        'objects': unused.objects_deep(),\n        'particles': unused.particles_deep(),\n        'textures': unused.textures_deep(),\n        'armatures': unused.armatures_deep(),\n        'worlds': unused.worlds(),\n    }\n\n\ndef _has_any_unused_collections():\n    \"\"\"Check if there are any unused collections (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "import bpy",
+            "lineNumber": 1
+          },
+          {
+            "text": "from ..stats import unused",
+            "lineNumber": 2
+          },
+          {
+            "text": "from ..stats import users",
+            "lineNumber": 3
+          },
+          {
+            "text": "from .. import config",
+            "lineNumber": 4
+          },
+          {
+            "text": "from ..utils import compat",
+            "lineNumber": 5
+          },
+          {
+            "lineNumber": 6
+          },
+          {
+            "lineNumber": 7
+          },
+          {
+            "text": "def get_all_unused_parallel():",
+            "lineNumber": 8,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"",
+            "lineNumber": 9
+          },
+          {
+            "text": "    Get all unused data-blocks efficiently in a single batch.",
+            "lineNumber": 10
+          },
+          {
+            "text": "    ",
+            "lineNumber": 11
+          },
+          {
+            "text": "    Returns a dictionary with keys:",
+            "lineNumber": 12
+          },
+          {
+            "text": "    - collections: list of unused collection names",
+            "lineNumber": 13
+          },
+          {
+            "text": "    - images: list of unused image names",
+            "lineNumber": 14
+          },
+          {
+            "text": "    - lights: list of unused light names",
+            "lineNumber": 15
+          },
+          {
+            "text": "    - materials: list of unused material names",
+            "lineNumber": 16
+          },
+          {
+            "text": "    - node_groups: list of unused node group names",
+            "lineNumber": 17
+          },
+          {
+            "text": "    - objects: list of unused object names",
+            "lineNumber": 18
+          },
+          {
+            "text": "    - particles: list of unused particle names",
+            "lineNumber": 19
+          },
+          {
+            "text": "    - textures: list of unused texture names",
+            "lineNumber": 20
+          },
+          {
+            "text": "    - armatures: list of unused armature names",
+            "lineNumber": 21
+          },
+          {
+            "text": "    - worlds: list of unused world names",
+            "lineNumber": 22
+          },
+          {
+            "text": "    \"\"\"",
+            "lineNumber": 23
+          },
+          {
+            "text": "    # Execute all checks sequentially but in a clean batch",
+            "lineNumber": 24
+          },
+          {
+            "text": "    # This avoids threading overhead while keeping code organized",
+            "lineNumber": 25
+          },
+          {
+            "text": "    return {",
+            "lineNumber": 26
+          },
+          {
+            "text": "        'collections': unused.collections_deep(),",
+            "lineNumber": 27
+          },
+          {
+            "text": "        'images': unused.images_deep(),",
+            "lineNumber": 28
+          },
+          {
+            "text": "        'lights': unused.lights_deep(),",
+            "lineNumber": 29
+          },
+          {
+            "text": "        'materials': unused.materials_deep(),",
+            "lineNumber": 30
+          },
+          {
+            "text": "        'node_groups': unused.node_groups_deep(),",
+            "lineNumber": 31
+          },
+          {
+            "text": "        'objects': unused.objects_deep(),",
+            "lineNumber": 32
+          },
+          {
+            "text": "        'particles': unused.particles_deep(),",
+            "lineNumber": 33
+          },
+          {
+            "text": "        'textures': unused.textures_deep(),",
+            "lineNumber": 34
+          },
+          {
+            "text": "        'armatures': unused.armatures_deep(),",
+            "lineNumber": 35
+          },
+          {
+            "text": "        'worlds': unused.worlds(),",
+            "lineNumber": 36
+          },
+          {
+            "text": "    }",
+            "lineNumber": 37,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 38
+          },
+          {
+            "lineNumber": 39
+          },
+          {
+            "text": "def _has_any_unused_collections():",
+            "lineNumber": 40,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused collections (short-circuits early).\"\"\"",
+            "lineNumber": 41
+          }
+        ]
+      },
+      "score": 0.4094339609146118
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {},
+          "endPosition": {
+            "line": 64
+          }
+        },
+        "contents": "\"\"\"\nCopyright (C) 2019 Remington Creative\n\nThis file is part of Atomic Data Manager.\n\nAtomic Data Manager is free software: you can redistribute\nit and/or modify it under the terms of the GNU General Public License\nas published by the Free Software Foundation, either version 3 of the\nLicense, or (at your option) any later version.\n\nAtomic Data Manager is distributed in the hope that it will\nbe useful, but WITHOUT ANY WARRANTY; without even the implied warranty\nof MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\nGeneral Public License for more details.\n\nYou should have received a copy of the GNU General Public License along\nwith Atomic Data Manager.  If not, see &lt;https://www.gnu.org/licenses/&gt;.\n\n---\n\nThis file contains functions that detect data-blocks that have no users,\nas determined by stats.users.py\n\n\"\"\"\n\nimport bpy\nfrom .. import config\nfrom ..utils import compat\nfrom . import users\n\n\ndef shallow(data):\n    # returns a list of keys of unused data-blocks in the data that may be\n    # incomplete, but is significantly faster than doing a deep search\n\n    unused = []\n\n    for datablock in data:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(datablock):\n            continue\n\n        # if data-block has no users or if it has a fake user and\n        # ignore fake users is enabled\n        if datablock.users == 0 or (datablock.users == 1 and\n                                    datablock.use_fake_user and\n                                    config.include_fake_users):\n            unused.append(datablock.name)\n\n    return unused\n\n\ndef collections_deep():\n    # returns a full list of keys of unused collections\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "\"\"\"",
+            "lineNumber": 1
+          },
+          {
+            "text": "Copyright (C) 2019 Remington Creative",
+            "lineNumber": 2
+          },
+          {
+            "lineNumber": 3
+          },
+          {
+            "text": "This file is part of Atomic Data Manager.",
+            "lineNumber": 4
+          },
+          {
+            "lineNumber": 5
+          },
+          {
+            "text": "Atomic Data Manager is free software: you can redistribute",
+            "lineNumber": 6
+          },
+          {
+            "text": "it and/or modify it under the terms of the GNU General Public License",
+            "lineNumber": 7
+          },
+          {
+            "text": "as published by the Free Software Foundation, either version 3 of the",
+            "lineNumber": 8
+          },
+          {
+            "text": "License, or (at your option) any later version.",
+            "lineNumber": 9
+          },
+          {
+            "lineNumber": 10
+          },
+          {
+            "text": "Atomic Data Manager is distributed in the hope that it will",
+            "lineNumber": 11
+          },
+          {
+            "text": "be useful, but WITHOUT ANY WARRANTY; without even the implied warranty",
+            "lineNumber": 12
+          },
+          {
+            "text": "of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU",
+            "lineNumber": 13
+          },
+          {
+            "text": "General Public License for more details.",
+            "lineNumber": 14
+          },
+          {
+            "lineNumber": 15
+          },
+          {
+            "text": "You should have received a copy of the GNU General Public License along",
+            "lineNumber": 16
+          },
+          {
+            "text": "with Atomic Data Manager.  If not, see &lt;https://www.gnu.org/licenses/&gt;.",
+            "lineNumber": 17
+          },
+          {
+            "lineNumber": 18
+          },
+          {
+            "text": "---",
+            "lineNumber": 19
+          },
+          {
+            "lineNumber": 20
+          },
+          {
+            "text": "This file contains functions that detect data-blocks that have no users,",
+            "lineNumber": 21
+          },
+          {
+            "text": "as determined by stats.users.py",
+            "lineNumber": 22
+          },
+          {
+            "lineNumber": 23
+          },
+          {
+            "text": "\"\"\"",
+            "lineNumber": 24
+          },
+          {
+            "lineNumber": 25
+          },
+          {
+            "text": "import bpy",
+            "lineNumber": 26
+          },
+          {
+            "text": "from .. import config",
+            "lineNumber": 27
+          },
+          {
+            "text": "from ..utils import compat",
+            "lineNumber": 28
+          },
+          {
+            "text": "from . import users",
+            "lineNumber": 29
+          },
+          {
+            "lineNumber": 30
+          },
+          {
+            "lineNumber": 31
+          },
+          {
+            "text": "def shallow(data):",
+            "lineNumber": 32,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused data-blocks in the data that may be",
+            "lineNumber": 33,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster than doing a deep search",
+            "lineNumber": 34,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 35
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 36
+          },
+          {
+            "lineNumber": 37
+          },
+          {
+            "text": "    for datablock in data:",
+            "lineNumber": 38
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 39
+          },
+          {
+            "text": "        if compat.is_library_or_override(datablock):",
+            "lineNumber": 40
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 41
+          },
+          {
+            "lineNumber": 42
+          },
+          {
+            "text": "        # if data-block has no users or if it has a fake user and",
+            "lineNumber": 43
+          },
+          {
+            "text": "        # ignore fake users is enabled",
+            "lineNumber": 44
+          },
+          {
+            "text": "        if datablock.users == 0 or (datablock.users == 1 and",
+            "lineNumber": 45
+          },
+          {
+            "text": "                                    datablock.use_fake_user and",
+            "lineNumber": 46
+          },
+          {
+            "text": "                                    config.include_fake_users):",
+            "lineNumber": 47
+          },
+          {
+            "text": "            unused.append(datablock.name)",
+            "lineNumber": 48
+          },
+          {
+            "lineNumber": 49
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 50,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 51
+          },
+          {
+            "lineNumber": 52
+          },
+          {
+            "text": "def collections_deep():",
+            "lineNumber": 53,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a full list of keys of unused collections",
+            "lineNumber": 54,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 55
+          },
+          {
+            "text": "    ",
+            "lineNumber": 56
+          }
+        ]
+      },
+      "score": 0.40239280462265015
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 147
+          },
+          "endPosition": {
+            "line": 187
+          }
+        },
+        "contents": "def _has_any_unused_armatures():\n\n        if not armature_users:\n            if not armature.use_fake_user or config.include_fake_users:\n                print(f\"[DEBUG] _has_any_unused_armatures: Found unused armature '{armature.name}'\")\n                return True\n    print(f\"[DEBUG] _has_any_unused_armatures: No unused armatures found\")\n    return False\n\n\ndef get_unused_for_smart_select():\n    \"\"\"\n    Get unused data for smart select operation (returns booleans).\n    Optimized to short-circuit early - stops checking each category\n    as soon as unused data is found. This is much faster than computing\n    the full list of unused items.\n    \n    Returns a dictionary with boolean values indicating if each category\n    has unused data-blocks.\n    \"\"\"\n    # Use optimized short-circuit versions that stop as soon as\n    # they find ONE unused item, rather than computing the full list\n    return {\n        'collections': _has_any_unused_collections(),\n        'images': _has_any_unused_images(),\n        'lights': _has_any_unused_lights(),\n        'materials': _has_any_unused_materials(),\n        'node_groups': _has_any_unused_node_groups(),\n        'objects': _has_any_unused_objects(),\n        'particles': _has_any_unused_particles(),",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_armatures():",
+            "lineNumber": 148,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 156
+          },
+          {
+            "text": "        if not armature_users:",
+            "lineNumber": 157
+          },
+          {
+            "text": "            if not armature.use_fake_user or config.include_fake_users:",
+            "lineNumber": 158
+          },
+          {
+            "text": "                print(f\"[DEBUG] _has_any_unused_armatures: Found unused armature '{armature.name}'\")",
+            "lineNumber": 159
+          },
+          {
+            "text": "                return True",
+            "lineNumber": 160
+          },
+          {
+            "text": "    print(f\"[DEBUG] _has_any_unused_armatures: No unused armatures found\")",
+            "lineNumber": 161
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 162,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 163
+          },
+          {
+            "lineNumber": 164
+          },
+          {
+            "text": "def get_unused_for_smart_select():",
+            "lineNumber": 165,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"",
+            "lineNumber": 166
+          },
+          {
+            "text": "    Get unused data for smart select operation (returns booleans).",
+            "lineNumber": 167
+          },
+          {
+            "text": "    Optimized to short-circuit early - stops checking each category",
+            "lineNumber": 168
+          },
+          {
+            "text": "    as soon as unused data is found. This is much faster than computing",
+            "lineNumber": 169
+          },
+          {
+            "text": "    the full list of unused items.",
+            "lineNumber": 170
+          },
+          {
+            "text": "    ",
+            "lineNumber": 171
+          },
+          {
+            "text": "    Returns a dictionary with boolean values indicating if each category",
+            "lineNumber": 172
+          },
+          {
+            "text": "    has unused data-blocks.",
+            "lineNumber": 173
+          },
+          {
+            "text": "    \"\"\"",
+            "lineNumber": 174
+          },
+          {
+            "text": "    # Use optimized short-circuit versions that stop as soon as",
+            "lineNumber": 175
+          },
+          {
+            "text": "    # they find ONE unused item, rather than computing the full list",
+            "lineNumber": 176
+          },
+          {
+            "text": "    return {",
+            "lineNumber": 177
+          },
+          {
+            "text": "        'collections': _has_any_unused_collections(),",
+            "lineNumber": 178
+          },
+          {
+            "text": "        'images': _has_any_unused_images(),",
+            "lineNumber": 179
+          },
+          {
+            "text": "        'lights': _has_any_unused_lights(),",
+            "lineNumber": 180
+          },
+          {
+            "text": "        'materials': _has_any_unused_materials(),",
+            "lineNumber": 181
+          },
+          {
+            "text": "        'node_groups': _has_any_unused_node_groups(),",
+            "lineNumber": 182
+          },
+          {
+            "text": "        'objects': _has_any_unused_objects(),",
+            "lineNumber": 183
+          },
+          {
+            "text": "        'particles': _has_any_unused_particles(),",
+            "lineNumber": 184
+          }
+        ]
+      },
+      "score": 0.39738360047340393
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\users.py",
+        "range": {
+          "startPosition": {
+            "line": 1076,
+            "column": 26
+          },
+          "endPosition": {
+            "line": 1148
+          }
+        },
+        "contents": "def object_all(object_key):\n    # returns a list of scene names where the object is used\n    # An object is \"used\" if it's in any collection that's part of any scene's collection hierarchy\n\n    users = []\n    obj = bpy.data.objects[object_key]\n\n    # Get all collections that contain this object\n    for collection in obj.users_collection:\n        # Check if this collection is in any scene's hierarchy\n        for scene in bpy.data.scenes:\n            if _scene_collection_contains(scene.collection, collection):\n                if scene.name not in users:\n                    users.append(scene.name)\n\n    return distinct(users)\n\n\ndef armature_all(armature_key):\n    # returns a list of object names that use the armature\n    # Checks direct usage, modifier usage, and constraint usage\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def object_all(object_key):",
+            "lineNumber": 1080,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of scene names where the object is used",
+            "lineNumber": 1081,
+            "isSignature": true
+          },
+          {
+            "text": "    # An object is \"used\" if it's in any collection that's part of any scene's collection hierarchy",
+            "lineNumber": 1082,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 1083
+          },
+          {
+            "text": "    users = []",
+            "lineNumber": 1084
+          },
+          {
+            "text": "    obj = bpy.data.objects[object_key]",
+            "lineNumber": 1085
+          },
+          {
+            "lineNumber": 1086
+          },
+          {
+            "text": "    # Get all collections that contain this object",
+            "lineNumber": 1087
+          },
+          {
+            "text": "    for collection in obj.users_collection:",
+            "lineNumber": 1088
+          },
+          {
+            "text": "        # Check if this collection is in any scene's hierarchy",
+            "lineNumber": 1089
+          },
+          {
+            "text": "        for scene in bpy.data.scenes:",
+            "lineNumber": 1090
+          },
+          {
+            "text": "            if _scene_collection_contains(scene.collection, collection):",
+            "lineNumber": 1091
+          },
+          {
+            "text": "                if scene.name not in users:",
+            "lineNumber": 1092
+          },
+          {
+            "text": "                    users.append(scene.name)",
+            "lineNumber": 1093
+          },
+          {
+            "lineNumber": 1094
+          },
+          {
+            "text": "    return distinct(users)",
+            "lineNumber": 1095,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 1096
+          },
+          {
+            "lineNumber": 1097
+          },
+          {
+            "text": "def armature_all(armature_key):",
+            "lineNumber": 1098,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of object names that use the armature",
+            "lineNumber": 1099,
+            "isSignature": true
+          },
+          {
+            "text": "    # Checks direct usage, modifier usage, and constraint usage",
+            "lineNumber": 1100,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 1101
+          },
+          {
+            "text": "    ",
+            "lineNumber": 1102
+          }
+        ]
+      },
+      "score": 0.3872413635253906
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 121,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 144
+          }
+        },
+        "contents": "def _has_any_unused_worlds():\n    \"\"\"Check if there are any unused worlds (short-circuits early).\"\"\"\n    for world in bpy.data.worlds:\n        if compat.is_library_or_override(world):\n            continue\n        if world.users == 0 or (world.users == 1 and\n                                world.use_fake_user and\n                                config.include_fake_users):\n            return True\n    return False\n\n\ndef _has_any_unused_objects():\n    \"\"\"Check if there are any unused objects (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_worlds():",
+            "lineNumber": 125,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused worlds (short-circuits early).\"\"\"",
+            "lineNumber": 126
+          },
+          {
+            "text": "    for world in bpy.data.worlds:",
+            "lineNumber": 127
+          },
+          {
+            "text": "        if compat.is_library_or_override(world):",
+            "lineNumber": 128
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 129
+          },
+          {
+            "text": "        if world.users == 0 or (world.users == 1 and",
+            "lineNumber": 130
+          },
+          {
+            "text": "                                world.use_fake_user and",
+            "lineNumber": 131
+          },
+          {
+            "text": "                                config.include_fake_users):",
+            "lineNumber": 132
+          },
+          {
+            "text": "            return True",
+            "lineNumber": 133
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 134,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 135
+          },
+          {
+            "lineNumber": 136
+          },
+          {
+            "text": "def _has_any_unused_objects():",
+            "lineNumber": 137,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused objects (short-circuits early).\"\"\"",
+            "lineNumber": 138
+          }
+        ]
+      },
+      "score": 0.38200730085372925
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 260,
+            "column": 78
+          },
+          "endPosition": {
+            "line": 299
+          }
+        },
+        "contents": "def worlds():\n    # returns a full list of keys of unused worlds\n\n    unused = []\n\n    for world in bpy.data.worlds:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(world):\n            continue\n\n        # if data-block has no users or if it has a fake user and\n        # ignore fake users is enabled\n        if world.users == 0 or (world.users == 1 and\n                                world.use_fake_user and\n                                config.include_fake_users):\n            unused.append(world.name)\n\n    return unused\n\n\ndef objects_deep():\n    # returns a list of keys of unused objects\n\n    unused = []",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def worlds():",
+            "lineNumber": 264,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a full list of keys of unused worlds",
+            "lineNumber": 265,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 266
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 267
+          },
+          {
+            "lineNumber": 268
+          },
+          {
+            "text": "    for world in bpy.data.worlds:",
+            "lineNumber": 269
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 270
+          },
+          {
+            "text": "        if compat.is_library_or_override(world):",
+            "lineNumber": 271
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 272
+          },
+          {
+            "lineNumber": 273
+          },
+          {
+            "text": "        # if data-block has no users or if it has a fake user and",
+            "lineNumber": 274
+          },
+          {
+            "text": "        # ignore fake users is enabled",
+            "lineNumber": 275
+          },
+          {
+            "text": "        if world.users == 0 or (world.users == 1 and",
+            "lineNumber": 276
+          },
+          {
+            "text": "                                world.use_fake_user and",
+            "lineNumber": 277
+          },
+          {
+            "text": "                                config.include_fake_users):",
+            "lineNumber": 278
+          },
+          {
+            "text": "            unused.append(world.name)",
+            "lineNumber": 279
+          },
+          {
+            "lineNumber": 280
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 281,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 282
+          },
+          {
+            "lineNumber": 283
+          },
+          {
+            "text": "def objects_deep():",
+            "lineNumber": 284,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused objects",
+            "lineNumber": 285,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 286
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 287
+          }
+        ]
+      },
+      "score": 0.3702302873134613
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 71,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 93
+          }
+        },
+        "contents": "def _has_any_unused_materials():\n    \"\"\"Check if there are any unused materials (short-circuits early).\"\"\"\n    for material in bpy.data.materials:\n        if compat.is_library_or_override(material):\n            continue\n        if not users.material_all(material.name):\n            if not material.use_fake_user or config.include_fake_users:\n                return True\n    return False\n\n\ndef _has_any_unused_node_groups():\n    \"\"\"Check if there are any unused node groups (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_materials():",
+            "lineNumber": 75,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused materials (short-circuits early).\"\"\"",
+            "lineNumber": 76
+          },
+          {
+            "text": "    for material in bpy.data.materials:",
+            "lineNumber": 77
+          },
+          {
+            "text": "        if compat.is_library_or_override(material):",
+            "lineNumber": 78
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 79
+          },
+          {
+            "text": "        if not users.material_all(material.name):",
+            "lineNumber": 80
+          },
+          {
+            "text": "            if not material.use_fake_user or config.include_fake_users:",
+            "lineNumber": 81
+          },
+          {
+            "text": "                return True",
+            "lineNumber": 82
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 83,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 84
+          },
+          {
+            "lineNumber": 85
+          },
+          {
+            "text": "def _has_any_unused_node_groups():",
+            "lineNumber": 86,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused node groups (short-circuits early).\"\"\"",
+            "lineNumber": 87
+          }
+        ]
+      },
+      "score": 0.36918559670448303
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\ops\\utils\\clean.py",
+        "range": {
+          "startPosition": {
+            "line": 73,
+            "column": 58
+          },
+          "endPosition": {
+            "line": 85
+          }
+        },
+        "contents": "def objects():\n    # removes all unused objects from the project\n    for object_key in unused.objects_deep():\n        bpy.data.objects.remove(bpy.data.objects[object_key])\n\n\ndef armatures():\n    # removes all unused armatures from the project\n    for",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def objects():",
+            "lineNumber": 77,
+            "isSignature": true
+          },
+          {
+            "text": "    # removes all unused objects from the project",
+            "lineNumber": 78,
+            "isSignature": true
+          },
+          {
+            "text": "    for object_key in unused.objects_deep():",
+            "lineNumber": 79
+          },
+          {
+            "text": "        bpy.data.objects.remove(bpy.data.objects[object_key])",
+            "lineNumber": 80,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 81
+          },
+          {
+            "lineNumber": 82
+          },
+          {
+            "text": "def armatures():",
+            "lineNumber": 83,
+            "isSignature": true
+          },
+          {
+            "text": "    # removes all unused armatures from the project",
+            "lineNumber": 84,
+            "isSignature": true
+          },
+          {
+            "text": "    for",
+            "lineNumber": 85
+          }
+        ]
+      },
+      "score": 0.3670978546142578
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 46,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 71
+          }
+        },
+        "contents": "def _has_any_unused_images():\n    \"\"\"Check if there are any unused images (short-circuits early).\"\"\"\n    do_not_flag = [\"Render Result\", \"Viewer Node\", \"D-NOISE Export\"]\n    \n    for image in bpy.data.images:\n        if compat.is_library_or_override(image):\n            continue\n        if not users.image_all(image.name):\n            if not image.use_fake_user or config.include_fake_users:\n                if image.name not in do_not_flag:\n                    return True\n    return False\n\n\ndef _has_any_unused_lights():\n    \"\"\"Check if there are any unused lights (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_images():",
+            "lineNumber": 50,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused images (short-circuits early).\"\"\"",
+            "lineNumber": 51
+          },
+          {
+            "text": "    do_not_flag = [\"Render Result\", \"Viewer Node\", \"D-NOISE Export\"]",
+            "lineNumber": 52
+          },
+          {
+            "text": "    ",
+            "lineNumber": 53
+          },
+          {
+            "text": "    for image in bpy.data.images:",
+            "lineNumber": 54
+          },
+          {
+            "text": "        if compat.is_library_or_override(image):",
+            "lineNumber": 55
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 56
+          },
+          {
+            "text": "        if not users.image_all(image.name):",
+            "lineNumber": 57
+          },
+          {
+            "text": "            if not image.use_fake_user or config.include_fake_users:",
+            "lineNumber": 58
+          },
+          {
+            "text": "                if image.name not in do_not_flag:",
+            "lineNumber": 59
+          },
+          {
+            "text": "                    return True",
+            "lineNumber": 60
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 61,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 62
+          },
+          {
+            "lineNumber": 63
+          },
+          {
+            "text": "def _has_any_unused_lights():",
+            "lineNumber": 64,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused lights (short-circuits early).\"\"\"",
+            "lineNumber": 65
+          }
+        ]
+      },
+      "score": 0.3624474108219147
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 150,
+            "column": 35
+          },
+          "endPosition": {
+            "line": 176,
+            "column": 4
+          }
+        },
+        "contents": "def materials_deep():\n    # returns a list of keys of unused materials\n\n    unused = []\n\n    for material in bpy.data.materials:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(material):\n            continue\n        if not users.material_all(material.name):\n\n            # check if material has a fake user or if ignore fake users\n            # is enabled\n            if not material.use_fake_user or config.include_fake_users:\n                unused.append(material.name)\n\n    return unused\n\n\ndef materials_shallow():\n    # returns a list of keys of unused material that may be\n    # incomplete, but is significantly faster than doing a deep search\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def materials_deep():",
+            "lineNumber": 154,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused materials",
+            "lineNumber": 155,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 156
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 157
+          },
+          {
+            "lineNumber": 158
+          },
+          {
+            "text": "    for material in bpy.data.materials:",
+            "lineNumber": 159
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 160
+          },
+          {
+            "text": "        if compat.is_library_or_override(material):",
+            "lineNumber": 161
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 162
+          },
+          {
+            "text": "        if not users.material_all(material.name):",
+            "lineNumber": 163
+          },
+          {
+            "lineNumber": 164
+          },
+          {
+            "text": "            # check if material has a fake user or if ignore fake users",
+            "lineNumber": 165
+          },
+          {
+            "text": "            # is enabled",
+            "lineNumber": 166
+          },
+          {
+            "text": "            if not material.use_fake_user or config.include_fake_users:",
+            "lineNumber": 167
+          },
+          {
+            "text": "                unused.append(material.name)",
+            "lineNumber": 168
+          },
+          {
+            "lineNumber": 169
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 170,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 171
+          },
+          {
+            "lineNumber": 172
+          },
+          {
+            "text": "def materials_shallow():",
+            "lineNumber": 173,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused material that may be",
+            "lineNumber": 174,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster than doing a deep search",
+            "lineNumber": 175,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 176
+          },
+          {
+            "text": "    ",
+            "lineNumber": 177,
+            "isSignature": true
+          }
+        ]
+      },
+      "score": 0.36149394512176514
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 299,
+            "column": 17
+          },
+          "endPosition": {
+            "line": 334
+          }
+        },
+        "contents": "def objects_shallow():\n    # returns a list of keys of unused objects that may be\n    # incomplete, but is significantly faster than doing a deep search\n\n    return shallow(bpy.data.objects)\n\n\ndef armatures_deep():\n    # returns a list of keys of unused armatures\n\n    unused = []",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def objects_shallow():",
+            "lineNumber": 303,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused objects that may be",
+            "lineNumber": 304,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster than doing a deep search",
+            "lineNumber": 305,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 306
+          },
+          {
+            "text": "    return shallow(bpy.data.objects)",
+            "lineNumber": 307,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 308
+          },
+          {
+            "lineNumber": 309
+          },
+          {
+            "text": "def armatures_deep():",
+            "lineNumber": 310,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused armatures",
+            "lineNumber": 311,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 312
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 313
+          }
+        ]
+      },
+      "score": 0.3600417375564575
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 49,
+            "column": 17
+          },
+          "endPosition": {
+            "line": 80
+          }
+        },
+        "contents": "def collections_deep():\n    # returns a full list of keys of unused collections\n\n    unused = []\n\n    for collection in bpy.data.collections:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(collection):\n            continue\n        if not users.collection_all(collection.name):\n            unused.append(collection.name)\n\n    return unused\n\n\ndef collections_shallow():\n    # returns a list of keys of unused collections that may be\n    # incomplete, but is significantly faster.\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def collections_deep():",
+            "lineNumber": 53,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a full list of keys of unused collections",
+            "lineNumber": 54,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 55
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 56
+          },
+          {
+            "lineNumber": 57
+          },
+          {
+            "text": "    for collection in bpy.data.collections:",
+            "lineNumber": 58
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 59
+          },
+          {
+            "text": "        if compat.is_library_or_override(collection):",
+            "lineNumber": 60
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 61
+          },
+          {
+            "text": "        if not users.collection_all(collection.name):",
+            "lineNumber": 62
+          },
+          {
+            "text": "            unused.append(collection.name)",
+            "lineNumber": 63
+          },
+          {
+            "lineNumber": 64
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 65,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 66
+          },
+          {
+            "lineNumber": 67
+          },
+          {
+            "text": "def collections_shallow():",
+            "lineNumber": 68,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused collections that may be",
+            "lineNumber": 69,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster.",
+            "lineNumber": 70,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 71
+          },
+          {
+            "text": "    ",
+            "lineNumber": 72
+          }
+        ]
+      },
+      "score": 0.3555814027786255
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 64,
+            "column": 17
+          },
+          "endPosition": {
+            "line": 106
+          }
+        },
+        "contents": "def collections_shallow():\n    # returns a list of keys of unused collections that may be\n    # incomplete, but is significantly faster.\n\n    unused = []\n\n    for collection in bpy.data.collections:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(collection):\n            continue\n        if not (collection.objects or collection.children):\n            unused.append(collection.name)\n\n    return unused\n\n\ndef images_deep():\n    # returns a full list of keys of unused images\n\n    unused = []",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def collections_shallow():",
+            "lineNumber": 68,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused collections that may be",
+            "lineNumber": 69,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster.",
+            "lineNumber": 70,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 71
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 72
+          },
+          {
+            "lineNumber": 73
+          },
+          {
+            "text": "    for collection in bpy.data.collections:",
+            "lineNumber": 74
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 75
+          },
+          {
+            "text": "        if compat.is_library_or_override(collection):",
+            "lineNumber": 76
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 77
+          },
+          {
+            "text": "        if not (collection.objects or collection.children):",
+            "lineNumber": 78
+          },
+          {
+            "text": "            unused.append(collection.name)",
+            "lineNumber": 79
+          },
+          {
+            "lineNumber": 80
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 81,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 82
+          },
+          {
+            "lineNumber": 83
+          },
+          {
+            "text": "def images_deep():",
+            "lineNumber": 84,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a full list of keys of unused images",
+            "lineNumber": 85,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 86
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 87
+          }
+        ]
+      },
+      "score": 0.35379400849342346
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 36,
+            "column": 5
+          },
+          "endPosition": {
+            "line": 60
+          }
+        },
+        "contents": "def _has_any_unused_collections():\n    \"\"\"Check if there are any unused collections (short-circuits early).\"\"\"\n    for collection in bpy.data.collections:\n        if compat.is_library_or_override(collection):\n            continue\n        if not users.collection_all(collection.name):\n            return True\n    return False\n\n\ndef _has_any_unused_images():\n    \"\"\"Check if there are any unused images (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_collections():",
+            "lineNumber": 40,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused collections (short-circuits early).\"\"\"",
+            "lineNumber": 41
+          },
+          {
+            "text": "    for collection in bpy.data.collections:",
+            "lineNumber": 42
+          },
+          {
+            "text": "        if compat.is_library_or_override(collection):",
+            "lineNumber": 43
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 44
+          },
+          {
+            "text": "        if not users.collection_all(collection.name):",
+            "lineNumber": 45
+          },
+          {
+            "text": "            return True",
+            "lineNumber": 46
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 47,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 48
+          },
+          {
+            "lineNumber": 49
+          },
+          {
+            "text": "def _has_any_unused_images():",
+            "lineNumber": 50,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused images (short-circuits early).\"\"\"",
+            "lineNumber": 51
+          }
+        ]
+      },
+      "score": 0.34947431087493896
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 144,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 161
+          }
+        },
+        "contents": "def _has_any_unused_armatures():\n    \"\"\"Check if there are any unused armatures (short-circuits early).\"\"\"\n    print(f\"[DEBUG] _has_any_unused_armatures: Checking {len(bpy.data.armatures)} armatures\")\n    for armature in bpy.data.armatures:\n        if compat.is_library_or_override(armature):\n            print(f\"[DEBUG] _has_any_unused_armatures: Skipping library/override armature '{armature.name}'\")\n            continue\n        armature_users = users.armature_all(armature.name)\n        print(f\"[DEBUG] _has_any_unused_armatures: Armature '{armature.name}' has {len(armature_users)} users, fake_user={armature.use_fake_user}, include_fake_users={config.include_fake_users}\")\n        if not armature_users:\n            if",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_armatures():",
+            "lineNumber": 148,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused armatures (short-circuits early).\"\"\"",
+            "lineNumber": 149
+          },
+          {
+            "text": "    print(f\"[DEBUG] _has_any_unused_armatures: Checking {len(bpy.data.armatures)} armatures\")",
+            "lineNumber": 150
+          },
+          {
+            "text": "    for armature in bpy.data.armatures:",
+            "lineNumber": 151
+          },
+          {
+            "text": "        if compat.is_library_or_override(armature):",
+            "lineNumber": 152
+          },
+          {
+            "text": "            print(f\"[DEBUG] _has_any_unused_armatures: Skipping library/override armature '{armature.name}'\")",
+            "lineNumber": 153
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 154
+          },
+          {
+            "text": "        armature_users = users.armature_all(armature.name)",
+            "lineNumber": 155
+          },
+          {
+            "text": "        print(f\"[DEBUG] _has_any_unused_armatures: Armature '{armature.name}' has {len(armature_users)} users, fake_user={armature.use_fake_user}, include_fake_users={config.include_fake_users}\")",
+            "lineNumber": 156
+          },
+          {
+            "text": "        if not armature_users:",
+            "lineNumber": 157
+          },
+          {
+            "text": "            if",
+            "lineNumber": 158
+          }
+        ]
+      },
+      "score": 0.3481195867061615
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 80,
+            "column": 17
+          },
+          "endPosition": {
+            "line": 124
+          }
+        },
+        "contents": "def images_deep():\n    # returns a full list of keys of unused images\n\n    unused = []\n\n    # a list of image keys that should not be flagged as unused\n    # this list also exists in images_shallow()\n    do_not_flag = [\"Render Result\", \"Viewer Node\", \"D-NOISE Export\"]\n\n    for image in bpy.data.images:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(image):\n            continue\n        if not users.image_all(image.name):\n\n            # check if image has a fake user or if ignore fake users\n            # is enabled\n            if not image.use_fake_user or config.include_fake_users:\n\n                # if image is not in our do not flag list\n                if image.name not in do_not_flag:\n                    unused.append(image.name)\n\n    return unused\n\n\ndef images_shallow():\n    # returns a list of keys of unused images that may be\n    # incomplete, but is significantly faster than doing a deep search\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def images_deep():",
+            "lineNumber": 84,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a full list of keys of unused images",
+            "lineNumber": 85,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 86
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 87
+          },
+          {
+            "lineNumber": 88
+          },
+          {
+            "text": "    # a list of image keys that should not be flagged as unused",
+            "lineNumber": 89
+          },
+          {
+            "text": "    # this list also exists in images_shallow()",
+            "lineNumber": 90
+          },
+          {
+            "text": "    do_not_flag = [\"Render Result\", \"Viewer Node\", \"D-NOISE Export\"]",
+            "lineNumber": 91
+          },
+          {
+            "lineNumber": 92
+          },
+          {
+            "text": "    for image in bpy.data.images:",
+            "lineNumber": 93
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 94
+          },
+          {
+            "text": "        if compat.is_library_or_override(image):",
+            "lineNumber": 95
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 96
+          },
+          {
+            "text": "        if not users.image_all(image.name):",
+            "lineNumber": 97
+          },
+          {
+            "lineNumber": 98
+          },
+          {
+            "text": "            # check if image has a fake user or if ignore fake users",
+            "lineNumber": 99
+          },
+          {
+            "text": "            # is enabled",
+            "lineNumber": 100
+          },
+          {
+            "text": "            if not image.use_fake_user or config.include_fake_users:",
+            "lineNumber": 101
+          },
+          {
+            "lineNumber": 102
+          },
+          {
+            "text": "                # if image is not in our do not flag list",
+            "lineNumber": 103
+          },
+          {
+            "text": "                if image.name not in do_not_flag:",
+            "lineNumber": 104
+          },
+          {
+            "text": "                    unused.append(image.name)",
+            "lineNumber": 105
+          },
+          {
+            "lineNumber": 106
+          },
+          {
+            "text": "    return unused",
+            "lineNumber": 107,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 108
+          },
+          {
+            "lineNumber": 109
+          },
+          {
+            "text": "def images_shallow():",
+            "lineNumber": 110,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused images that may be",
+            "lineNumber": 111,
+            "isSignature": true
+          },
+          {
+            "text": "    # incomplete, but is significantly faster than doing a deep search",
+            "lineNumber": 112,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 113
+          },
+          {
+            "text": "    ",
+            "lineNumber": 114
+          }
+        ]
+      },
+      "score": 0.34474706649780273
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 107,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 133
+          }
+        },
+        "contents": "def _has_any_unused_textures():\n    \"\"\"Check if there are any unused textures (short-circuits early).\"\"\"\n    if not hasattr(bpy.data, 'textures'):\n        return False\n    \n    for texture in bpy.data.textures:\n        if compat.is_library_or_override(texture):\n            continue\n        if not users.texture_all(texture.name):\n            if not texture.use_fake_user or config.include_fake_users:\n                return True\n    return False\n\n\ndef _has_any_unused_worlds():\n    \"\"\"Check if there are any unused worlds (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_textures():",
+            "lineNumber": 111,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused textures (short-circuits early).\"\"\"",
+            "lineNumber": 112
+          },
+          {
+            "text": "    if not hasattr(bpy.data, 'textures'):",
+            "lineNumber": 113
+          },
+          {
+            "text": "        return False",
+            "lineNumber": 114
+          },
+          {
+            "text": "    ",
+            "lineNumber": 115
+          },
+          {
+            "text": "    for texture in bpy.data.textures:",
+            "lineNumber": 116
+          },
+          {
+            "text": "        if compat.is_library_or_override(texture):",
+            "lineNumber": 117
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 118
+          },
+          {
+            "text": "        if not users.texture_all(texture.name):",
+            "lineNumber": 119
+          },
+          {
+            "text": "            if not texture.use_fake_user or config.include_fake_users:",
+            "lineNumber": 120
+          },
+          {
+            "text": "                return True",
+            "lineNumber": 121
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 122,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 123
+          },
+          {
+            "lineNumber": 124
+          },
+          {
+            "text": "def _has_any_unused_worlds():",
+            "lineNumber": 125,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused worlds (short-circuits early).\"\"\"",
+            "lineNumber": 126
+          }
+        ]
+      },
+      "score": 0.3441740870475769
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 93,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 121
+          }
+        },
+        "contents": "def _has_any_unused_particles():\n    \"\"\"Check if there are any unused particles (short-circuits early).\"\"\"\n    if not hasattr(bpy.data, 'particles'):\n        return False\n    \n    for particle in bpy.data.particles:\n        if compat.is_library_or_override(particle):\n            continue\n        if not users.particle_all(particle.name):\n            if not particle.use_fake_user or config.include_fake_users:\n                return True\n    return False\n\n\ndef _has_any_unused_textures():\n    \"\"\"Check if there are any unused textures (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_particles():",
+            "lineNumber": 97,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused particles (short-circuits early).\"\"\"",
+            "lineNumber": 98
+          },
+          {
+            "text": "    if not hasattr(bpy.data, 'particles'):",
+            "lineNumber": 99
+          },
+          {
+            "text": "        return False",
+            "lineNumber": 100
+          },
+          {
+            "text": "    ",
+            "lineNumber": 101
+          },
+          {
+            "text": "    for particle in bpy.data.particles:",
+            "lineNumber": 102
+          },
+          {
+            "text": "        if compat.is_library_or_override(particle):",
+            "lineNumber": 103
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 104
+          },
+          {
+            "text": "        if not users.particle_all(particle.name):",
+            "lineNumber": 105
+          },
+          {
+            "text": "            if not particle.use_fake_user or config.include_fake_users:",
+            "lineNumber": 106
+          },
+          {
+            "text": "                return True",
+            "lineNumber": 107
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 108,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 109
+          },
+          {
+            "lineNumber": 110
+          },
+          {
+            "text": "def _has_any_unused_textures():",
+            "lineNumber": 111,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused textures (short-circuits early).\"\"\"",
+            "lineNumber": 112
+          }
+        ]
+      },
+      "score": 0.3432720899581909
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "range": {
+          "startPosition": {
+            "line": 306,
+            "column": 36
+          },
+          "endPosition": {
+            "line": 334
+          }
+        },
+        "contents": "def armatures_deep():\n    # returns a list of keys of unused armatures\n\n    unused = []\n    \n    print(f\"[DEBUG] armatures_deep: Checking {len(bpy.data.armatures)} armatures\")\n\n    for armature in bpy.data.armatures:\n        # Skip library-linked and override datablocks\n        if compat.is_library_or_override(armature):\n            print(f\"[DEBUG] armatures_deep: Skipping library/override armature '{armature.name}'\")\n            continue\n        armature_users = users.armature_all(armature.name)\n        print(f\"[DEBUG] armatures_deep: Armature '{armature.name}' has {len(armature_users)} users, fake_user={armature.use_fake_user}, include_fake_users={config.include_fake_users}\")\n        if not armature_users:\n\n            # check if armature has a fake user or if ignore fake users\n            # is enabled\n            if not armature.use_fake_user or",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def armatures_deep():",
+            "lineNumber": 310,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns a list of keys of unused armatures",
+            "lineNumber": 311,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 312
+          },
+          {
+            "text": "    unused = []",
+            "lineNumber": 313
+          },
+          {
+            "text": "    ",
+            "lineNumber": 314
+          },
+          {
+            "text": "    print(f\"[DEBUG] armatures_deep: Checking {len(bpy.data.armatures)} armatures\")",
+            "lineNumber": 315
+          },
+          {
+            "lineNumber": 316
+          },
+          {
+            "text": "    for armature in bpy.data.armatures:",
+            "lineNumber": 317
+          },
+          {
+            "text": "        # Skip library-linked and override datablocks",
+            "lineNumber": 318
+          },
+          {
+            "text": "        if compat.is_library_or_override(armature):",
+            "lineNumber": 319
+          },
+          {
+            "text": "            print(f\"[DEBUG] armatures_deep: Skipping library/override armature '{armature.name}'\")",
+            "lineNumber": 320
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 321
+          },
+          {
+            "text": "        armature_users = users.armature_all(armature.name)",
+            "lineNumber": 322
+          },
+          {
+            "text": "        print(f\"[DEBUG] armatures_deep: Armature '{armature.name}' has {len(armature_users)} users, fake_user={armature.use_fake_user}, include_fake_users={config.include_fake_users}\")",
+            "lineNumber": 323
+          },
+          {
+            "text": "        if not armature_users:",
+            "lineNumber": 324
+          },
+          {
+            "lineNumber": 325
+          },
+          {
+            "text": "            # check if armature has a fake user or if ignore fake users",
+            "lineNumber": 326
+          },
+          {
+            "text": "            # is enabled",
+            "lineNumber": 327
+          },
+          {
+            "text": "            if not armature.use_fake_user or",
+            "lineNumber": 328
+          }
+        ]
+      },
+      "score": 0.3409213125705719
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "range": {
+          "startPosition": {
+            "line": 60,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 82
+          }
+        },
+        "contents": "def _has_any_unused_lights():\n    \"\"\"Check if there are any unused lights (short-circuits early).\"\"\"\n    for light in bpy.data.lights:\n        if compat.is_library_or_override(light):\n            continue\n        if not users.light_all(light.name):\n            if not light.use_fake_user or config.include_fake_users:\n                return True\n    return False\n\n\ndef _has_any_unused_materials():\n    \"\"\"Check if there are any unused materials (short-circuits early).\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def _has_any_unused_lights():",
+            "lineNumber": 64,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused lights (short-circuits early).\"\"\"",
+            "lineNumber": 65
+          },
+          {
+            "text": "    for light in bpy.data.lights:",
+            "lineNumber": 66
+          },
+          {
+            "text": "        if compat.is_library_or_override(light):",
+            "lineNumber": 67
+          },
+          {
+            "text": "            continue",
+            "lineNumber": 68
+          },
+          {
+            "text": "        if not users.light_all(light.name):",
+            "lineNumber": 69
+          },
+          {
+            "text": "            if not light.use_fake_user or config.include_fake_users:",
+            "lineNumber": 70
+          },
+          {
+            "text": "                return True",
+            "lineNumber": 71
+          },
+          {
+            "text": "    return False",
+            "lineNumber": 72,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 73
+          },
+          {
+            "lineNumber": 74
+          },
+          {
+            "text": "def _has_any_unused_materials():",
+            "lineNumber": 75,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Check if there are any unused materials (short-circuits early).\"\"\"",
+            "lineNumber": 76
+          }
+        ]
+      },
+      "score": 0.3396815061569214
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "range": {
+          "startPosition": {
+            "line": 193
+          },
+          "endPosition": {
+            "line": 403
+          }
+        },
+        "contents": "class ATOMIC_OT_clean(bpy.types.Operator):\ndef draw(self, context):\n\n            )\n\n        row = layout.row()  # extra spacing\n\n    def execute(self, context):\n        atom = bpy.context.scene.atomic\n\n        if atom.collections:\n            clean.collections()\n\n        if atom.images:\n            clean.images()\n\n        if atom.lights:\n            clean.lights()\n\n        if atom.materials:\n            clean.materials()\n\n        if atom.node_groups:\n            clean.node_groups()\n\n        if atom.objects:\n            clean.objects()\n\n        if atom.particles:\n            clean.particles()\n\n        if atom.textures:\n            clean.textures()\n\n        if atom.armatures:\n            clean.armatures()\n\n        if atom.worlds:\n            clean.worlds()\n\n        bpy.ops.atomic.deselect_all()\n\n        return {'FINISHED'}\n\n    def invoke(self, context, event):\n        wm = context.window_manager\n        atom = bpy.context.scene.atomic\n\n        # Use parallel execution for better performance\n        all_unused = unused_parallel.get_all_unused_parallel()\n\n        if atom.collections:\n            self.unused_collections = all_unused['collections']\n\n        if atom.images:\n            self.unused_images = all_unused['images']\n\n        if atom.lights:\n            self.unused_lights = all_unused['lights']\n\n        if atom.materials:\n            self.unused_materials = all_unused['materials']\n\n        if atom.node_groups:\n            self.unused_node_groups = all_unused['node_groups']\n\n        if atom.objects:\n            self.unused_objects = all_unused['objects']\n\n        if atom.particles:\n            self.unused_particles = all_unused['particles']\n\n        if atom.textures:\n            self.unused_textures = all_unused['textures']\n\n        if atom.armatures:\n            self.unused_armatures = all_unused['armatures']\n\n        if atom.worlds:\n            self.unused_worlds = all_unused['worlds']\n\n        return wm.invoke_props_dialog(self)\n\n\n# Atomic Data Manager Undo Operator\nclass ATOMIC_OT_undo(bpy.types.Operator):\n    \"\"\"Undo the previous action\"\"\"",
+        "signatures": {
+          "ranges": [
+            {
+              "startPosition": {
+                "line": 194,
+                "column": 1
+              },
+              "endPosition": {
+                "line": 195,
+                "column": 5
+              }
+            },
+            {
+              "startPosition": {
+                "line": 210,
+                "column": 5
+              },
+              "endPosition": {
+                "line": 211,
+                "column": 9
+              }
+            }
+          ]
+        },
+        "detailedLines": [
+          {
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):",
+            "lineNumber": 194,
+            "isSignature": true
+          },
+          {
+            "text": "def draw(self, context):",
+            "lineNumber": 210
+          },
+          {
+            "lineNumber": 314
+          },
+          {
+            "text": "            )",
+            "lineNumber": 315
+          },
+          {
+            "lineNumber": 316
+          },
+          {
+            "text": "        row = layout.row()  # extra spacing",
+            "lineNumber": 317
+          },
+          {
+            "lineNumber": 318
+          },
+          {
+            "text": "    def execute(self, context):",
+            "lineNumber": 319
+          },
+          {
+            "text": "        atom = bpy.context.scene.atomic",
+            "lineNumber": 320
+          },
+          {
+            "lineNumber": 321
+          },
+          {
+            "text": "        if atom.collections:",
+            "lineNumber": 322
+          },
+          {
+            "text": "            clean.collections()",
+            "lineNumber": 323
+          },
+          {
+            "lineNumber": 324
+          },
+          {
+            "text": "        if atom.images:",
+            "lineNumber": 325
+          },
+          {
+            "text": "            clean.images()",
+            "lineNumber": 326
+          },
+          {
+            "lineNumber": 327
+          },
+          {
+            "text": "        if atom.lights:",
+            "lineNumber": 328
+          },
+          {
+            "text": "            clean.lights()",
+            "lineNumber": 329
+          },
+          {
+            "lineNumber": 330
+          },
+          {
+            "text": "        if atom.materials:",
+            "lineNumber": 331
+          },
+          {
+            "text": "            clean.materials()",
+            "lineNumber": 332
+          },
+          {
+            "lineNumber": 333
+          },
+          {
+            "text": "        if atom.node_groups:",
+            "lineNumber": 334
+          },
+          {
+            "text": "            clean.node_groups()",
+            "lineNumber": 335
+          },
+          {
+            "lineNumber": 336
+          },
+          {
+            "text": "        if atom.objects:",
+            "lineNumber": 337
+          },
+          {
+            "text": "            clean.objects()",
+            "lineNumber": 338
+          },
+          {
+            "lineNumber": 339
+          },
+          {
+            "text": "        if atom.particles:",
+            "lineNumber": 340
+          },
+          {
+            "text": "            clean.particles()",
+            "lineNumber": 341
+          },
+          {
+            "lineNumber": 342
+          },
+          {
+            "text": "        if atom.textures:",
+            "lineNumber": 343
+          },
+          {
+            "text": "            clean.textures()",
+            "lineNumber": 344
+          },
+          {
+            "lineNumber": 345
+          },
+          {
+            "text": "        if atom.armatures:",
+            "lineNumber": 346
+          },
+          {
+            "text": "            clean.armatures()",
+            "lineNumber": 347
+          },
+          {
+            "lineNumber": 348
+          },
+          {
+            "text": "        if atom.worlds:",
+            "lineNumber": 349
+          },
+          {
+            "text": "            clean.worlds()",
+            "lineNumber": 350
+          },
+          {
+            "lineNumber": 351
+          },
+          {
+            "text": "        bpy.ops.atomic.deselect_all()",
+            "lineNumber": 352
+          },
+          {
+            "lineNumber": 353
+          },
+          {
+            "text": "        return {'FINISHED'}",
+            "lineNumber": 354
+          },
+          {
+            "lineNumber": 355
+          },
+          {
+            "text": "    def invoke(self, context, event):",
+            "lineNumber": 356
+          },
+          {
+            "text": "        wm = context.window_manager",
+            "lineNumber": 357
+          },
+          {
+            "text": "        atom = bpy.context.scene.atomic",
+            "lineNumber": 358
+          },
+          {
+            "lineNumber": 359
+          },
+          {
+            "text": "        # Use parallel execution for better performance",
+            "lineNumber": 360
+          },
+          {
+            "text": "        all_unused = unused_parallel.get_all_unused_parallel()",
+            "lineNumber": 361
+          },
+          {
+            "lineNumber": 362
+          },
+          {
+            "text": "        if atom.collections:",
+            "lineNumber": 363
+          },
+          {
+            "text": "            self.unused_collections = all_unused['collections']",
+            "lineNumber": 364
+          },
+          {
+            "lineNumber": 365
+          },
+          {
+            "text": "        if atom.images:",
+            "lineNumber": 366
+          },
+          {
+            "text": "            self.unused_images = all_unused['images']",
+            "lineNumber": 367
+          },
+          {
+            "lineNumber": 368
+          },
+          {
+            "text": "        if atom.lights:",
+            "lineNumber": 369
+          },
+          {
+            "text": "            self.unused_lights = all_unused['lights']",
+            "lineNumber": 370
+          },
+          {
+            "lineNumber": 371
+          },
+          {
+            "text": "        if atom.materials:",
+            "lineNumber": 372
+          },
+          {
+            "text": "            self.unused_materials = all_unused['materials']",
+            "lineNumber": 373
+          },
+          {
+            "lineNumber": 374
+          },
+          {
+            "text": "        if atom.node_groups:",
+            "lineNumber": 375
+          },
+          {
+            "text": "            self.unused_node_groups = all_unused['node_groups']",
+            "lineNumber": 376
+          },
+          {
+            "lineNumber": 377
+          },
+          {
+            "text": "        if atom.objects:",
+            "lineNumber": 378
+          },
+          {
+            "text": "            self.unused_objects = all_unused['objects']",
+            "lineNumber": 379
+          },
+          {
+            "lineNumber": 380
+          },
+          {
+            "text": "        if atom.particles:",
+            "lineNumber": 381
+          },
+          {
+            "text": "            self.unused_particles = all_unused['particles']",
+            "lineNumber": 382
+          },
+          {
+            "lineNumber": 383
+          },
+          {
+            "text": "        if atom.textures:",
+            "lineNumber": 384
+          },
+          {
+            "text": "            self.unused_textures = all_unused['textures']",
+            "lineNumber": 385
+          },
+          {
+            "lineNumber": 386
+          },
+          {
+            "text": "        if atom.armatures:",
+            "lineNumber": 387
+          },
+          {
+            "text": "            self.unused_armatures = all_unused['armatures']",
+            "lineNumber": 388
+          },
+          {
+            "lineNumber": 389
+          },
+          {
+            "text": "        if atom.worlds:",
+            "lineNumber": 390
+          },
+          {
+            "text": "            self.unused_worlds = all_unused['worlds']",
+            "lineNumber": 391
+          },
+          {
+            "lineNumber": 392
+          },
+          {
+            "text": "        return wm.invoke_props_dialog(self)",
+            "lineNumber": 393,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 394
+          },
+          {
+            "lineNumber": 395
+          },
+          {
+            "text": "# Atomic Data Manager Undo Operator",
+            "lineNumber": 396
+          },
+          {
+            "text": "class ATOMIC_OT_undo(bpy.types.Operator):",
+            "lineNumber": 397,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Undo the previous action\"\"\"",
+            "lineNumber": 398
+          }
+        ]
+      },
+      "score": 0.3334020972251892
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\stats\\count.py",
+        "range": {
+          "startPosition": {
+            "line": 106,
+            "column": 16
+          },
+          "endPosition": {
+            "line": 118,
+            "column": 4
+          }
+        },
+        "contents": "def materials_unused():\n    # returns the number of unused materials in the project\n\n    return len(unused.materials_shallow())\n\n\ndef materials_unnamed():\n    # returns the number of unnamed materials in the project\n\n    ",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "def materials_unused():",
+            "lineNumber": 110,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns the number of unused materials in the project",
+            "lineNumber": 111,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 112
+          },
+          {
+            "text": "    return len(unused.materials_shallow())",
+            "lineNumber": 113,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 114
+          },
+          {
+            "lineNumber": 115
+          },
+          {
+            "text": "def materials_unnamed():",
+            "lineNumber": 116,
+            "isSignature": true
+          },
+          {
+            "text": "    # returns the number of unnamed materials in the project",
+            "lineNumber": 117,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 118
+          },
+          {
+            "text": "    ",
+            "lineNumber": 119,
+            "isSignature": true
+          }
+        ]
+      },
+      "score": 0.33327409625053406
+    },
+    {
+      "codeBlock": {
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "range": {
+          "startPosition": {
+            "line": 403,
+            "column": 27
+          },
+          "endPosition": {
+            "line": 446
+          }
+        },
+        "contents": "# Atomic Data Manager Smart Select Operator\nclass ATOMIC_OT_smart_select(bpy.types.Operator):\n    \"\"\"Auto-select categories with unused data\"\"\"\n    bl_idname = \"atomic.smart_select\"\n    bl_label = \"Smart Select\"\n\n    def execute(self, context):\n        # Use parallel execution for better performance\n        unused_flags = unused_parallel.get_unused_for_smart_select()\n        \n        atom = bpy.context.scene.atomic\n        atom.collections = unused_flags['collections']\n        atom.images = unused_flags['images']\n        atom.lights = unused_flags['lights']\n        atom.materials = unused_flags['materials']\n        atom.node_groups = unused_flags['node_groups']\n        atom.objects = unused_flags['objects']\n        atom.particles = unused_flags['particles']\n        atom.textures = unused_flags['textures']\n        atom.armatures = unused_flags['armatures']\n        atom.worlds = unused_flags['worlds']\n\n        return {'FINISHED'}\n\n\n# Atomic Data Manager Select All Operator\nclass ATOMIC_OT_select_all(bpy.types.Operator):\n    \"\"\"Select all categories\"\"\"",
+        "signatures": {},
+        "detailedLines": [
+          {
+            "text": "# Atomic Data Manager Smart Select Operator",
+            "lineNumber": 407
+          },
+          {
+            "text": "class ATOMIC_OT_smart_select(bpy.types.Operator):",
+            "lineNumber": 408,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Auto-select categories with unused data\"\"\"",
+            "lineNumber": 409
+          },
+          {
+            "text": "    bl_idname = \"atomic.smart_select\"",
+            "lineNumber": 410
+          },
+          {
+            "text": "    bl_label = \"Smart Select\"",
+            "lineNumber": 411
+          },
+          {
+            "lineNumber": 412
+          },
+          {
+            "text": "    def execute(self, context):",
+            "lineNumber": 413
+          },
+          {
+            "text": "        # Use parallel execution for better performance",
+            "lineNumber": 414
+          },
+          {
+            "text": "        unused_flags = unused_parallel.get_unused_for_smart_select()",
+            "lineNumber": 415
+          },
+          {
+            "text": "        ",
+            "lineNumber": 416
+          },
+          {
+            "text": "        atom = bpy.context.scene.atomic",
+            "lineNumber": 417
+          },
+          {
+            "text": "        atom.collections = unused_flags['collections']",
+            "lineNumber": 418
+          },
+          {
+            "text": "        atom.images = unused_flags['images']",
+            "lineNumber": 419
+          },
+          {
+            "text": "        atom.lights = unused_flags['lights']",
+            "lineNumber": 420
+          },
+          {
+            "text": "        atom.materials = unused_flags['materials']",
+            "lineNumber": 421
+          },
+          {
+            "text": "        atom.node_groups = unused_flags['node_groups']",
+            "lineNumber": 422
+          },
+          {
+            "text": "        atom.objects = unused_flags['objects']",
+            "lineNumber": 423
+          },
+          {
+            "text": "        atom.particles = unused_flags['particles']",
+            "lineNumber": 424
+          },
+          {
+            "text": "        atom.textures = unused_flags['textures']",
+            "lineNumber": 425
+          },
+          {
+            "text": "        atom.armatures = unused_flags['armatures']",
+            "lineNumber": 426
+          },
+          {
+            "text": "        atom.worlds = unused_flags['worlds']",
+            "lineNumber": 427
+          },
+          {
+            "lineNumber": 428
+          },
+          {
+            "text": "        return {'FINISHED'}",
+            "lineNumber": 429,
+            "isSignature": true
+          },
+          {
+            "lineNumber": 430
+          },
+          {
+            "lineNumber": 431
+          },
+          {
+            "text": "# Atomic Data Manager Select All Operator",
+            "lineNumber": 432
+          },
+          {
+            "text": "class ATOMIC_OT_select_all(bpy.types.Operator):",
+            "lineNumber": 433,
+            "isSignature": true
+          },
+          {
+            "text": "    \"\"\"Select all categories\"\"\"",
+            "lineNumber": 434
+          }
+        ]
+      },
+      "score": 0.332681804895401
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Updating `armature_all()` to only count objects that are actually in scenes. If all users are unused (not in any scene), the armature should be considered unused. Refactoring to make this check explicit:
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="edit_file_v2">
+<details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "E:\\atomic_data_manager\\stats\\users.py"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "967bcfd2-b79b-4188-a151-c47a30157580"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "stats/users.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "stats/users.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+
+Updated `armature_all()` to only count objects that are actually in scene collections. If an object uses the armature but isn't in any scene, it won't count as a user.
+
+The change:
+- Before: If an object used the armature, it was counted as a user even if it wasn't in any scene.
+- After: Only objects that both use the armature and are in at least one scene count as users.
+
+This implements recursive checking: if all objects using an armature are unused (not in any scene), the armature is considered unused.
+
+The debug output will show:
+- Objects that use the armature but aren't in any scene (with `in_scene=False`)
+- Only objects in scenes are added to the users list
+
+Run smart select again; armatures whose users are all unused should now be detected as unused.
+
+---
+
+_**User**_
+
+@blender (470-547) ah, in_scene was `true` because CC/iC creates scenes that use the rigs and objects. I'll remove them and test.
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+The debug output shows objects are in scenes (likely CC/iC-created), so the armatures appear used. Once you remove those scenes, objects should no longer be in any scene, and the armatures should be detected as unused.
+
+The recursive check is working: it only counts objects that are actually in scene collections. After removing the CC/iC scenes, the debug should show `in_scene=False` for those objects, and the armatures should be flagged as unused.
+
+Test after removing those scenes and let me know if the detection works correctly.
+
+---
+
+_**User**_
+
+@blender (561-615) excellent, it's working!
+
+---
+
