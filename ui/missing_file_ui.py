@@ -171,9 +171,19 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
 def autodetect_missing_files(dummy=None):
     # invokes the detect missing popup when missing files are detected upon
     # loading a new Blender project
+    # Use a timer to defer the operator call since load_post handlers
+    # cannot directly invoke operators that modify data
     if config.enable_missing_file_warning and \
             (missing.images() or missing.libraries()):
-        bpy.ops.atomic.detect_missing('INVOKE_DEFAULT')
+        def invoke_detect_missing():
+            try:
+                bpy.ops.atomic.detect_missing('INVOKE_DEFAULT')
+            except RuntimeError:
+                # If still in invalid context, ignore (will be handled on next user action)
+                pass
+            return None  # Run once
+        
+        bpy.app.timers.register(invoke_detect_missing, first_interval=0.1)
 
 
 reg_list = [ATOMIC_OT_detect_missing]
