@@ -441,8 +441,10 @@ class ATOMIC_OT_select_all(bpy.types.Operator):
         bpy.context.scene.atomic.lights = True
         bpy.context.scene.atomic.materials = True
         bpy.context.scene.atomic.node_groups = True
+        bpy.context.scene.atomic.objects = True
         bpy.context.scene.atomic.particles = True
         bpy.context.scene.atomic.textures = True
+        bpy.context.scene.atomic.armatures = True
         bpy.context.scene.atomic.worlds = True
         return {'FINISHED'}
 
@@ -459,8 +461,10 @@ class ATOMIC_OT_deselect_all(bpy.types.Operator):
         bpy.context.scene.atomic.lights = False
         bpy.context.scene.atomic.materials = False
         bpy.context.scene.atomic.node_groups = False
+        bpy.context.scene.atomic.objects = False
         bpy.context.scene.atomic.particles = False
         bpy.context.scene.atomic.textures = False
+        bpy.context.scene.atomic.armatures = False
         bpy.context.scene.atomic.worlds = False
 
         return {'FINISHED'}
