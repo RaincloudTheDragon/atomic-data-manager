@@ -95,15 +95,44 @@ def images_deep():
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(image):
             continue
+        
+        # First check: standard unused detection
         if not users.image_all(image.name):
-
             # check if image has a fake user or if ignore fake users
             # is enabled
             if not image.use_fake_user or config.include_fake_users:
-
                 # if image is not in our do not flag list
                 if image.name not in do_not_flag:
                     unused.append(image.name)
+        else:
+            # Second check: image is used, but check if it's ONLY used by unused objects
+            # This fixes issue #5: images used by unused objects should be marked as unused
+            # Get all objects that use this image (directly or indirectly)
+            objects_using_image = []
+            
+            # Check materials that use the image
+            for mat_name in users.image_materials(image.name):
+                # Get objects using this material
+                objects_using_image.extend(users.material_objects(mat_name))
+                # Also check Geometry Nodes usage
+                objects_using_image.extend(users.material_geometry_nodes(mat_name))
+            
+            # Check Geometry Nodes directly
+            objects_using_image.extend(users.image_geometry_nodes(image.name))
+            
+            # Remove duplicates
+            objects_using_image = list(set(objects_using_image))
+            
+            # If image is only used by objects, and ALL those objects are unused, mark image as unused
+            # Check each object individually to avoid recursion issues
+            if objects_using_image:
+                all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_image)
+                if all_objects_unused:
+                    # Check if image has a fake user or if ignore fake users is enabled
+                    if not image.use_fake_user or config.include_fake_users:
+                        # if image is not in our do not flag list
+                        if image.name not in do_not_flag:
+                            unused.append(image.name)
 
     return unused
 
@@ -166,12 +195,31 @@ def materials_deep():
         if users.material_brushes(material.name):
             continue
         
+        # First check: standard unused detection
         if not users.material_all(material.name):
-
             # check if material has a fake user or if ignore fake users
             # is enabled
             if not material.use_fake_user or config.include_fake_users:
                 unused.append(material.name)
+        else:
+            # Second check: material is used, but check if it's ONLY used by unused objects
+            # This fixes issue #5: materials used by unused objects should be marked as unused
+            # Get all objects that use this material
+            objects_using_material = []
+            objects_using_material.extend(users.material_objects(material.name))
+            objects_using_material.extend(users.material_geometry_nodes(material.name))
+            
+            # Remove duplicates
+            objects_using_material = list(set(objects_using_material))
+            
+            # If material is only used by objects, and ALL those objects are unused, mark material as unused
+            # Check each object individually to avoid recursion issues
+            if objects_using_material:
+                all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_material)
+                if all_objects_unused:
+                    # Check if material has a fake user or if ignore fake users is enabled
+                    if not material.use_fake_user or config.include_fake_users:
+                        unused.append(material.name)
 
     return unused
 
