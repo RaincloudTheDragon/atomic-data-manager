@@ -329,6 +329,7 @@ class ATOMIC_OT_inspect_materials(bpy.types.Operator):
     # user lists
     users_objects = []
     users_brushes = []
+    users_node_groups = []
 
     def draw(self, context):
         global inspection_update_trigger
@@ -352,11 +353,14 @@ class ATOMIC_OT_inspect_materials(bpy.types.Operator):
                     users.material_objects(atom.materials_field)
                 self.users_brushes = \
                     users.material_brushes(atom.materials_field)
+                self.users_node_groups = \
+                    users.material_node_groups_list(atom.materials_field)
 
             # if key is invalid, empty the user lists
             else:
                 self.users_objects = []
                 self.users_brushes = []
+                self.users_node_groups = []
 
             inspection_update_trigger = False
 
@@ -366,6 +370,14 @@ class ATOMIC_OT_inspect_materials(bpy.types.Operator):
             title="Brushes",
             items=self.users_brushes,
             icon="BRUSH_DATA"
+        )
+
+        # node groups box list
+        ui_layouts.box_list(
+            layout=layout,
+            title="Node Groups",
+            items=self.users_node_groups,
+            icon="NODETREE"
         )
 
         # objects box list

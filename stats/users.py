@@ -643,6 +643,31 @@ def material_node_groups(material_key):
     return []  # Material not used in any node groups
 
 
+def material_node_groups_list(material_key):
+    # returns a list of node group names that contain this material
+    # This is used for inspection UI to show which node groups use the material
+    # Unlike material_node_groups(), this returns all node groups that contain
+    # the material, regardless of whether they're used
+    
+    from ..utils import compat
+    users = []
+    
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return []
+    
+    # Check all node groups to see if they contain this material
+    for node_group in bpy.data.node_groups:
+        # Skip library-linked and override node groups
+        if compat.is_library_or_override(node_group):
+            continue
+        if node_group_has_material(node_group.name, material.name):
+            users.append(node_group.name)
+    
+    return distinct(users)
+
+
 def material_objects(material_key):
     # returns a list of object keys that use this material
 
