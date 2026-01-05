@@ -91,13 +91,22 @@ def images_deep():
     # this list also exists in images_shallow()
     do_not_flag = ["Render Result", "Viewer Node", "D-NOISE Export"]
 
+    total_images = len(bpy.data.images)
+    print(f"[Atomic Debug] images_deep(): Starting, total images: {total_images}")
+    checked = 0
+
     for image in bpy.data.images:
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(image):
             continue
         
+        checked += 1
+        print(f"[Atomic Debug] images_deep(): Checking image {checked}/{total_images}: '{image.name}'")
+        
         # First check: standard unused detection
+        print(f"[Atomic Debug] images_deep(): Calling users.image_all('{image.name}')...")
         if not users.image_all(image.name):
+            print(f"[Atomic Debug] images_deep(): Image '{image.name}' is unused (first check)")
             # check if image has a fake user or if ignore fake users
             # is enabled
             if not image.use_fake_user or config.include_fake_users:
@@ -111,29 +120,43 @@ def images_deep():
             objects_using_image = []
             
             # Check materials that use the image
-            for mat_name in users.image_materials(image.name):
+            print(f"[Atomic Debug] images_deep(): Getting materials for '{image.name}'...")
+            mat_names = users.image_materials(image.name)
+            print(f"[Atomic Debug] images_deep(): Found {len(mat_names)} materials using '{image.name}'")
+            for mat_name in mat_names:
                 # Get objects using this material
+                print(f"[Atomic Debug] images_deep(): Getting objects for material '{mat_name}'...")
                 objects_using_image.extend(users.material_objects(mat_name))
                 # Also check Geometry Nodes usage
+                print(f"[Atomic Debug] images_deep(): Getting Geometry Nodes objects for material '{mat_name}'...")
                 objects_using_image.extend(users.material_geometry_nodes(mat_name))
             
             # Check Geometry Nodes directly
+            print(f"[Atomic Debug] images_deep(): Getting Geometry Nodes objects for '{image.name}'...")
             objects_using_image.extend(users.image_geometry_nodes(image.name))
             
             # Remove duplicates
             objects_using_image = list(set(objects_using_image))
+            print(f"[Atomic Debug] images_deep(): Found {len(objects_using_image)} objects using '{image.name}'")
             
             # If image is only used by objects, and ALL those objects are unused, mark image as unused
             # Check each object individually to avoid recursion issues
             if objects_using_image:
+                print(f"[Atomic Debug] images_deep(): Checking if all {len(objects_using_image)} objects are unused...")
                 all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_image)
                 if all_objects_unused:
+                    print(f"[Atomic Debug] images_deep(): All objects are unused, marking '{image.name}' as unused")
                     # Check if image has a fake user or if ignore fake users is enabled
                     if not image.use_fake_user or config.include_fake_users:
                         # if image is not in our do not flag list
                         if image.name not in do_not_flag:
                             unused.append(image.name)
+                            print(f"[Atomic Debug] images_deep(): Added '{image.name}' to unused list")
+                else:
+                    print(f"[Atomic Debug] images_deep(): Some objects are used, '{image.name}' is not unused")
+        print(f"[Atomic Debug] images_deep(): Finished checking '{image.name}'")
 
+    print(f"[Atomic Debug] images_deep(): Complete, checked {checked} images, found {len(unused)} unused")
     return unused
 
 
@@ -364,21 +387,27 @@ def textures_shallow():
 
 def worlds():
     # returns a full list of keys of unused worlds
-
+    print(f"[Atomic Debug] unused.worlds(): Starting, total worlds: {len(bpy.data.worlds)}")
     unused = []
+    checked = 0
 
     for world in bpy.data.worlds:
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(world):
             continue
+        
+        checked += 1
+        print(f"[Atomic Debug] unused.worlds(): Checking '{world.name}' (users={world.users}, fake_user={world.use_fake_user})")
 
         # if data-block has no users or if it has a fake user and
         # ignore fake users is enabled
         if world.users == 0 or (world.users == 1 and
                                 world.use_fake_user and
                                 config.include_fake_users):
+            print(f"[Atomic Debug] unused.worlds(): '{world.name}' is unused, adding to list")
             unused.append(world.name)
 
+    print(f"[Atomic Debug] unused.worlds(): Complete, checked {checked} worlds, found {len(unused)} unused")
     return unused
 
 
