@@ -57,6 +57,25 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             atom.worlds
         ]
 
+        # Progress display section (only visible when operation is running)
+        if atom.is_operation_running:
+            box = layout.box()
+            col = box.column(align=True)
+            
+            # Progress bar
+            col.prop(atom, "operation_progress", text="", slider=True)
+            
+            # Status text
+            if atom.operation_status:
+                col.label(text=atom.operation_status, icon='TIME')
+            
+            # Cancel button
+            row = col.row()
+            row.scale_y = 1.5
+            row.operator("atomic.cancel_operation", text="Cancel", icon='X')
+            
+            layout.separator()
+
         # nuke and clean buttons
         row = layout.row(align=True)
         row.scale_y = 2.0
