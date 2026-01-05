@@ -26,6 +26,7 @@ as determined by stats.users.py
 import bpy
 from .. import config
 from ..utils import compat
+from ..utils import version
 from . import users
 
 
@@ -153,20 +154,36 @@ def lights_shallow():
 
 def materials_deep():
     # returns a list of keys of unused materials
-
+    print("[DEBUG] materials_deep(): FUNCTION CALLED")
     unused = []
 
     for material in bpy.data.materials:
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(material):
             continue
-        if not users.material_all(material.name):
+        
+        print(f"[DEBUG] materials_deep(): Checking material '{material.name}'")
+        
+        # Check if material is used by brushes - these should always be ignored
+        brush_users = users.material_brushes(material.name)
+        if brush_users:
+            print(f"[DEBUG] materials_deep(): Material '{material.name}' is used by brushes {brush_users}, SKIPPING")
+            continue
+        
+        material_all_users = users.material_all(material.name)
+        print(f"[DEBUG] materials_deep(): Material '{material.name}' users: {material_all_users}")
+        
+        if not material_all_users:
 
             # check if material has a fake user or if ignore fake users
             # is enabled
             if not material.use_fake_user or config.include_fake_users:
+                print(f"[DEBUG] materials_deep(): Material '{material.name}' is UNUSED, adding to list")
                 unused.append(material.name)
+            else:
+                print(f"[DEBUG] materials_deep(): Material '{material.name}' has fake user, skipping")
 
+    print(f"[DEBUG] materials_deep(): Returning {len(unused)} unused materials: {unused}")
     return unused
 
 
@@ -174,7 +191,42 @@ def materials_shallow():
     # returns a list of keys of unused material that may be
     # incomplete, but is significantly faster than doing a deep search
 
-    return shallow(bpy.data.materials)
+    unused_materials = shallow(bpy.data.materials)
+
+    # Filter out materials used by brushes - these should always be ignored
+    filtered = []
+    for key in unused_materials:
+        material = bpy.data.materials.get(key)
+        if material and not users.material_brushes(key):
+            filtered.append(key)
+
+    return filtered
+
+
+def _is_compositor_node_tree(node_group):
+    """
+    Check if a node group is a compositor node tree.
+    In Blender 5.0+, each scene has a compositing_node_tree that should be ignored.
+    
+    Args:
+        node_group: The node group to check
+        
+    Returns:
+        bool: True if the node group is a compositor node tree
+    """
+    # In Blender 5.0+, check if this node group is any scene's compositing_node_tree
+    if version.is_version_at_least(5, 0, 0):
+        for scene in bpy.data.scenes:
+            if hasattr(scene, 'compositing_node_tree') and scene.compositing_node_tree:
+                if scene.compositing_node_tree.name == node_group.name:
+                    return True
+    else:
+        # In Blender 4.2/4.5, check scene.node_tree
+        for scene in bpy.data.scenes:
+            if hasattr(scene, 'node_tree') and scene.node_tree:
+                if scene.node_tree.name == node_group.name:
+                    return True
+    return False
 
 
 def node_groups_deep():
@@ -185,6 +237,9 @@ def node_groups_deep():
     for node_group in bpy.data.node_groups:
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(node_group):
+            continue
+        # Skip compositor node trees (Blender 5.0+ creates one per file)
+        if _is_compositor_node_tree(node_group):
             continue
         if not users.node_group_all(node_group.name):
 
@@ -200,7 +255,16 @@ def node_groups_shallow():
     # returns a list of keys of unused node groups that may be
     # incomplete, but is significantly faster than doing a deep search
 
-    return shallow(bpy.data.node_groups)
+    unused = shallow(bpy.data.node_groups)
+    
+    # Filter out compositor node trees (Blender 5.0+ creates one per file)
+    filtered = []
+    for node_group_name in unused:
+        node_group = bpy.data.node_groups.get(node_group_name)
+        if node_group and not _is_compositor_node_tree(node_group):
+            filtered.append(node_group_name)
+    
+    return filtered
 
 
 def particles_deep():
