@@ -23,18 +23,30 @@ def get_all_unused_parallel():
     """
     # Execute all checks sequentially but in a clean batch
     # This avoids threading overhead while keeping code organized
-    return {
-        'collections': unused.collections_deep(),
-        'images': unused.images_deep(),
-        'lights': unused.lights_deep(),
-        'materials': unused.materials_deep(),
-        'node_groups': unused.node_groups_deep(),
-        'objects': unused.objects_deep(),
-        'particles': unused.particles_deep(),
-        'textures': unused.textures_deep(),
-        'armatures': unused.armatures_deep(),
-        'worlds': unused.worlds(),
-    }
+    result = {}
+    for category in CATEGORIES:
+        if category == 'collections':
+            result[category] = unused.collections_deep()
+        elif category == 'images':
+            result[category] = unused.images_deep()
+        elif category == 'lights':
+            result[category] = unused.lights_deep()
+        elif category == 'materials':
+            result[category] = unused.materials_deep()
+        elif category == 'node_groups':
+            result[category] = unused.node_groups_deep()
+        elif category == 'objects':
+            result[category] = unused.objects_deep()
+        elif category == 'particles':
+            result[category] = unused.particles_deep()
+        elif category == 'textures':
+            result[category] = unused.textures_deep()
+        elif category == 'armatures':
+            result[category] = unused.armatures_deep()
+        elif category == 'worlds':
+            result[category] = unused.worlds()
+    
+    return result
 
 
 def _has_any_unused_collections():
@@ -207,6 +219,10 @@ def _has_any_unused_armatures():
     return False
 
 
+# Category order for progress tracking
+CATEGORIES = ['collections', 'images', 'lights', 'materials', 'node_groups', 
+              'objects', 'particles', 'textures', 'armatures', 'worlds']
+
 def get_unused_for_smart_select():
     """
     Get unused data for smart select operation (returns booleans).
@@ -219,17 +235,29 @@ def get_unused_for_smart_select():
     """
     # Use optimized short-circuit versions that stop as soon as
     # they find ONE unused item, rather than computing the full list
-    return {
-        'collections': _has_any_unused_collections(),
-        'images': _has_any_unused_images(),
-        'lights': _has_any_unused_lights(),
-        'materials': _has_any_unused_materials(),
-        'node_groups': _has_any_unused_node_groups(),
-        'objects': _has_any_unused_objects(),
-        'particles': _has_any_unused_particles(),
-        'textures': _has_any_unused_textures(),
-        'armatures': _has_any_unused_armatures(),
-        'worlds': _has_any_unused_worlds(),
-    }
+    result = {}
+    for category in CATEGORIES:
+        if category == 'collections':
+            result[category] = _has_any_unused_collections()
+        elif category == 'images':
+            result[category] = _has_any_unused_images()
+        elif category == 'lights':
+            result[category] = _has_any_unused_lights()
+        elif category == 'materials':
+            result[category] = _has_any_unused_materials()
+        elif category == 'node_groups':
+            result[category] = _has_any_unused_node_groups()
+        elif category == 'objects':
+            result[category] = _has_any_unused_objects()
+        elif category == 'particles':
+            result[category] = _has_any_unused_particles()
+        elif category == 'textures':
+            result[category] = _has_any_unused_textures()
+        elif category == 'armatures':
+            result[category] = _has_any_unused_armatures()
+        elif category == 'worlds':
+            result[category] = _has_any_unused_worlds()
+    
+    return result
 
 

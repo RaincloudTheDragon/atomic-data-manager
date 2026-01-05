@@ -30,6 +30,9 @@ from ..utils import compat
 from .utils import delete
 from .utils import duplicate
 
+# Module-level state for inspection delete
+_inspect_delete_state = None
+
 
 def _check_library_or_override(datablock):
     """Check if datablock is library-linked or override, return error message if so."""
@@ -488,113 +491,179 @@ class ATOMIC_OT_inspection_delete(bpy.types.Operator):
     bl_label = "Delete Data-Block"
 
     def execute(self, context):
-        atom = bpy.context.scene.atomic
+        atom = context.scene.atomic
         inspection = atom.active_inspection
 
-        if inspection == 'COLLECTIONS':
-            key = atom.collections_field
-            collections = bpy.data.collections
-
-            if key in collections.keys():
-                collection = collections[key]
-                error = _check_library_or_override(collection)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.collection(key)
-                atom.collections_field = ""
-
-        elif inspection == 'IMAGES':
-            key = atom.images_field
-            images = bpy.data.images
-
-            if key in images.keys():
-                image = images[key]
-                error = _check_library_or_override(image)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.image(key)
-                atom.images_field = ""
-
-        elif inspection == 'LIGHTS':
-            key = atom.lights_field
-            lights = bpy.data.lights
-
-            if key in lights.keys():
-                light = lights[key]
-                error = _check_library_or_override(light)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.light(key)
-                atom.lights_field = ""
-
-        elif inspection == 'MATERIALS':
-            key = atom.materials_field
-            materials = bpy.data.materials
-
-            if key in materials.keys():
-                material = materials[key]
-                error = _check_library_or_override(material)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.material(key)
-                atom.materials_field = ""
-
-        elif inspection == 'NODE_GROUPS':
-            key = atom.node_groups_field
-            node_groups = bpy.data.node_groups
-
-            if key in node_groups.keys():
-                node_group = node_groups[key]
-                error = _check_library_or_override(node_group)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.node_group(key)
-                atom.node_groups_field = ""
-
-        elif inspection == 'PARTICLES':
-            key = atom.particles_field
-            particles = bpy.data.particles
-            if key in particles.keys():
-                particle = particles[key]
-                error = _check_library_or_override(particle)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.particle(key)
-                atom.particles_field = ""
-
-        elif inspection == 'TEXTURES':
-            key = atom.textures_field
-            textures = bpy.data.textures
-
-            if key in textures.keys():
-                texture = textures[key]
-                error = _check_library_or_override(texture)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.texture(key)
-                atom.textures_field = ""
-
-        elif inspection == 'WORLDS':
-            key = atom.worlds_field
-            worlds = bpy.data.worlds
-
-            if key in worlds.keys():
-                world = worlds[key]
-                error = _check_library_or_override(world)
-                if error:
-                    self.report({'ERROR'}, error)
-                    return {'CANCELLED'}
-                delete.world(key)
-                atom.worlds_field = ""
-
+        # Initialize progress tracking
+        atom.is_operation_running = True
+        atom.operation_progress = 0.0
+        atom.operation_status = f"Deleting {inspection.lower()}..."
+        atom.cancel_operation = False
+        
+        # Store state in module-level variable for timer processing
+        global _inspect_delete_state
+        _inspect_delete_state = {
+            'inspection': inspection
+        }
+        
+        # Start timer for processing (even though it's quick, keep UI responsive)
+        bpy.app.timers.register(_process_inspect_delete_step)
+        
         return {'FINISHED'}
+
+
+def _process_inspect_delete_step():
+    """Process inspection delete in steps to avoid blocking the UI"""
+    atom = bpy.context.scene.atomic
+    global _inspect_delete_state
+    
+    if _inspect_delete_state is None:
+        return None
+    
+    inspection = _inspect_delete_state['inspection']
+    
+    # Check for cancellation
+    if atom.cancel_operation:
+        atom.is_operation_running = False
+        atom.operation_progress = 0.0
+        atom.operation_status = "Operation cancelled"
+        atom.cancel_operation = False
+        _inspect_delete_state = None
+        # Force UI update
+        for area in bpy.context.screen.areas:
+            area.tag_redraw()
+        return None
+    
+    atom.operation_progress = 50.0
+    
+    # Perform deletion
+    try:
+            if inspection == 'COLLECTIONS':
+                key = atom.collections_field
+                collections = bpy.data.collections
+
+                if key in collections.keys():
+                    collection = collections[key]
+                    error = _check_library_or_override(collection)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.collection(key)
+                    atom.collections_field = ""
+
+            elif inspection == 'IMAGES':
+                key = atom.images_field
+                images = bpy.data.images
+
+                if key in images.keys():
+                    image = images[key]
+                    error = _check_library_or_override(image)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.image(key)
+                    atom.images_field = ""
+
+            elif inspection == 'LIGHTS':
+                key = atom.lights_field
+                lights = bpy.data.lights
+
+                if key in lights.keys():
+                    light = lights[key]
+                    error = _check_library_or_override(light)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.light(key)
+                    atom.lights_field = ""
+
+            elif inspection == 'MATERIALS':
+                key = atom.materials_field
+                materials = bpy.data.materials
+
+                if key in materials.keys():
+                    material = materials[key]
+                    error = _check_library_or_override(material)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.material(key)
+                    atom.materials_field = ""
+
+            elif inspection == 'NODE_GROUPS':
+                key = atom.node_groups_field
+                node_groups = bpy.data.node_groups
+
+                if key in node_groups.keys():
+                    node_group = node_groups[key]
+                    error = _check_library_or_override(node_group)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.node_group(key)
+                    atom.node_groups_field = ""
+
+            elif inspection == 'PARTICLES':
+                key = atom.particles_field
+                particles = bpy.data.particles
+                if key in particles.keys():
+                    particle = particles[key]
+                    error = _check_library_or_override(particle)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.particle(key)
+                    atom.particles_field = ""
+
+            elif inspection == 'TEXTURES':
+                key = atom.textures_field
+                textures = bpy.data.textures
+
+                if key in textures.keys():
+                    texture = textures[key]
+                    error = _check_library_or_override(texture)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.texture(key)
+                    atom.textures_field = ""
+
+            elif inspection == 'WORLDS':
+                key = atom.worlds_field
+                worlds = bpy.data.worlds
+
+                if key in worlds.keys():
+                    world = worlds[key]
+                    error = _check_library_or_override(world)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.world(key)
+                    atom.worlds_field = ""
+    except:
+        pass  # Handle any errors gracefully
+    
+    # Operation complete
+    atom.is_operation_running = False
+    atom.operation_progress = 100.0
+    atom.operation_status = ""
+    
+    # Clear state
+    _inspect_delete_state = None
+    
+    # Force UI update
+    for area in bpy.context.screen.areas:
+        area.tag_redraw()
+    
+    return None  # Stop timer
 
 
 reg_list = [
