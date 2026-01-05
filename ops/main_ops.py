@@ -46,6 +46,19 @@ def _invalidate_cache():
     _cache_valid = False
 
 
+# Atomic Data Manager Clear Cache Operator
+class ATOMIC_OT_clear_cache(bpy.types.Operator):
+    """Clear the unused data cache"""
+    bl_idname = "atomic.clear_cache"
+    bl_label = "Clear Cache"
+    bl_description = "Manually clear the unused data cache. This forces a fresh scan on the next Smart Select or Clean operation"
+
+    def execute(self, context):
+        _invalidate_cache()
+        print("[Atomic] Cache cleared manually")
+        return {'FINISHED'}
+
+
 # Atomic Data Manager Nuke Operator
 class ATOMIC_OT_nuke(bpy.types.Operator):
     """Remove all data-blocks from the selected categories"""
@@ -566,6 +579,7 @@ class ATOMIC_OT_deselect_all(bpy.types.Operator):
 
 
 reg_list = [
+    ATOMIC_OT_clear_cache,
     ATOMIC_OT_nuke,
     ATOMIC_OT_clean,
     ATOMIC_OT_undo,
