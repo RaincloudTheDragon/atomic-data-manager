@@ -847,6 +847,31 @@ def node_group_objects(node_group_key):
     return distinct(users)
 
 
+def _check_node_input_sockets_for_image(node, image_key):
+    """Helper function to check if any input socket of a node contains the image.
+    This handles nodes like Menu Switch that have materials/images in input sockets."""
+    try:
+        image = bpy.data.images[image_key]
+        if not hasattr(node, 'inputs'):
+            return False
+        
+        for input_socket in node.inputs:
+            try:
+                # Check if socket has a default_value that is an image
+                if hasattr(input_socket, 'default_value') and input_socket.default_value:
+                    socket_value = input_socket.default_value
+                    # Check if it's an image datablock
+                    if hasattr(socket_value, 'name') and hasattr(socket_value, 'filepath'):
+                        if socket_value.name == image.name or socket_value == image:
+                            return True
+            except (AttributeError, ReferenceError, RuntimeError, TypeError, KeyError):
+                continue  # Skip this socket if we can't access it
+    except (KeyError, AttributeError):
+        return False
+    
+    return False
+
+
 def node_group_has_image(node_group_key, image_key):
     # recursively returns true if the node group contains this image
     # directly or if it contains a node group a node group that contains
@@ -867,9 +892,14 @@ def node_group_has_image(node_group_key, image_key):
             if node.image.name == image.name:
                 has_image = True
 
+        # Check input sockets for images (e.g., Menu Switch nodes)
+        # This handles nodes that have images connected via input sockets
+        if not has_image:
+            has_image = _check_node_input_sockets_for_image(node, image_key)
+
         # recurse case
         # if node is a node group and has a valid node tree
-        elif hasattr(node, 'node_tree') and node.node_tree:
+        if not has_image and hasattr(node, 'node_tree') and node.node_tree:
             has_image = node_group_has_image(
                 node.node_tree.name, image.name)
 
@@ -948,6 +978,34 @@ def node_group_has_texture(node_group_key, texture_key):
     return has_texture
 
 
+def _check_node_input_sockets_for_material(node, material_key):
+    """Helper function to check if any input socket of a node contains the material.
+    This handles nodes like Menu Switch that have materials in input sockets."""
+    try:
+        material = bpy.data.materials[material_key]
+        if not hasattr(node, 'inputs'):
+            return False
+        
+        for input_socket in node.inputs:
+            try:
+                # Check socket type - material sockets are typically 'MATERIAL' type
+                socket_type = getattr(input_socket, 'type', '')
+                if socket_type == 'MATERIAL' or 'material' in str(socket_type).lower():
+                    # Check if this socket has a default_value that is a material
+                    if hasattr(input_socket, 'default_value') and input_socket.default_value:
+                        socket_material = input_socket.default_value
+                        if socket_material and hasattr(socket_material, 'name'):
+                            if (socket_material.name == material.name or 
+                                socket_material == material):
+                                return True
+            except (AttributeError, ReferenceError, RuntimeError, TypeError, KeyError):
+                continue  # Skip this socket if we can't access it
+    except (KeyError, AttributeError):
+        return False
+    
+    return False
+
+
 def node_group_has_material(node_group_key, material_key):
     # returns true if a node group contains this material (directly or nested)
 
@@ -1018,6 +1076,26 @@ def node_group_has_material(node_group_key, material_key):
                                 pass  # Skip if Set Material node input access fails
                     except (AttributeError, ReferenceError, RuntimeError):
                         pass  # Skip if bl_idname access fails
+                
+                # Check for Menu Switch nodes and other nodes with material inputs
+                # Menu Switch nodes can have materials in any of their input sockets
+                if not has_material and hasattr(node, 'bl_idname'):
+                    try:
+                        node_type = node.bl_idname
+                        # Check for Menu Switch node (GeometryNodeMenuSwitch)
+                        if node_type == 'GeometryNodeMenuSwitch' or 'MenuSwitch' in node_type:
+                            has_material = _check_node_input_sockets_for_material(node, material_key)
+                            if has_material:
+                                break
+                    except (AttributeError, ReferenceError, RuntimeError):
+                        pass  # Skip if bl_idname access fails
+                
+                # General check: Check all input sockets for materials (catches other node types)
+                # This is a fallback for any node that might have material inputs
+                if not has_material:
+                    has_material = _check_node_input_sockets_for_material(node, material_key)
+                    if has_material:
+                        break
                 
                 # Fallback: Check for any node with a material property (e.g., Set Material)
                 # This catches other node types that might have materials
