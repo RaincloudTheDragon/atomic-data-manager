@@ -226,7 +226,12 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
 
     # progress tracking properties for timer-based operations
     is_operation_running: bpy.props.BoolProperty(default=False)
-    operation_progress: bpy.props.FloatProperty(default=0.0, min=0.0, max=100.0)
+    operation_progress: bpy.props.FloatProperty(
+        default=0.0, 
+        min=0.0, 
+        max=100.0,
+        subtype='PERCENTAGE'  # This makes it display as percentage
+    )
     operation_status: bpy.props.StringProperty(default="")
     cancel_operation: bpy.props.BoolProperty(default=False)
 
