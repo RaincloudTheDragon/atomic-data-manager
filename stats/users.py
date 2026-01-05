@@ -510,9 +510,14 @@ def material_brushes(material_key):
                 if hasattr(gp_settings, 'material'):
                     gp_mat = gp_settings.material
                     print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' gpencil_settings.material: {gp_mat}")
-                    if gp_mat and gp_mat.name == material.name:
-                        print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via gpencil_settings.material")
-                        users.append(brush.name)
+                    if gp_mat:
+                        gp_mat_name = gp_mat.name if hasattr(gp_mat, 'name') else str(gp_mat)
+                        print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' gpencil_settings.material.name: '{gp_mat_name}', comparing with '{material.name}'")
+                        if gp_mat_name == material.name:
+                            print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via gpencil_settings.material")
+                            users.append(brush.name)
+                        else:
+                            print(f"[DEBUG] material_brushes({material_key}): No match - brush '{brush.name}' uses '{gp_mat_name}', not '{material.name}'")
                 
                 # Check material_index - need to get material from Grease Pencil object
                 if hasattr(gp_settings, 'material_index'):

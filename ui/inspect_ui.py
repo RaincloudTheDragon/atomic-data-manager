@@ -328,6 +328,7 @@ class ATOMIC_OT_inspect_materials(bpy.types.Operator):
 
     # user lists
     users_objects = []
+    users_brushes = []
 
     def draw(self, context):
         global inspection_update_trigger
@@ -349,12 +350,23 @@ class ATOMIC_OT_inspect_materials(bpy.types.Operator):
             if atom.materials_field in bpy.data.materials.keys():
                 self.users_objects = \
                     users.material_objects(atom.materials_field)
+                self.users_brushes = \
+                    users.material_brushes(atom.materials_field)
 
             # if key is invalid, empty the user lists
             else:
                 self.users_objects = []
+                self.users_brushes = []
 
             inspection_update_trigger = False
+
+        # brushes box list
+        ui_layouts.box_list(
+            layout=layout,
+            title="Brushes",
+            items=self.users_brushes,
+            icon="BRUSH_DATA"
+        )
 
         # objects box list
         ui_layouts.box_list_diverse(
