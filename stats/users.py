@@ -490,7 +490,10 @@ def material_brushes(material_key):
     # Brushes use materials for stroke rendering (Grease Pencil brushes)
     
     users = []
-    material = bpy.data.materials[material_key]
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return []
     
     if not hasattr(bpy.data, 'brushes'):
         return []
@@ -503,7 +506,8 @@ def material_brushes(material_key):
                 # Check material property in gpencil_settings
                 if hasattr(gp_settings, 'material'):
                     gp_mat = gp_settings.material
-                    if gp_mat and gp_mat.name == material.name:
+                    # Compare by datablock reference to avoid matching linked materials with same name
+                    if gp_mat and gp_mat == material:
                         users.append(brush.name)
                 
                 # Check material_index - need to get material from Grease Pencil object
@@ -516,19 +520,22 @@ def material_brushes(material_key):
                             if hasattr(gp_data, 'materials') and gp_data.materials:
                                 if 0 <= mat_idx < len(gp_data.materials):
                                     gp_mat = gp_data.materials[mat_idx]
-                                    if gp_mat and gp_mat.name == material.name:
+                                    # Compare by datablock reference to avoid matching linked materials with same name
+                                    if gp_mat and gp_mat == material:
                                         users.append(brush.name)
         
         # Also check for stroke_material (some brush types)
         if hasattr(brush, 'stroke_material'):
             stroke_mat = brush.stroke_material
-            if stroke_mat and stroke_mat.name == material.name:
+            # Compare by datablock reference to avoid matching linked materials with same name
+            if stroke_mat and stroke_mat == material:
                 users.append(brush.name)
         
         # Check for material property (some brush types)
         if hasattr(brush, 'material'):
             mat = brush.material
-            if mat and mat.name == material.name:
+            # Compare by datablock reference to avoid matching linked materials with same name
+            if mat and mat == material:
                 users.append(brush.name)
     
     return distinct(users)
@@ -539,7 +546,10 @@ def material_geometry_nodes(material_key):
     # Only counts objects that are in scene collections (recursive check)
 
     users = []
-    material = bpy.data.materials[material_key]
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return []
 
     # Import compat module for version-safe geometry nodes access
     from ..utils import compat
@@ -564,7 +574,8 @@ def material_geometry_nodes(material_key):
                     ng = compat.get_geometry_nodes_modifier_node_group(modifier)
                     if ng:
                         # Check if this node group or any nested node groups contain the material
-                        if node_group_has_material(ng.name, material.name):
+                        # Pass material datablock reference to ensure we match the correct material
+                        if node_group_has_material_by_ref(ng.name, material):
                             users.append(obj.name)
 
     return distinct(users)
@@ -579,14 +590,18 @@ def material_node_groups(material_key):
     # Optimized to return early when usage is found
     
     from ..utils import compat
-    material = bpy.data.materials[material_key]
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return []
 
     # Check all node groups to see if they contain this material
     for node_group in bpy.data.node_groups:
         # Skip library-linked and override node groups
         if compat.is_library_or_override(node_group):
             continue
-        if node_group_has_material(node_group.name, material.name):
+        # Use the by_ref version to avoid name collision issues with linked materials
+        if node_group_has_material_by_ref(node_group.name, material):
             # This node group contains the material, check if the node group is used
             # Check usage contexts in order of likelihood, return early when found
             
@@ -662,7 +677,8 @@ def material_node_groups_list(material_key):
         # Skip library-linked and override node groups
         if compat.is_library_or_override(node_group):
             continue
-        if node_group_has_material(node_group.name, material.name):
+        # Use the by_ref version to avoid name collision issues with linked materials
+        if node_group_has_material_by_ref(node_group.name, material):
             users.append(node_group.name)
     
     return distinct(users)
@@ -672,7 +688,10 @@ def material_objects(material_key):
     # returns a list of object keys that use this material
 
     users = []
-    material = bpy.data.materials[material_key]
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return []
 
     for obj in bpy.data.objects:
 
@@ -682,10 +701,12 @@ def material_objects(material_key):
             # for each material slot
             for slot in obj.material_slots:
 
-                # if material slot has a valid material and it is our
-                # material
-                if slot.material and slot.material.name == material.name:
-                    users.append(obj.name)
+                # if material slot has a valid material, check if it's our material
+                # Compare by datablock reference first to avoid matching linked materials with same name
+                if slot.material:
+                    # Compare by reference (handles name collisions between local and linked materials)
+                    if slot.material == material:
+                        users.append(obj.name)
 
     return distinct(users)
 
@@ -1008,37 +1029,45 @@ def _check_node_input_sockets_for_material(node, material_key):
     This handles nodes like Menu Switch that have materials in input sockets."""
     try:
         material = bpy.data.materials[material_key]
-        if not hasattr(node, 'inputs'):
-            return False
-        
-        for input_socket in node.inputs:
-            try:
-                # Check socket type - material sockets are typically 'MATERIAL' type
-                socket_type = getattr(input_socket, 'type', '')
-                if socket_type == 'MATERIAL' or 'material' in str(socket_type).lower():
-                    # Check if this socket has a default_value that is a material
-                    if hasattr(input_socket, 'default_value') and input_socket.default_value:
-                        socket_material = input_socket.default_value
-                        if socket_material and hasattr(socket_material, 'name'):
-                            if (socket_material.name == material.name or 
-                                socket_material == material):
-                                return True
-            except (AttributeError, ReferenceError, RuntimeError, TypeError, KeyError):
-                continue  # Skip this socket if we can't access it
+        return _check_node_input_sockets_for_material_by_ref(node, material)
     except (KeyError, AttributeError):
         return False
+
+
+def _check_node_input_sockets_for_material_by_ref(node, material):
+    """Helper function to check if any input socket of a node contains the material.
+    Takes material datablock directly to avoid name collision issues with linked materials."""
+    if not material or not hasattr(node, 'inputs'):
+        return False
+    
+    for input_socket in node.inputs:
+        try:
+            # Check socket type - material sockets are typically 'MATERIAL' type
+            socket_type = getattr(input_socket, 'type', '')
+            if socket_type == 'MATERIAL' or 'material' in str(socket_type).lower():
+                # Check if this socket has a default_value that is a material
+                if hasattr(input_socket, 'default_value') and input_socket.default_value:
+                    socket_material = input_socket.default_value
+                    # Compare by datablock reference to avoid matching linked materials with same name
+                    if socket_material and socket_material == material:
+                        return True
+        except (AttributeError, ReferenceError, RuntimeError, TypeError, KeyError):
+            continue  # Skip this socket if we can't access it
     
     return False
 
 
-def node_group_has_material(node_group_key, material_key):
+def node_group_has_material_by_ref(node_group_key, material):
     # returns true if a node group contains this material (directly or nested)
+    # Takes material datablock directly to avoid name collision issues with linked materials
 
     has_material = False
     try:
         node_group = bpy.data.node_groups[node_group_key]
-        material = bpy.data.materials[material_key]
     except (KeyError, AttributeError):
+        return False
+    
+    if not material:
         return False
 
     try:
@@ -1059,10 +1088,9 @@ def node_group_has_material(node_group_key, material_key):
                                         # Check the default_value (for unlinked materials)
                                         if hasattr(material_socket, 'default_value'):
                                             socket_material = material_socket.default_value
-                                            if socket_material and hasattr(socket_material, 'name'):
-                                                if (socket_material.name == material.name or 
-                                                    socket_material == material):
-                                                    has_material = True
+                                            # Compare by datablock reference to avoid matching linked materials with same name
+                                            if socket_material and socket_material == material:
+                                                has_material = True
                                     except (KeyError, AttributeError, ReferenceError, RuntimeError, TypeError):
                                         pass
                                 
@@ -1076,11 +1104,10 @@ def node_group_has_material(node_group_key, material_key):
                                                 # Check if this socket has a default_value that is a material
                                                 if hasattr(input_socket, 'default_value') and input_socket.default_value:
                                                     socket_material = input_socket.default_value
-                                                    if socket_material and hasattr(socket_material, 'name'):
-                                                        if (socket_material.name == material.name or 
-                                                            socket_material == material):
-                                                            has_material = True
-                                                            break  # Found it, no need to continue
+                                                    # Compare by datablock reference to avoid matching linked materials with same name
+                                                    if socket_material and socket_material == material:
+                                                        has_material = True
+                                                        break  # Found it, no need to continue
                                         except (AttributeError, ReferenceError, RuntimeError, TypeError):
                                             continue  # Skip this socket if we can't access it
                                 
@@ -1088,8 +1115,8 @@ def node_group_has_material(node_group_key, material_key):
                                 if not has_material and hasattr(node, 'material'):
                                     try:
                                         if node.material:
-                                            if (node.material.name == material.name or 
-                                                node.material == material):
+                                            # Compare by datablock reference to avoid matching linked materials with same name
+                                            if node.material == material:
                                                 has_material = True
                                                 break  # Found it, no need to continue
                                     except (AttributeError, ReferenceError, RuntimeError):
@@ -1109,7 +1136,7 @@ def node_group_has_material(node_group_key, material_key):
                         node_type = node.bl_idname
                         # Check for Menu Switch node (GeometryNodeMenuSwitch)
                         if node_type == 'GeometryNodeMenuSwitch' or 'MenuSwitch' in node_type:
-                            has_material = _check_node_input_sockets_for_material(node, material_key)
+                            has_material = _check_node_input_sockets_for_material_by_ref(node, material)
                             if has_material:
                                 break
                     except (AttributeError, ReferenceError, RuntimeError):
@@ -1118,7 +1145,7 @@ def node_group_has_material(node_group_key, material_key):
                 # General check: Check all input sockets for materials (catches other node types)
                 # This is a fallback for any node that might have material inputs
                 if not has_material:
-                    has_material = _check_node_input_sockets_for_material(node, material_key)
+                    has_material = _check_node_input_sockets_for_material_by_ref(node, material)
                     if has_material:
                         break
                 
@@ -1127,9 +1154,8 @@ def node_group_has_material(node_group_key, material_key):
                 if not has_material and hasattr(node, 'material'):
                     try:
                         if node.material:
-                            # Check both by name and by direct reference for robustness
-                            if (node.material.name == material.name or 
-                                node.material == material):
+                            # Compare by datablock reference to avoid matching linked materials with same name
+                            if node.material == material:
                                 has_material = True
                                 break  # Found it, no need to continue
                     except (AttributeError, ReferenceError, RuntimeError):
@@ -1144,8 +1170,8 @@ def node_group_has_material(node_group_key, material_key):
                             if hasattr(node, 'material'):
                                 try:
                                     if node.material:
-                                        if (node.material.name == material.name or 
-                                            node.material == material):
+                                        # Compare by datablock reference to avoid matching linked materials with same name
+                                        if node.material == material:
                                             has_material = True
                                             break
                                 except (AttributeError, ReferenceError, RuntimeError):
@@ -1158,8 +1184,8 @@ def node_group_has_material(node_group_key, material_key):
                 if not has_material and hasattr(node, 'node_tree'):
                     try:
                         if node.node_tree:
-                            has_material = node_group_has_material(
-                                node.node_tree.name, material.name)
+                            has_material = node_group_has_material_by_ref(
+                                node.node_tree.name, material)
                     except (KeyError, AttributeError, ReferenceError, RuntimeError):
                         continue  # Skip invalid node groups
 
@@ -1173,6 +1199,18 @@ def node_group_has_material(node_group_key, material_key):
         return False
 
     return has_material
+
+
+def node_group_has_material(node_group_key, material_key):
+    # returns true if a node group contains this material (directly or nested)
+    # Wrapper that converts material_key to material datablock for reference-based comparison
+
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError):
+        return False
+    
+    return node_group_has_material_by_ref(node_group_key, material)
 
 
 def particle_all(particle_key):
