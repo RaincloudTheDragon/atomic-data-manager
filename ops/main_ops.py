@@ -565,24 +565,63 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             bpy.ops.atomic.deselect_all()
             return {'FINISHED'}
 
-        # Initialize progress tracking
-        atom.is_operation_running = True
-        atom.operation_progress = 0.0
-        atom.operation_status = "Initializing deletion..."
-        atom.cancel_operation = False
+        # Delete all items synchronously
+        deleted_count = 0
+        for category, unused_list in categories_to_clean:
+            if not unused_list:
+                continue
+                
+            for item_key in unused_list:
+                try:
+                    if category == 'collections':
+                        if item_key in bpy.data.collections:
+                            bpy.data.collections.remove(bpy.data.collections[item_key])
+                            deleted_count += 1
+                    elif category == 'images':
+                        if item_key in bpy.data.images:
+                            bpy.data.images.remove(bpy.data.images[item_key])
+                            deleted_count += 1
+                    elif category == 'lights':
+                        if item_key in bpy.data.lights:
+                            bpy.data.lights.remove(bpy.data.lights[item_key])
+                            deleted_count += 1
+                    elif category == 'materials':
+                        if item_key in bpy.data.materials:
+                            bpy.data.materials.remove(bpy.data.materials[item_key])
+                            deleted_count += 1
+                    elif category == 'node_groups':
+                        if item_key in bpy.data.node_groups:
+                            bpy.data.node_groups.remove(bpy.data.node_groups[item_key])
+                            deleted_count += 1
+                    elif category == 'objects':
+                        if item_key in bpy.data.objects:
+                            bpy.data.objects.remove(bpy.data.objects[item_key])
+                            deleted_count += 1
+                    elif category == 'particles':
+                        if item_key in bpy.data.particles:
+                            bpy.data.particles.remove(bpy.data.particles[item_key])
+                            deleted_count += 1
+                    elif category == 'textures':
+                        if item_key in bpy.data.textures:
+                            bpy.data.textures.remove(bpy.data.textures[item_key])
+                            deleted_count += 1
+                    elif category == 'armatures':
+                        if item_key in bpy.data.armatures:
+                            bpy.data.armatures.remove(bpy.data.armatures[item_key])
+                            deleted_count += 1
+                    elif category == 'worlds':
+                        if item_key in bpy.data.worlds:
+                            bpy.data.worlds.remove(bpy.data.worlds[item_key])
+                            deleted_count += 1
+                except:
+                    pass  # Item may have been deleted already or doesn't exist
         
-        # Initialize module-level state for timer processing
-        global _clean_execute_state
-        _clean_execute_state = {
-            'categories_to_clean': categories_to_clean,
-            'total_items': total_items,
-            'current_category_index': 0,
-            'current_item_index': 0,
-            'deleted_count': 0
-        }
+        # Invalidate cache after cleaning (data has changed)
+        global _cache_valid
+        _cache_valid = False
         
-        # Start timer for processing
-        bpy.app.timers.register(_process_clean_execute_step)
+        # Deselect all
+        bpy.ops.atomic.deselect_all()
         
         return {'FINISHED'}
 
