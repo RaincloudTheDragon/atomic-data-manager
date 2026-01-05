@@ -225,6 +225,12 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
     replace_field: bpy.props.StringProperty()
 
 
+def _on_undo_pre(scene):
+    """Handler called before undo - invalidate cache."""
+    from .ops import main_ops
+    main_ops._invalidate_cache()
+
+
 def register():
     register_class(ATOMIC_PG_main)
     bpy.types.Scene.atomic = bpy.props.PointerProperty(type=ATOMIC_PG_main)
@@ -233,6 +239,9 @@ def register():
     ui.register()
     ops.register()
     
+    # Register undo handler to invalidate cache
+    bpy.app.handlers.undo_pre.append(_on_undo_pre)
+    
     # bootstrap Rainy's Extensions repository
     rainys_repo_bootstrap.register()
 
@@ -240,6 +249,10 @@ def register():
 def unregister():
     # bootstrap unregistration
     rainys_repo_bootstrap.unregister()
+    
+    # Remove undo handler
+    if _on_undo_pre in bpy.app.handlers.undo_pre:
+        bpy.app.handlers.undo_pre.remove(_on_undo_pre)
     
     # atomic package unregistration
     ui.unregister()

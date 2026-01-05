@@ -33,6 +33,18 @@ from .utils import clean
 from .utils import nuke
 from ..ui.utils import ui_layouts
 
+# Cache for unused data-blocks to avoid recalculation
+# This is invalidated when undo steps occur or after cleaning
+_unused_cache = None
+_cache_valid = False
+
+
+def _invalidate_cache():
+    """Invalidate the unused data cache."""
+    global _unused_cache, _cache_valid
+    _unused_cache = None
+    _cache_valid = False
+
 
 # Atomic Data Manager Nuke Operator
 class ATOMIC_OT_nuke(bpy.types.Operator):
@@ -196,16 +208,18 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     bl_idname = "atomic.clean"
     bl_label = "Clean"
 
-    unused_collections = []
-    unused_images = []
-    unused_lights = []
-    unused_materials = []
-    unused_node_groups = []
-    unused_objects = []
-    unused_particles = []
-    unused_textures = []
-    unused_armatures = []
-    unused_worlds = []
+    # Use None as sentinel to indicate "not yet calculated"
+    # Empty lists [] indicate "calculated and found nothing"
+    unused_collections = None
+    unused_images = None
+    unused_lights = None
+    unused_materials = None
+    unused_node_groups = None
+    unused_objects = None
+    unused_particles = None
+    unused_textures = None
+    unused_armatures = None
+    unused_worlds = None
 
     def draw(self, context):
         atom = bpy.context.scene.atomic
@@ -319,35 +333,42 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     def execute(self, context):
         atom = bpy.context.scene.atomic
 
+        # Use cached lists from invoke() if available, otherwise recalculate
+        # This avoids expensive recalculation when the dialog showed empty results
+        # Note: Empty lists [] are valid cached results - they mean "no unused items found"
+        # None means "not yet calculated", which triggers recalculation
         if atom.collections:
-            clean.collections()
+            clean.collections(self.unused_collections if self.unused_collections is not None else None)
 
         if atom.images:
-            clean.images()
+            clean.images(self.unused_images if self.unused_images is not None else None)
 
         if atom.lights:
-            clean.lights()
+            clean.lights(self.unused_lights if self.unused_lights is not None else None)
 
         if atom.materials:
-            clean.materials()
+            clean.materials(self.unused_materials if self.unused_materials is not None else None)
 
         if atom.node_groups:
-            clean.node_groups()
+            clean.node_groups(self.unused_node_groups if self.unused_node_groups is not None else None)
 
         if atom.objects:
-            clean.objects()
+            clean.objects(self.unused_objects if self.unused_objects is not None else None)
 
         if atom.particles:
-            clean.particles()
+            clean.particles(self.unused_particles if self.unused_particles is not None else None)
 
         if atom.textures:
-            clean.textures()
+            clean.textures(self.unused_textures if self.unused_textures is not None else None)
 
         if atom.armatures:
-            clean.armatures()
+            clean.armatures(self.unused_armatures if self.unused_armatures is not None else None)
 
         if atom.worlds:
-            clean.worlds()
+            clean.worlds(self.unused_worlds if self.unused_worlds is not None else None)
+
+        # Invalidate cache after cleaning (data has changed)
+        _invalidate_cache()
 
         bpy.ops.atomic.deselect_all()
 
@@ -357,8 +378,15 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         wm = context.window_manager
         atom = bpy.context.scene.atomic
 
-        # Use parallel execution for better performance
-        all_unused = unused_parallel.get_all_unused_parallel()
+        # Check if cache is valid, otherwise recalculate
+        global _unused_cache, _cache_valid
+        if _cache_valid and _unused_cache is not None:
+            all_unused = _unused_cache
+        else:
+            # Use parallel execution for better performance
+            all_unused = unused_parallel.get_all_unused_parallel()
+            _unused_cache = all_unused
+            _cache_valid = True
 
         if atom.collections:
             self.unused_collections = all_unused['collections']
@@ -401,6 +429,8 @@ class ATOMIC_OT_undo(bpy.types.Operator):
 
     def execute(self, context):
         bpy.ops.ed.undo()
+        # Invalidate cache after undo
+        _invalidate_cache()
         return {'FINISHED'}
 
 
@@ -413,6 +443,13 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
     def execute(self, context):
         # Use parallel execution for better performance
         unused_flags = unused_parallel.get_unused_for_smart_select()
+        
+        # Also populate the full cache for use by Clean operator
+        # This allows Clean to reuse the results without recalculation
+        global _unused_cache, _cache_valid
+        if not _cache_valid or _unused_cache is None:
+            _unused_cache = unused_parallel.get_all_unused_parallel()
+            _cache_valid = True
         
         atom = bpy.context.scene.atomic
         atom.collections = unused_flags['collections']
