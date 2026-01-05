@@ -53,7 +53,9 @@ _smart_select_state = {
     'counting_status_updated': False,  # Track if status was updated for current category
     'counting_images_list': None,  # List of images to check incrementally
     'counting_images_index': 0,  # Current image index
-    'counting_images_unused': []  # Unused images found so far
+    'counting_images_unused': [],  # Unused images found so far
+    'counting_images_executor': None,  # ThreadPoolExecutor for parallel processing
+    'counting_images_futures': []  # List of futures for tracking parallel work
 }
 
 _clean_invoke_state = {
@@ -81,8 +83,28 @@ def _invalidate_cache():
     _cache_valid = False
 
 
+# Cache for expensive operations during image scanning
+_image_scan_cache = {
+    'image_all_results': {},  # image_name -> bool (True if used, False if unused)
+    'image_materials_results': {},  # image_name -> list of material names
+    'material_objects_results': {},  # material_name -> list of object names
+    'object_all_results': {},  # object_name -> list of scene names (empty if unused)
+}
+
+def _clear_image_scan_cache():
+    """Clear the image scan cache"""
+    global _image_scan_cache
+    _image_scan_cache = {
+        'image_all_results': {},
+        'image_materials_results': {},
+        'material_objects_results': {},
+        'object_all_results': {},
+    }
+
+
 def _check_single_image(image):
-    """Check if a single image is unused. Returns True if unused, False otherwise."""
+    """Check if a single image is unused. Returns True if unused, False otherwise.
+    Uses caching to avoid redundant expensive scans."""
     from ..stats import users
     
     do_not_flag = ["Render Result", "Viewer Node", "D-NOISE Export"]
@@ -91,42 +113,82 @@ def _check_single_image(image):
     if compat.is_library_or_override(image):
         return False
     
-    # First check: standard unused detection
-    if not users.image_all(image.name):
+    # Fast early check: Use Blender's built-in users count
+    # This is much faster than scanning the entire scene
+    image_users = image.users
+    has_fake_user = image.use_fake_user
+    
+    # Fast path 1: Image has no users at all → definitely unused
+    if image_users == 0:
+        if image.name not in do_not_flag:
+            return True
+        return False
+    
+    # Fast path 2: Only fake user and we're ignoring fake users → unused
+    if image_users == 1 and has_fake_user and config.include_fake_users:
+        if image.name not in do_not_flag:
+            return True
+        return False
+    
+    # Fast path 3: Only fake user and we're NOT ignoring fake users → used (skip deep check)
+    if image_users == 1 and has_fake_user and not config.include_fake_users:
+        return False
+    
+    image_name = image.name
+    
+    # Deep check: standard unused detection (use cache)
+    if image_name not in _image_scan_cache['image_all_results']:
+        # Cache the result of image_all() - this is expensive
+        _image_scan_cache['image_all_results'][image_name] = bool(users.image_all(image_name))
+    
+    if not _image_scan_cache['image_all_results'][image_name]:
         # check if image has a fake user or if ignore fake users is enabled
-        if not image.use_fake_user or config.include_fake_users:
+        if not has_fake_user or config.include_fake_users:
             # if image is not in our do not flag list
-            if image.name not in do_not_flag:
+            if image_name not in do_not_flag:
                 return True
         return False
     
     # Second check: image is used, but check if it's ONLY used by unused objects
     # This fixes issue #5: images used by unused objects should be marked as unused
-    # Get all objects that use this image (directly or indirectly)
+    # Get all objects that use this image (directly or indirectly) - use cache
+    if image_name not in _image_scan_cache['image_materials_results']:
+        _image_scan_cache['image_materials_results'][image_name] = users.image_materials(image_name)
+    
     objects_using_image = []
     
-    # Check materials that use the image
-    for mat_name in users.image_materials(image.name):
-        # Get objects using this material
-        objects_using_image.extend(users.material_objects(mat_name))
+    # Check materials that use the image (use cached result)
+    for mat_name in _image_scan_cache['image_materials_results'][image_name]:
+        # Get objects using this material (use cache)
+        if mat_name not in _image_scan_cache['material_objects_results']:
+            _image_scan_cache['material_objects_results'][mat_name] = users.material_objects(mat_name)
+        objects_using_image.extend(_image_scan_cache['material_objects_results'][mat_name])
+        
         # Also check Geometry Nodes usage
         objects_using_image.extend(users.material_geometry_nodes(mat_name))
     
     # Check Geometry Nodes directly
-    objects_using_image.extend(users.image_geometry_nodes(image.name))
+    objects_using_image.extend(users.image_geometry_nodes(image_name))
     
     # Remove duplicates
     objects_using_image = list(set(objects_using_image))
     
     # If image is only used by objects, and ALL those objects are unused, mark image as unused
-    # Check each object individually to avoid recursion issues
+    # Check each object individually to avoid recursion issues (use cache)
     if objects_using_image:
-        all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_image)
+        all_objects_unused = True
+        for obj_name in objects_using_image:
+            if obj_name not in _image_scan_cache['object_all_results']:
+                _image_scan_cache['object_all_results'][obj_name] = users.object_all(obj_name)
+            if _image_scan_cache['object_all_results'][obj_name]:
+                all_objects_unused = False
+                break
+        
         if all_objects_unused:
             # Check if image has a fake user or if ignore fake users is enabled
             if not image.use_fake_user or config.include_fake_users:
                 # if image is not in our do not flag list
-                if image.name not in do_not_flag:
+                if image_name not in do_not_flag:
                     return True
     
     return False
@@ -1012,18 +1074,23 @@ def _process_smart_select_step():
                     area.tag_redraw()
                 return 0.01  # Return to let UI update
             
-            # Handle images incrementally (one image per callback)
+            # Handle images incrementally (batch process multiple images per callback for better performance)
             if category == 'images':
                 # Initialize image list if not done
                 if _smart_select_state['counting_images_list'] is None:
                     _smart_select_state['counting_images_list'] = [img for img in bpy.data.images if not compat.is_library_or_override(img)]
                     _smart_select_state['counting_images_index'] = 0
                     _smart_select_state['counting_images_unused'] = []
+                    _clear_image_scan_cache()  # Clear cache at start of image scanning
                     print(f"[Atomic Debug] Smart Select: Initialized image list, {len(_smart_select_state['counting_images_list'])} images to check")
                 
-                # Process one image
-                if _smart_select_state['counting_images_index'] < len(_smart_select_state['counting_images_list']):
-                    # Check for cancellation before processing each image
+                # Process multiple images per callback (batch size: 5 images)
+                # This reduces timer overhead while keeping UI responsive
+                BATCH_SIZE = 5
+                total_images = len(_smart_select_state['counting_images_list'])
+                
+                if _smart_select_state['counting_images_index'] < total_images:
+                    # Check for cancellation before processing batch
                     if atom.cancel_operation:
                         atom.is_operation_running = False
                         atom.operation_progress = 0.0
@@ -1034,18 +1101,21 @@ def _process_smart_select_step():
                             area.tag_redraw()
                         return None
                     
-                    image = _smart_select_state['counting_images_list'][_smart_select_state['counting_images_index']]
-                    total_images = len(_smart_select_state['counting_images_list'])
+                    # Process a batch of images
+                    batch_end = min(_smart_select_state['counting_images_index'] + BATCH_SIZE, total_images)
                     current_index = _smart_select_state['counting_images_index'] + 1
                     
                     # Update status with current image
-                    atom.operation_status = f"Checking image {current_index}/{total_images}: {image.name[:30]}..."
+                    current_image = _smart_select_state['counting_images_list'][_smart_select_state['counting_images_index']]
+                    atom.operation_status = f"Checking images {current_index}-{batch_end}/{total_images}: {current_image.name[:25]}..."
                     
-                    # Check if image is unused
-                    if _check_single_image(image):
-                        _smart_select_state['counting_images_unused'].append(image.name)
+                    # Process batch
+                    for i in range(_smart_select_state['counting_images_index'], batch_end):
+                        image = _smart_select_state['counting_images_list'][i]
+                        if _check_single_image(image):
+                            _smart_select_state['counting_images_unused'].append(image.name)
                     
-                    _smart_select_state['counting_images_index'] += 1
+                    _smart_select_state['counting_images_index'] = batch_end
                     
                     # Update progress within images category
                     category_progress = (_smart_select_state['counting_images_index'] / total_images) * (1.0 / total_categories)
