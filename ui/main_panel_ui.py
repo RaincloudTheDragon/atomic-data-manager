@@ -62,8 +62,10 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             box = layout.box()
             col = box.column(align=True)
             
-            # Progress bar
-            col.prop(atom, "operation_progress", text="", slider=True)
+            # Progress bar with percentage (Blender shows percentage in the bar with PERCENTAGE subtype)
+            progress_row = col.row(align=True)
+            progress_row.scale_y = 1.5
+            progress_row.prop(atom, "operation_progress", text="", slider=True)
             
             # Status text
             if atom.operation_status:
