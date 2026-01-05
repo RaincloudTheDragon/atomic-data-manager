@@ -74,12 +74,29 @@ def _has_any_unused_lights():
 
 def _has_any_unused_materials():
     """Check if there are any unused materials (short-circuits early)."""
+    print("[DEBUG] _has_any_unused_materials(): FUNCTION CALLED - Starting check")
     for material in bpy.data.materials:
         if compat.is_library_or_override(material):
             continue
-        if not users.material_all(material.name):
+        
+        print(f"[DEBUG] _has_any_unused_materials(): Checking material '{material.name}'")
+        
+        # Skip materials used by brushes - these should always be ignored
+        brush_users = users.material_brushes(material.name)
+        print(f"[DEBUG] _has_any_unused_materials(): Material '{material.name}' brush users: {brush_users}")
+        if brush_users:
+            print(f"[DEBUG] _has_any_unused_materials(): Material '{material.name}' is used by brushes, SKIPPING")
+            continue
+        
+        material_all_users = users.material_all(material.name)
+        print(f"[DEBUG] _has_any_unused_materials(): Material '{material.name}' all users: {material_all_users}")
+        
+        if not material_all_users:
             if not material.use_fake_user or config.include_fake_users:
+                print(f"[DEBUG] _has_any_unused_materials(): Material '{material.name}' is UNUSED, returning True")
                 return True
+    
+    print("[DEBUG] _has_any_unused_materials(): No unused materials found, returning False")
     return False
 
 
@@ -87,6 +104,10 @@ def _has_any_unused_node_groups():
     """Check if there are any unused node groups (short-circuits early)."""
     for node_group in bpy.data.node_groups:
         if compat.is_library_or_override(node_group):
+            continue
+        # Skip compositor node trees (Blender 5.0+ creates one per file)
+        # Import the helper function from unused module
+        if unused._is_compositor_node_tree(node_group):
             continue
         if not users.node_group_all(node_group.name):
             if not node_group.use_fake_user or config.include_fake_users:

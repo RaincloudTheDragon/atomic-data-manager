@@ -255,6 +255,9 @@ def image_compositors(image_key):
 
 def image_materials(image_key):
     # returns a list of material keys that use the image
+    # Only returns materials that are actually used (in scenes)
+    # This ensures images are correctly detected as unused when their
+    # materials are unused (fixes issue #5)
 
     users = []
     image = bpy.data.images[image_key]
@@ -263,6 +266,13 @@ def image_materials(image_key):
     node_group_users = image_node_groups(image_key)
 
     for mat in bpy.data.materials:
+        # Skip library-linked and override materials
+        from ..utils import compat
+        if compat.is_library_or_override(mat):
+            continue
+
+        # Check if this material uses the image
+        material_uses_image = False
 
         # if material uses a valid node tree, check each node
         if mat.use_nodes and mat.node_tree:
@@ -273,7 +283,7 @@ def image_materials(image_key):
 
                     # if the nodes image is our image
                     if node.image.name == image.name:
-                        users.append(mat.name)
+                        material_uses_image = True
 
                 # if image in node in node group in node tree
                 elif node.type == 'GROUP':
@@ -282,23 +292,38 @@ def image_materials(image_key):
                     # list of node groups that use this image
                     if node.node_tree and \
                             node.node_tree.name in node_group_users:
-                        users.append(mat.name)
+                        material_uses_image = True
+
+        # Only add material if it uses the image AND is actually used
+        if material_uses_image:
+            # Check if material is actually used (in scenes)
+            if material_all(mat.name):
+                users.append(mat.name)
 
     return distinct(users)
 
 
 def image_node_groups(image_key):
     # returns a list of keys of node groups that use this image
+    # Only returns node groups that are actually used (in scenes)
+    # This ensures images are correctly detected as unused when their
+    # node groups are unused (fixes issue #5)
 
     users = []
     image = bpy.data.images[image_key]
 
     # for each node group
     for node_group in bpy.data.node_groups:
+        # Skip library-linked and override node groups
+        from ..utils import compat
+        if compat.is_library_or_override(node_group):
+            continue
 
         # if node group contains our image
         if node_group_has_image(node_group.name, image.name):
-            users.append(node_group.name)
+            # Only add node group if it is actually used (in scenes)
+            if node_group_all(node_group.name):
+                users.append(node_group.name)
 
     return distinct(users)
 
@@ -349,6 +374,9 @@ def image_textures(image_key):
 
 def image_geometry_nodes(image_key):
     # returns a list of object keys that use the image through Geometry Nodes
+    # Only returns objects that are actually used (in scenes)
+    # This ensures images are correctly detected as unused when their
+    # objects are unused (fixes issue #5)
 
     users = []
     image = bpy.data.images[image_key]
@@ -360,6 +388,19 @@ def image_geometry_nodes(image_key):
     from ..utils import compat
 
     for obj in bpy.data.objects:
+        # Skip library-linked and override objects
+        if compat.is_library_or_override(obj):
+            continue
+
+        # Check if object is in any scene collection (reuse object_all logic)
+        # This ensures recursive checking: if the object using the image isn't in a scene,
+        # the image isn't considered used
+        obj_scenes = object_all(obj.name)
+        is_in_scene = bool(obj_scenes)
+
+        if not is_in_scene:
+            continue  # Skip objects not in scene collections
+
         # check Geometry Nodes modifiers
         if hasattr(obj, 'modifiers'):
             for modifier in obj.modifiers:
@@ -438,7 +479,76 @@ def material_all(material_key):
     # Check node group usage (materials in node groups used elsewhere)
     users.extend(material_node_groups(material_key))
     
+    # Check brush usage (materials used by brushes for stroke)
+    users.extend(material_brushes(material_key))
+    
     return distinct(users)
+
+
+def material_brushes(material_key):
+    # returns a list of brush keys that use this material
+    # Brushes use materials for stroke rendering (Grease Pencil brushes)
+    
+    users = []
+    material = bpy.data.materials[material_key]
+    
+    print(f"[DEBUG] material_brushes({material_key}): FUNCTION CALLED - checking for material '{material.name}'")
+    
+    if not hasattr(bpy.data, 'brushes'):
+        print(f"[DEBUG] material_brushes({material_key}): bpy.data.brushes not available")
+        return []
+    
+    print(f"[DEBUG] material_brushes({material_key}): Checking {len(bpy.data.brushes)} brushes")
+    
+    for brush in bpy.data.brushes:
+        # Grease Pencil brushes use materials via gpencil_settings
+        if hasattr(brush, 'gpencil_settings'):
+            gp_settings = brush.gpencil_settings
+            if gp_settings:
+                print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' has gpencil_settings")
+                # Check material property in gpencil_settings
+                if hasattr(gp_settings, 'material'):
+                    gp_mat = gp_settings.material
+                    print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' gpencil_settings.material: {gp_mat}")
+                    if gp_mat and gp_mat.name == material.name:
+                        print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via gpencil_settings.material")
+                        users.append(brush.name)
+                
+                # Check material_index - need to get material from Grease Pencil object
+                if hasattr(gp_settings, 'material_index'):
+                    mat_idx = gp_settings.material_index
+                    print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' has material_index: {mat_idx}")
+                    # Check all Grease Pencil objects for this material
+                    for gp_obj in bpy.data.objects:
+                        if gp_obj.type == 'GPENCIL' and gp_obj.data:
+                            gp_data = gp_obj.data
+                            if hasattr(gp_data, 'materials') and gp_data.materials:
+                                if 0 <= mat_idx < len(gp_data.materials):
+                                    gp_mat = gp_data.materials[mat_idx]
+                                    print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' material_index {mat_idx} -> material '{gp_mat.name if gp_mat else None}'")
+                                    if gp_mat and gp_mat.name == material.name:
+                                        print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via material_index")
+                                        users.append(brush.name)
+        
+        # Also check for stroke_material (some brush types)
+        if hasattr(brush, 'stroke_material'):
+            stroke_mat = brush.stroke_material
+            print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' stroke_material: {stroke_mat}")
+            if stroke_mat and stroke_mat.name == material.name:
+                print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via stroke_material")
+                users.append(brush.name)
+        
+        # Check for material property (some brush types)
+        if hasattr(brush, 'material'):
+            mat = brush.material
+            print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' material: {mat}")
+            if mat and mat.name == material.name:
+                print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via material")
+                users.append(brush.name)
+    
+    result = distinct(users)
+    print(f"[DEBUG] material_brushes({material_key}): Returning {len(result)} brushes: {result}")
+    return result
 
 
 def material_geometry_nodes(material_key):
