@@ -1,7 +1,7 @@
 ## [v2.2.0] - 2026-01-05
 
 ### Features
-- Replaced blocking progress bars with non-blocking timer-based UI
+- Replaced blocking progress bars with non-blocking timer-based UI (#10)
   - Operations no longer freeze the UI during scanning
   - Real-time progress updates with cancel support at any time
   - Descriptive status messages showing current operation details
