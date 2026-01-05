@@ -154,7 +154,7 @@ def lights_shallow():
 
 def materials_deep():
     # returns a list of keys of unused materials
-    print("[DEBUG] materials_deep(): FUNCTION CALLED")
+
     unused = []
 
     for material in bpy.data.materials:
@@ -162,28 +162,17 @@ def materials_deep():
         if compat.is_library_or_override(material):
             continue
         
-        print(f"[DEBUG] materials_deep(): Checking material '{material.name}'")
-        
         # Check if material is used by brushes - these should always be ignored
-        brush_users = users.material_brushes(material.name)
-        if brush_users:
-            print(f"[DEBUG] materials_deep(): Material '{material.name}' is used by brushes {brush_users}, SKIPPING")
+        if users.material_brushes(material.name):
             continue
         
-        material_all_users = users.material_all(material.name)
-        print(f"[DEBUG] materials_deep(): Material '{material.name}' users: {material_all_users}")
-        
-        if not material_all_users:
+        if not users.material_all(material.name):
 
             # check if material has a fake user or if ignore fake users
             # is enabled
             if not material.use_fake_user or config.include_fake_users:
-                print(f"[DEBUG] materials_deep(): Material '{material.name}' is UNUSED, adding to list")
                 unused.append(material.name)
-            else:
-                print(f"[DEBUG] materials_deep(): Material '{material.name}' has fake user, skipping")
 
-    print(f"[DEBUG] materials_deep(): Returning {len(unused)} unused materials: {unused}")
     return unused
 
 
