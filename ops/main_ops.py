@@ -64,7 +64,8 @@ _clean_invoke_state = {
     'selected_categories': [],
     'found_items': {},
     'current_world_index': 0,  # For incremental world scanning
-    'worlds_list': None  # Cache of worlds to scan
+    'worlds_list': None,  # Cache of worlds to scan
+    'status_updated': False  # Track if status was updated for current category
 }
 
 _clean_execute_state = {
@@ -568,6 +569,66 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         
         return {'FINISHED'}
 
+    def invoke(self, context, event):
+        atom = context.scene.atomic
+        
+        # Check if cache is valid and we can show dialog immediately
+        global _unused_cache, _cache_valid, _clean_operator_instance
+        if _cache_valid and _unused_cache is not None:
+            # Use cached results immediately
+            all_unused = _unused_cache
+            _populate_unused_lists(self, atom, all_unused)
+            return context.window_manager.invoke_props_dialog(self)
+        
+        # Need to scan - initialize progress tracking
+        atom.is_operation_running = True
+        atom.operation_progress = 0.0
+        atom.operation_status = "Initializing Clean scan..."
+        atom.cancel_operation = False
+        
+        # Store operator instance for dialog invocation
+        _clean_operator_instance = self
+        
+        # Initialize module-level state for timer processing
+        global _clean_invoke_state
+        _clean_invoke_state = {
+            'current_category_index': 0,
+            'all_unused': None,
+            'selected_categories': [],
+            'found_items': {},
+            'operator_instance': self,
+            'current_world_index': 0,
+            'worlds_list': None,
+            'status_updated': False
+        }
+        
+        # Check which categories are selected
+        if atom.collections:
+            _clean_invoke_state['selected_categories'].append('collections')
+        if atom.images:
+            _clean_invoke_state['selected_categories'].append('images')
+        if atom.lights:
+            _clean_invoke_state['selected_categories'].append('lights')
+        if atom.materials:
+            _clean_invoke_state['selected_categories'].append('materials')
+        if atom.node_groups:
+            _clean_invoke_state['selected_categories'].append('node_groups')
+        if atom.objects:
+            _clean_invoke_state['selected_categories'].append('objects')
+        if atom.particles:
+            _clean_invoke_state['selected_categories'].append('particles')
+        if atom.textures:
+            _clean_invoke_state['selected_categories'].append('textures')
+        if atom.armatures:
+            _clean_invoke_state['selected_categories'].append('armatures')
+        if atom.worlds:
+            _clean_invoke_state['selected_categories'].append('worlds')
+        
+        # Start timer for processing
+        bpy.app.timers.register(_process_clean_invoke_step)
+        
+        return {'FINISHED'}
+
 
 def _process_clean_execute_step():
     """Process Clean execute (deletion) in steps to avoid blocking the UI"""
@@ -667,65 +728,6 @@ def _process_clean_execute_step():
     
     return None  # Stop timer
 
-    def invoke(self, context, event):
-        atom = context.scene.atomic
-        
-        # Check if cache is valid and we can show dialog immediately
-        global _unused_cache, _cache_valid, _clean_operator_instance
-        if _cache_valid and _unused_cache is not None:
-            # Use cached results immediately
-            all_unused = _unused_cache
-            _populate_unused_lists(self, atom, all_unused)
-            return context.window_manager.invoke_props_dialog(self)
-        
-        # Need to scan - initialize progress tracking
-        atom.is_operation_running = True
-        atom.operation_progress = 0.0
-        atom.operation_status = "Initializing Clean scan..."
-        atom.cancel_operation = False
-        
-        # Store operator instance for dialog invocation
-        _clean_operator_instance = self
-        
-        # Initialize module-level state for timer processing
-        global _clean_invoke_state
-        _clean_invoke_state = {
-            'current_category_index': 0,
-            'all_unused': None,
-            'selected_categories': [],
-            'found_items': {},
-            'operator_instance': self,
-            'current_world_index': 0,
-            'worlds_list': None
-        }
-        
-        # Check which categories are selected
-        if atom.collections:
-            _clean_invoke_state['selected_categories'].append('collections')
-        if atom.images:
-            _clean_invoke_state['selected_categories'].append('images')
-        if atom.lights:
-            _clean_invoke_state['selected_categories'].append('lights')
-        if atom.materials:
-            _clean_invoke_state['selected_categories'].append('materials')
-        if atom.node_groups:
-            _clean_invoke_state['selected_categories'].append('node_groups')
-        if atom.objects:
-            _clean_invoke_state['selected_categories'].append('objects')
-        if atom.particles:
-            _clean_invoke_state['selected_categories'].append('particles')
-        if atom.textures:
-            _clean_invoke_state['selected_categories'].append('textures')
-        if atom.armatures:
-            _clean_invoke_state['selected_categories'].append('armatures')
-        if atom.worlds:
-            _clean_invoke_state['selected_categories'].append('worlds')
-        
-        # Start timer for processing
-        bpy.app.timers.register(_process_clean_invoke_step)
-        
-        return {'FINISHED'}
-
 
 def _populate_unused_lists(operator_instance, atom, all_unused):
     """Helper to populate unused lists from all_unused dict"""
@@ -778,9 +780,19 @@ def _process_clean_invoke_step():
         total_categories = len(unused_parallel.CATEGORIES)
         if _clean_invoke_state['current_category_index'] < total_categories:
             category = unused_parallel.CATEGORIES[_clean_invoke_state['current_category_index']]
-            atom.operation_status = f"Scanning {category}..."
             
-            # Get unused items for this category
+            # Update status first, then return to let UI refresh
+            if not _clean_invoke_state['status_updated']:
+                atom.operation_status = f"Scanning {category}..."
+                progress = (_clean_invoke_state['current_category_index'] / total_categories) * 50.0
+                atom.operation_progress = progress
+                _clean_invoke_state['status_updated'] = True
+                # Force UI update and return to let it refresh
+                for area in bpy.context.screen.areas:
+                    area.tag_redraw()
+                return 0.01  # Return to let UI update
+            
+            # Get unused items for this category (this may block)
             if category == 'collections':
                 unused_list = unused.collections_deep()
             elif category == 'images':
@@ -857,6 +869,7 @@ def _process_clean_invoke_step():
             
             if category != 'worlds':  # Only increment if we finished the category
                 _clean_invoke_state['current_category_index'] += 1
+                _clean_invoke_state['status_updated'] = False  # Reset for next category
                 progress = (_clean_invoke_state['current_category_index'] / total_categories) * 50.0
                 atom.operation_progress = progress
                 
@@ -868,6 +881,7 @@ def _process_clean_invoke_step():
             else:
                 # Worlds category finished, move to next
                 _clean_invoke_state['current_category_index'] += 1
+                _clean_invoke_state['status_updated'] = False  # Reset for next category
                 progress = (_clean_invoke_state['current_category_index'] / total_categories) * 50.0
                 atom.operation_progress = progress
                 
