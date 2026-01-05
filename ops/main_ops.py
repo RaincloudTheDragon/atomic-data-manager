@@ -772,6 +772,7 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
     
     # Start full scan for detected categories
     global _scan_state
+    print(f"[Atomic Debug] Smart Select: Quick scan complete, starting full scan for categories: {detected_categories}")
     _scan_state = {
         'mode': 'full',
         'categories_to_scan': detected_categories,
@@ -788,6 +789,7 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
     }
     
     bpy.app.timers.register(_process_unified_scan_step)
+    _process_unified_scan_step()  # Call immediately to start processing
 
 
 def _on_smart_select_full_scan_complete(results, **kwargs):
@@ -942,8 +944,10 @@ def _process_unified_scan_step():
         
         # Process categories one by one
         total_categories = len(_scan_state['categories_to_scan'])
-        print(f"[Atomic Debug] Unified Scanner: Processing category {_scan_state['current_category_index'] + 1}/{total_categories}")
-        if _scan_state['current_category_index'] < total_categories:
+        current_idx = _scan_state['current_category_index']
+        print(f"[Atomic Debug] Unified Scanner: Processing category {current_idx + 1}/{total_categories} (index {current_idx})")
+        print(f"[Atomic Debug] Unified Scanner: Condition check: {current_idx} < {total_categories} = {current_idx < total_categories}")
+        if current_idx < total_categories:
             category = _scan_state['categories_to_scan'][_scan_state['current_category_index']]
             print(f"[Atomic Debug] Unified Scanner: Current category = {category}")
             
@@ -962,8 +966,10 @@ def _process_unified_scan_step():
                     area.tag_redraw()
                 return 0.01  # Return to let UI update
             
+            print(f"[Atomic Debug] Unified Scanner: Status already updated, processing category '{category}' (mode={_scan_state['mode']})")
             # Handle incremental image scanning (for full scans only)
             if category == 'images' and _scan_state['mode'] == 'full':
+                print(f"[Atomic Debug] Unified Scanner: Entering images block")
                 # Initialize image list if not done
                 if _scan_state['images_list'] is None:
                     _scan_state['images_list'] = [img for img in bpy.data.images if not compat.is_library_or_override(img)]
@@ -1031,125 +1037,132 @@ def _process_unified_scan_step():
                     area.tag_redraw()
                 return 0.01  # Continue to next category
             
-        # Handle incremental world scanning (for full scans only)
-        elif category == 'worlds' and _scan_state['mode'] == 'full':
-            # Initialize world list if not done
-            if _scan_state['worlds_list'] is None:
-                _scan_state['worlds_list'] = [
-                    w for w in bpy.data.worlds 
-                    if not compat.is_library_or_override(w)
-                ]
-                _scan_state['worlds_index'] = 0
+            # Handle incremental world scanning (for full scans only)
+            elif category == 'worlds' and _scan_state['mode'] == 'full':
+                print(f"[Atomic Debug] Unified Scanner: Entering worlds block")
+                # Initialize world list if not done
+                if _scan_state['worlds_list'] is None:
+                    _scan_state['worlds_list'] = [
+                        w for w in bpy.data.worlds 
+                        if not compat.is_library_or_override(w)
+                    ]
+                    _scan_state['worlds_index'] = 0
+                    if _scan_state['results'] is None:
+                        _scan_state['results'] = {}
+                    _scan_state['results'][category] = []
+                
+                # Process one world per timer callback
+                worlds_list = _scan_state['worlds_list']
+                if _scan_state['worlds_index'] < len(worlds_list):
+                    world = worlds_list[_scan_state['worlds_index']]
+                    
+                    # Check if world is unused
+                    is_unused = world.users == 0 or (world.users == 1 and
+                                                     world.use_fake_user and
+                                                     config.include_fake_users)
+                    if is_unused:
+                        _scan_state['results'][category].append(world.name)
+                    
+                    _scan_state['worlds_index'] += 1
+                    progress_base = (_scan_state['current_category_index'] / total_categories) * 50.0
+                    world_progress = (_scan_state['worlds_index'] / len(worlds_list)) * (50.0 / total_categories)
+                    atom.operation_progress = progress_base + world_progress
+                    
+                    # Force UI update
+                    for area in bpy.context.screen.areas:
+                        area.tag_redraw()
+                    
+                    return 0.01  # Continue processing this category
+                else:
+                    # Finished scanning worlds, move to next category
+                    _scan_state['worlds_list'] = None
+                    _scan_state['worlds_index'] = 0
+                    # Move to next category
+                    _scan_state['current_category_index'] += 1
+                    _scan_state['status_updated'] = False
+                    progress = (_scan_state['current_category_index'] / total_categories) * 50.0
+                    atom.operation_progress = progress
+                    for area in bpy.context.screen.areas:
+                        area.tag_redraw()
+                    return 0.01  # Continue to next category
+            
+            # Handle other categories (quick scan or full scan for non-incremental categories)
+            else:
+                print(f"[Atomic Debug] Unified Scanner: Processing category '{category}' in else block (mode={_scan_state['mode']})")
+                # Initialize results dict if needed (for both quick and full scans)
                 if _scan_state['results'] is None:
                     _scan_state['results'] = {}
-                _scan_state['results'][category] = []
-            
-            # Process one world per timer callback
-            worlds_list = _scan_state['worlds_list']
-            if _scan_state['worlds_index'] < len(worlds_list):
-                world = worlds_list[_scan_state['worlds_index']]
                 
-                # Check if world is unused
-                is_unused = world.users == 0 or (world.users == 1 and
-                                                 world.use_fake_user and
-                                                 config.include_fake_users)
-                if is_unused:
-                    _scan_state['results'][category].append(world.name)
+                if _scan_state['mode'] == 'quick':
+                    # Quick scan: check if category has any unused items
+                    print(f"[Atomic Debug] Unified Scanner: Quick scan for '{category}'")
+                    if category == 'collections':
+                        result = unused_parallel._has_any_unused_collections()
+                    elif category == 'images':
+                        result = unused_parallel._has_any_unused_images()
+                    elif category == 'lights':
+                        result = unused_parallel._has_any_unused_lights()
+                    elif category == 'materials':
+                        result = unused_parallel._has_any_unused_materials()
+                    elif category == 'node_groups':
+                        result = unused_parallel._has_any_unused_node_groups()
+                    elif category == 'objects':
+                        result = unused_parallel._has_any_unused_objects()
+                    elif category == 'particles':
+                        result = unused_parallel._has_any_unused_particles()
+                    elif category == 'textures':
+                        result = unused_parallel._has_any_unused_textures()
+                    elif category == 'armatures':
+                        result = unused_parallel._has_any_unused_armatures()
+                    elif category == 'worlds':
+                        result = unused_parallel._has_any_unused_worlds()
+                    else:
+                        result = False
+                    
+                    _scan_state['results'][category] = result
+                    print(f"[Atomic Debug] Unified Scanner: Stored result for '{category}': {result}, results now: {_scan_state['results']}")
                 
-                _scan_state['worlds_index'] += 1
-                progress_base = (_scan_state['current_category_index'] / total_categories) * 50.0
-                world_progress = (_scan_state['worlds_index'] / len(worlds_list)) * (50.0 / total_categories)
-                atom.operation_progress = progress_base + world_progress
+                else:  # mode == 'full'
+                    print(f"[Atomic Debug] Unified Scanner: Full scan for '{category}'")
+                    # Full scan: get complete list of unused items
+                    if category == 'collections':
+                        unused_list = unused.collections_deep()
+                    elif category == 'lights':
+                        unused_list = unused.lights_deep()
+                    elif category == 'materials':
+                        unused_list = unused.materials_deep()
+                    elif category == 'node_groups':
+                        unused_list = unused.node_groups_deep()
+                    elif category == 'objects':
+                        unused_list = unused.objects_deep()
+                    elif category == 'particles':
+                        unused_list = unused.particles_deep()
+                    elif category == 'textures':
+                        unused_list = unused.textures_deep()
+                    elif category == 'armatures':
+                        unused_list = unused.armatures_deep()
+                    else:
+                        unused_list = []
+                    
+                    if _scan_state['results'] is None:
+                        _scan_state['results'] = {}
+                    _scan_state['results'][category] = unused_list
+                
+                # Move to next category (for non-images/non-worlds categories)
+                _scan_state['current_category_index'] += 1
+                _scan_state['status_updated'] = False  # Reset for next category
+                progress = (_scan_state['current_category_index'] / total_categories) * 50.0
+                atom.operation_progress = progress
+                print(f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index {_scan_state['current_category_index']}/{total_categories}, results: {_scan_state['results']}")
                 
                 # Force UI update
                 for area in bpy.context.screen.areas:
                     area.tag_redraw()
                 
-                return 0.01  # Continue processing this category
-            else:
-                # Finished scanning worlds, move to next category
-                _scan_state['worlds_list'] = None
-                _scan_state['worlds_index'] = 0
-                # Move to next category
-                _scan_state['current_category_index'] += 1
-                _scan_state['status_updated'] = False
-                progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                atom.operation_progress = progress
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
-                return 0.01  # Continue to next category
-            
-        # Handle other categories (quick scan or full scan for non-incremental categories)
-        else:
-            # Initialize results dict if needed (for both quick and full scans)
-            if _scan_state['results'] is None:
-                _scan_state['results'] = {}
-            
-            if _scan_state['mode'] == 'quick':
-                # Quick scan: check if category has any unused items
-                if category == 'collections':
-                    result = unused_parallel._has_any_unused_collections()
-                elif category == 'images':
-                    result = unused_parallel._has_any_unused_images()
-                elif category == 'lights':
-                    result = unused_parallel._has_any_unused_lights()
-                elif category == 'materials':
-                    result = unused_parallel._has_any_unused_materials()
-                elif category == 'node_groups':
-                    result = unused_parallel._has_any_unused_node_groups()
-                elif category == 'objects':
-                    result = unused_parallel._has_any_unused_objects()
-                elif category == 'particles':
-                    result = unused_parallel._has_any_unused_particles()
-                elif category == 'textures':
-                    result = unused_parallel._has_any_unused_textures()
-                elif category == 'armatures':
-                    result = unused_parallel._has_any_unused_armatures()
-                elif category == 'worlds':
-                    result = unused_parallel._has_any_unused_worlds()
-                else:
-                    result = False
-                
-                _scan_state['results'][category] = result
-            
-            else:  # mode == 'full'
-                # Full scan: get complete list of unused items
-                if category == 'collections':
-                    unused_list = unused.collections_deep()
-                elif category == 'lights':
-                    unused_list = unused.lights_deep()
-                elif category == 'materials':
-                    unused_list = unused.materials_deep()
-                elif category == 'node_groups':
-                    unused_list = unused.node_groups_deep()
-                elif category == 'objects':
-                    unused_list = unused.objects_deep()
-                elif category == 'particles':
-                    unused_list = unused.particles_deep()
-                elif category == 'textures':
-                    unused_list = unused.textures_deep()
-                elif category == 'armatures':
-                    unused_list = unused.armatures_deep()
-                else:
-                    unused_list = []
-                
-                if _scan_state['results'] is None:
-                    _scan_state['results'] = {}
-                _scan_state['results'][category] = unused_list
-            
-            # Move to next category (for non-images/non-worlds categories)
-            _scan_state['current_category_index'] += 1
-            _scan_state['status_updated'] = False  # Reset for next category
-            progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-            atom.operation_progress = progress
-            
-            # Force UI update
-            for area in bpy.context.screen.areas:
-                area.tag_redraw()
-            
-            return 0.01  # Continue processing
+                return 0.01  # Continue processing
         
         # All categories scanned
+        print(f"[Atomic Debug] Unified Scanner: All categories scanned! current_index={_scan_state.get('current_category_index')}, total={total_categories}, results={_scan_state.get('results')}")
         atom.operation_progress = 50.0
         atom.operation_status = "Scan complete, processing results..."
         
@@ -1165,10 +1178,30 @@ def _process_unified_scan_step():
         # Call callback function with results
         if _scan_state['callback']:
             print(f"[Atomic Debug] Unified Scanner: Calling callback with results: {_scan_state['results']}")
+            old_mode = _scan_state.get('mode')
+            old_categories = _scan_state.get('categories_to_scan', [])[:]  # Copy list
             _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
+            
+            # Check if callback started a new scan (callback may have set up new _scan_state)
+            # If _scan_state still exists and has different mode/categories, callback started new scan
+            if _scan_state is not None:
+                new_mode = _scan_state.get('mode')
+                new_categories = _scan_state.get('categories_to_scan', [])
+                if (new_mode != old_mode or new_categories != old_categories):
+                    # Different scan started by callback, keep it and continue
+                    print(f"[Atomic Debug] Unified Scanner: Callback started new scan (old: {old_mode}/{old_categories}, new: {new_mode}/{new_categories}), keeping _scan_state")
+                    # Force UI update
+                    for area in bpy.context.screen.areas:
+                        area.tag_redraw()
+                    return 0.01  # Continue with new scan
+                else:
+                    # Same scan, clear it
+                    _scan_state = None
+            # else: callback cleared _scan_state itself, which is fine
         
-        # Clear state
-        _scan_state = None
+        # Clear state (only if not already cleared or replaced by callback)
+        if _scan_state is not None:
+            _scan_state = None
         
         # Force UI update
         for area in bpy.context.screen.areas:
