@@ -492,37 +492,23 @@ def material_brushes(material_key):
     users = []
     material = bpy.data.materials[material_key]
     
-    print(f"[DEBUG] material_brushes({material_key}): FUNCTION CALLED - checking for material '{material.name}'")
-    
     if not hasattr(bpy.data, 'brushes'):
-        print(f"[DEBUG] material_brushes({material_key}): bpy.data.brushes not available")
         return []
-    
-    print(f"[DEBUG] material_brushes({material_key}): Checking {len(bpy.data.brushes)} brushes")
     
     for brush in bpy.data.brushes:
         # Grease Pencil brushes use materials via gpencil_settings
         if hasattr(brush, 'gpencil_settings'):
             gp_settings = brush.gpencil_settings
             if gp_settings:
-                print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' has gpencil_settings")
                 # Check material property in gpencil_settings
                 if hasattr(gp_settings, 'material'):
                     gp_mat = gp_settings.material
-                    print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' gpencil_settings.material: {gp_mat}")
-                    if gp_mat:
-                        gp_mat_name = gp_mat.name if hasattr(gp_mat, 'name') else str(gp_mat)
-                        print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' gpencil_settings.material.name: '{gp_mat_name}', comparing with '{material.name}'")
-                        if gp_mat_name == material.name:
-                            print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via gpencil_settings.material")
-                            users.append(brush.name)
-                        else:
-                            print(f"[DEBUG] material_brushes({material_key}): No match - brush '{brush.name}' uses '{gp_mat_name}', not '{material.name}'")
+                    if gp_mat and gp_mat.name == material.name:
+                        users.append(brush.name)
                 
                 # Check material_index - need to get material from Grease Pencil object
                 if hasattr(gp_settings, 'material_index'):
                     mat_idx = gp_settings.material_index
-                    print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' has material_index: {mat_idx}")
                     # Check all Grease Pencil objects for this material
                     for gp_obj in bpy.data.objects:
                         if gp_obj.type == 'GPENCIL' and gp_obj.data:
@@ -530,30 +516,22 @@ def material_brushes(material_key):
                             if hasattr(gp_data, 'materials') and gp_data.materials:
                                 if 0 <= mat_idx < len(gp_data.materials):
                                     gp_mat = gp_data.materials[mat_idx]
-                                    print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' material_index {mat_idx} -> material '{gp_mat.name if gp_mat else None}'")
                                     if gp_mat and gp_mat.name == material.name:
-                                        print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via material_index")
                                         users.append(brush.name)
         
         # Also check for stroke_material (some brush types)
         if hasattr(brush, 'stroke_material'):
             stroke_mat = brush.stroke_material
-            print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' stroke_material: {stroke_mat}")
             if stroke_mat and stroke_mat.name == material.name:
-                print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via stroke_material")
                 users.append(brush.name)
         
         # Check for material property (some brush types)
         if hasattr(brush, 'material'):
             mat = brush.material
-            print(f"[DEBUG] material_brushes({material_key}): Brush '{brush.name}' material: {mat}")
             if mat and mat.name == material.name:
-                print(f"[DEBUG] material_brushes({material_key}): MATCH! Brush '{brush.name}' uses material '{material.name}' via material")
                 users.append(brush.name)
     
-    result = distinct(users)
-    print(f"[DEBUG] material_brushes({material_key}): Returning {len(result)} brushes: {result}")
-    return result
+    return distinct(users)
 
 
 def material_geometry_nodes(material_key):
