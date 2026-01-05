@@ -362,6 +362,11 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 text="Unnamed: {0}".format(count.worlds_unnamed())
             )
 
+        # Cache management button at the bottom
+        layout.separator()
+        row = layout.row()
+        row.operator("atomic.clear_cache", icon="FILE_REFRESH")
+
 
 reg_list = [ATOMIC_PT_stats_panel]
 
