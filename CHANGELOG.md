@@ -1,3 +1,34 @@
+## [v2.2.0] - 2026-01-05
+
+### Features
+- Replaced blocking progress bars with non-blocking timer-based UI
+  - Operations no longer freeze the UI during scanning
+  - Real-time progress updates with cancel support at any time
+  - Descriptive status messages showing current operation details
+- Unified Smart Select and Clean scanning logic
+  - Eliminated code duplication between operations
+  - Clean now only scans selected categories (more efficient)
+  - Both operations use consistent incremental scanning for images and worlds
+- Added manual cache clear operator for testing and debugging
+
+### Performance
+- Optimized deep scan functions with caching and fast-path checks
+  - Image scanning now uses cached results to avoid redundant scene scans
+  - Early exit for clearly unused images using Blender's built-in user count
+- Incremental processing for large datasets
+  - Images processed in batches (5 per callback) to maintain UI responsiveness
+  - Worlds processed one at a time incrementally
+
+### Fixes
+- Fixed images used only by unused objects being incorrectly flagged as unused (#5)
+- Fixed material detection in brushes and node groups (#6, #7)
+- Fixed Clean operator not showing dialog when invoked programmatically (#8)
+- Improved material detection in inspection tools (brushes, node groups)
+
+### Internal
+- Refactored scanning architecture for maintainability
+- Added comprehensive debug output for troubleshooting
+
 ## [v2.1.0] - 2025-12-18
 
 ### Features
