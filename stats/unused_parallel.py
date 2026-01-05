@@ -23,8 +23,10 @@ def get_all_unused_parallel():
     """
     # Execute all checks sequentially but in a clean batch
     # This avoids threading overhead while keeping code organized
+    print(f"[Atomic Debug] get_all_unused_parallel: Starting, will scan {len(CATEGORIES)} categories")
     result = {}
-    for category in CATEGORIES:
+    for i, category in enumerate(CATEGORIES):
+        print(f"[Atomic Debug] get_all_unused_parallel: Scanning {category} ({i+1}/{len(CATEGORIES)})...")
         if category == 'collections':
             result[category] = unused.collections_deep()
         elif category == 'images':
@@ -44,8 +46,11 @@ def get_all_unused_parallel():
         elif category == 'armatures':
             result[category] = unused.armatures_deep()
         elif category == 'worlds':
+            print(f"[Atomic Debug] get_all_unused_parallel: Calling unused.worlds()...")
             result[category] = unused.worlds()
-    
+            print(f"[Atomic Debug] get_all_unused_parallel: unused.worlds() returned {len(result[category])} unused worlds")
+        print(f"[Atomic Debug] get_all_unused_parallel: Finished {category}")
+    print(f"[Atomic Debug] get_all_unused_parallel: Complete, returning results")
     return result
 
 
@@ -187,13 +192,19 @@ def _has_any_unused_textures():
 
 def _has_any_unused_worlds():
     """Check if there are any unused worlds (short-circuits early)."""
+    print(f"[Atomic Debug] _has_any_unused_worlds: Starting, total worlds: {len(bpy.data.worlds)}")
+    checked = 0
     for world in bpy.data.worlds:
         if compat.is_library_or_override(world):
             continue
+        checked += 1
+        print(f"[Atomic Debug] _has_any_unused_worlds: Checking world '{world.name}' (users={world.users}, fake_user={world.use_fake_user}, include_fake_users={config.include_fake_users})")
         if world.users == 0 or (world.users == 1 and
                                 world.use_fake_user and
                                 config.include_fake_users):
+            print(f"[Atomic Debug] _has_any_unused_worlds: Found unused world '{world.name}', returning True")
             return True
+    print(f"[Atomic Debug] _has_any_unused_worlds: Checked {checked} worlds, none unused, returning False")
     return False
 
 

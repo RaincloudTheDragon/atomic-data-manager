@@ -47,7 +47,13 @@ _smart_select_state = {
     'current_category_index': 0,
     'unused_flags': {},
     'all_unused': None,
-    'detected_categories': []
+    'detected_categories': [],
+    'counting_category_index': 0,  # For incremental counting in Step 2
+    'counting_all_unused': {},  # For incremental counting results
+    'counting_status_updated': False,  # Track if status was updated for current category
+    'counting_images_list': None,  # List of images to check incrementally
+    'counting_images_index': 0,  # Current image index
+    'counting_images_unused': []  # Unused images found so far
 }
 
 _clean_invoke_state = {
@@ -73,6 +79,57 @@ def _invalidate_cache():
     global _unused_cache, _cache_valid
     _unused_cache = None
     _cache_valid = False
+
+
+def _check_single_image(image):
+    """Check if a single image is unused. Returns True if unused, False otherwise."""
+    from ..stats import users
+    
+    do_not_flag = ["Render Result", "Viewer Node", "D-NOISE Export"]
+    
+    # Skip library-linked and override datablocks
+    if compat.is_library_or_override(image):
+        return False
+    
+    # First check: standard unused detection
+    if not users.image_all(image.name):
+        # check if image has a fake user or if ignore fake users is enabled
+        if not image.use_fake_user or config.include_fake_users:
+            # if image is not in our do not flag list
+            if image.name not in do_not_flag:
+                return True
+        return False
+    
+    # Second check: image is used, but check if it's ONLY used by unused objects
+    # This fixes issue #5: images used by unused objects should be marked as unused
+    # Get all objects that use this image (directly or indirectly)
+    objects_using_image = []
+    
+    # Check materials that use the image
+    for mat_name in users.image_materials(image.name):
+        # Get objects using this material
+        objects_using_image.extend(users.material_objects(mat_name))
+        # Also check Geometry Nodes usage
+        objects_using_image.extend(users.material_geometry_nodes(mat_name))
+    
+    # Check Geometry Nodes directly
+    objects_using_image.extend(users.image_geometry_nodes(image.name))
+    
+    # Remove duplicates
+    objects_using_image = list(set(objects_using_image))
+    
+    # If image is only used by objects, and ALL those objects are unused, mark image as unused
+    # Check each object individually to avoid recursion issues
+    if objects_using_image:
+        all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_image)
+        if all_objects_unused:
+            # Check if image has a fake user or if ignore fake users is enabled
+            if not image.use_fake_user or config.include_fake_users:
+                # if image is not in our do not flag list
+                if image.name not in do_not_flag:
+                    return True
+    
+    return False
 
 
 # Atomic Data Manager Clear Cache Operator
@@ -685,10 +742,12 @@ def _process_clean_invoke_step():
                 if _clean_invoke_state['worlds_list'] is None:
                     # First time - get list of all worlds to scan
                     from ..utils import compat
+                    print(f"[Atomic Debug] Starting world scan, total worlds in bpy.data.worlds: {len(bpy.data.worlds)}")
                     _clean_invoke_state['worlds_list'] = [
                         w for w in bpy.data.worlds 
                         if not compat.is_library_or_override(w)
                     ]
+                    print(f"[Atomic Debug] Filtered worlds list (excluding library/override): {len(_clean_invoke_state['worlds_list'])}")
                     _clean_invoke_state['current_world_index'] = 0
                     if _clean_invoke_state['all_unused'] is None:
                         _clean_invoke_state['all_unused'] = {}
@@ -698,11 +757,17 @@ def _process_clean_invoke_step():
                 worlds_list = _clean_invoke_state['worlds_list']
                 if _clean_invoke_state['current_world_index'] < len(worlds_list):
                     world = worlds_list[_clean_invoke_state['current_world_index']]
+                    print(f"[Atomic Debug] Checking world {_clean_invoke_state['current_world_index'] + 1}/{len(worlds_list)}: '{world.name}' (users={world.users}, fake_user={world.use_fake_user})")
+                    
                     # Check if world is unused
-                    if world.users == 0 or (world.users == 1 and
-                                            world.use_fake_user and
-                                            config.include_fake_users):
+                    is_unused = world.users == 0 or (world.users == 1 and
+                                                     world.use_fake_user and
+                                                     config.include_fake_users)
+                    if is_unused:
+                        print(f"[Atomic Debug] World '{world.name}' is unused, adding to list")
                         _clean_invoke_state['all_unused'][category].append(world.name)
+                    else:
+                        print(f"[Atomic Debug] World '{world.name}' is used (users={world.users})")
                     
                     _clean_invoke_state['current_world_index'] += 1
                     progress_base = (_clean_invoke_state['current_category_index'] / total_categories) * 50.0
@@ -717,6 +782,7 @@ def _process_clean_invoke_step():
                 else:
                     # Finished scanning worlds, move to next category
                     unused_list = _clean_invoke_state['all_unused'][category]
+                    print(f"[Atomic Debug] Finished scanning worlds. Found {len(unused_list)} unused: {unused_list}")
                     _clean_invoke_state['worlds_list'] = None
                     _clean_invoke_state['current_world_index'] = 0
             else:
@@ -837,7 +903,13 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
             'current_category_index': 0,
             'unused_flags': {},
             'all_unused': None,
-            'detected_categories': []
+            'detected_categories': [],
+            'counting_category_index': 0,
+            'counting_all_unused': {},
+            'counting_status_updated': False,
+            'counting_images_list': None,
+            'counting_images_index': 0,
+            'counting_images_unused': []
         }
         
         # Start timer for processing
@@ -890,7 +962,10 @@ def _process_smart_select_step():
         elif category == 'armatures':
             _smart_select_state['unused_flags'][category] = unused_parallel._has_any_unused_armatures()
         elif category == 'worlds':
+            print(f"[Atomic Debug] Smart Select: Starting world scan...")
+            print(f"[Atomic Debug] Smart Select: Total worlds in bpy.data.worlds: {len(bpy.data.worlds)}")
             _smart_select_state['unused_flags'][category] = unused_parallel._has_any_unused_worlds()
+            print(f"[Atomic Debug] Smart Select: World scan complete, has_unused={_smart_select_state['unused_flags'][category]}")
         
         if _smart_select_state['unused_flags'][category]:
             _smart_select_state['detected_categories'].append(category)
@@ -899,16 +974,134 @@ def _process_smart_select_step():
         progress = (_smart_select_state['current_category_index'] / total_categories) * 50.0  # First 50% for scanning
         atom.operation_progress = progress
         
+        print(f"[Atomic Debug] Smart Select: Finished {category}, index now {_smart_select_state['current_category_index']}/{total_categories}, progress={progress}%")
+        
         # Force UI update
         for area in bpy.context.screen.areas:
             area.tag_redraw()
         
         return 0.01  # Continue processing
     
-    # Step 2: Get full counts if categories were detected
+    # Step 2: Get full counts if categories were detected (incremental)
     if _smart_select_state['detected_categories'] and _smart_select_state['all_unused'] is None:
-        atom.operation_status = "Counting unused items..."
-        _smart_select_state['all_unused'] = unused_parallel.get_all_unused_parallel()
+        # Initialize counting_all_unused dict if not initialized
+        if 'counting_all_unused' not in _smart_select_state:
+            print(f"[Atomic Debug] Smart Select: All categories scanned. detected_categories={_smart_select_state['detected_categories']}, all_unused={_smart_select_state['all_unused']}")
+            print(f"[Atomic Debug] Smart Select: Step 2 - Starting incremental counting...")
+            atom.operation_status = "Counting unused items..."
+            atom.operation_progress = 55.0
+            # Initialize counting_all_unused dict
+            _smart_select_state['counting_all_unused'] = {}
+            # Force UI update and return to let UI refresh
+            for area in bpy.context.screen.areas:
+                area.tag_redraw()
+            return 0.01  # Return to let UI update before starting counting
+        
+        # Process one category at a time
+        total_categories = len(unused_parallel.CATEGORIES)
+        if _smart_select_state['counting_category_index'] < total_categories:
+            category = unused_parallel.CATEGORIES[_smart_select_state['counting_category_index']]
+            
+            # Update status first, then return to let UI refresh
+            if not _smart_select_state['counting_status_updated']:
+                atom.operation_status = f"Counting {category}..."
+                print(f"[Atomic Debug] Smart Select: Step 2 - Counting {category} ({_smart_select_state['counting_category_index'] + 1}/{total_categories})...")
+                _smart_select_state['counting_status_updated'] = True
+                # Force UI update and return to let it refresh
+                for area in bpy.context.screen.areas:
+                    area.tag_redraw()
+                return 0.01  # Return to let UI update
+            
+            # Handle images incrementally (one image per callback)
+            if category == 'images':
+                # Initialize image list if not done
+                if _smart_select_state['counting_images_list'] is None:
+                    _smart_select_state['counting_images_list'] = [img for img in bpy.data.images if not compat.is_library_or_override(img)]
+                    _smart_select_state['counting_images_index'] = 0
+                    _smart_select_state['counting_images_unused'] = []
+                    print(f"[Atomic Debug] Smart Select: Initialized image list, {len(_smart_select_state['counting_images_list'])} images to check")
+                
+                # Process one image
+                if _smart_select_state['counting_images_index'] < len(_smart_select_state['counting_images_list']):
+                    # Check for cancellation before processing each image
+                    if atom.cancel_operation:
+                        atom.is_operation_running = False
+                        atom.operation_progress = 0.0
+                        atom.operation_status = "Operation cancelled"
+                        atom.cancel_operation = False
+                        _smart_select_state = None
+                        for area in bpy.context.screen.areas:
+                            area.tag_redraw()
+                        return None
+                    
+                    image = _smart_select_state['counting_images_list'][_smart_select_state['counting_images_index']]
+                    total_images = len(_smart_select_state['counting_images_list'])
+                    current_index = _smart_select_state['counting_images_index'] + 1
+                    
+                    # Update status with current image
+                    atom.operation_status = f"Checking image {current_index}/{total_images}: {image.name[:30]}..."
+                    
+                    # Check if image is unused
+                    if _check_single_image(image):
+                        _smart_select_state['counting_images_unused'].append(image.name)
+                    
+                    _smart_select_state['counting_images_index'] += 1
+                    
+                    # Update progress within images category
+                    category_progress = (_smart_select_state['counting_images_index'] / total_images) * (1.0 / total_categories)
+                    base_progress = 55.0 + (_smart_select_state['counting_category_index'] / total_categories) * 20.0
+                    atom.operation_progress = base_progress + category_progress * 20.0
+                    
+                    # Force UI update
+                    for area in bpy.context.screen.areas:
+                        area.tag_redraw()
+                    
+                    return 0.01  # Continue processing images
+                
+                # All images processed, store result and move to next category
+                _smart_select_state['counting_all_unused'][category] = _smart_select_state['counting_images_unused']
+                _smart_select_state['counting_images_list'] = None
+                _smart_select_state['counting_images_index'] = 0
+                _smart_select_state['counting_images_unused'] = []
+                print(f"[Atomic Debug] Smart Select: Finished counting images, found {len(_smart_select_state['counting_all_unused'][category])} unused")
+            
+            # Get unused items for other categories (these may still block, but are typically faster)
+            elif category == 'collections':
+                _smart_select_state['counting_all_unused'][category] = unused.collections_deep()
+            elif category == 'lights':
+                _smart_select_state['counting_all_unused'][category] = unused.lights_deep()
+            elif category == 'materials':
+                _smart_select_state['counting_all_unused'][category] = unused.materials_deep()
+            elif category == 'node_groups':
+                _smart_select_state['counting_all_unused'][category] = unused.node_groups_deep()
+            elif category == 'objects':
+                _smart_select_state['counting_all_unused'][category] = unused.objects_deep()
+            elif category == 'particles':
+                _smart_select_state['counting_all_unused'][category] = unused.particles_deep()
+            elif category == 'textures':
+                _smart_select_state['counting_all_unused'][category] = unused.textures_deep()
+            elif category == 'armatures':
+                _smart_select_state['counting_all_unused'][category] = unused.armatures_deep()
+            elif category == 'worlds':
+                _smart_select_state['counting_all_unused'][category] = unused.worlds()
+            
+            # Move to next category
+            _smart_select_state['counting_category_index'] += 1
+            _smart_select_state['counting_status_updated'] = False  # Reset for next category
+            progress = 55.0 + (_smart_select_state['counting_category_index'] / total_categories) * 20.0
+            atom.operation_progress = progress
+            
+            # Force UI update after counting
+            for area in bpy.context.screen.areas:
+                area.tag_redraw()
+            
+            return 0.01  # Continue counting
+        
+        # Counting complete
+        _smart_select_state['all_unused'] = _smart_select_state['counting_all_unused']
+        _smart_select_state['counting_all_unused'] = {}
+        _smart_select_state['counting_category_index'] = 0
+        print(f"[Atomic Debug] Smart Select: Step 2 - Counting complete")
         
         # Debug output
         print(f"[Atomic Smart Select] Detected unused items in: {', '.join(_smart_select_state['detected_categories'])}")
