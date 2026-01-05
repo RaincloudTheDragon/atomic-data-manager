@@ -388,35 +388,78 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             _unused_cache = all_unused
             _cache_valid = True
 
+        # Debug: Print what categories are selected and what was found
+        selected_categories = []
+        found_items = {}
+        
         if atom.collections:
+            selected_categories.append('collections')
             self.unused_collections = all_unused['collections']
+            if self.unused_collections:
+                found_items['collections'] = len(self.unused_collections)
 
         if atom.images:
+            selected_categories.append('images')
             self.unused_images = all_unused['images']
+            if self.unused_images:
+                found_items['images'] = len(self.unused_images)
 
         if atom.lights:
+            selected_categories.append('lights')
             self.unused_lights = all_unused['lights']
+            if self.unused_lights:
+                found_items['lights'] = len(self.unused_lights)
 
         if atom.materials:
+            selected_categories.append('materials')
             self.unused_materials = all_unused['materials']
+            if self.unused_materials:
+                found_items['materials'] = len(self.unused_materials)
 
         if atom.node_groups:
+            selected_categories.append('node_groups')
             self.unused_node_groups = all_unused['node_groups']
+            if self.unused_node_groups:
+                found_items['node_groups'] = len(self.unused_node_groups)
 
         if atom.objects:
+            selected_categories.append('objects')
             self.unused_objects = all_unused['objects']
+            if self.unused_objects:
+                found_items['objects'] = len(self.unused_objects)
 
         if atom.particles:
+            selected_categories.append('particles')
             self.unused_particles = all_unused['particles']
+            if self.unused_particles:
+                found_items['particles'] = len(self.unused_particles)
 
         if atom.textures:
+            selected_categories.append('textures')
             self.unused_textures = all_unused['textures']
+            if self.unused_textures:
+                found_items['textures'] = len(self.unused_textures)
 
         if atom.armatures:
+            selected_categories.append('armatures')
             self.unused_armatures = all_unused['armatures']
+            if self.unused_armatures:
+                found_items['armatures'] = len(self.unused_armatures)
 
         if atom.worlds:
+            selected_categories.append('worlds')
             self.unused_worlds = all_unused['worlds']
+            if self.unused_worlds:
+                found_items['worlds'] = len(self.unused_worlds)
+
+        # Debug: Only print when categories are selected but nothing found
+        if selected_categories:
+            if found_items:
+                print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
+                print(f"[Atomic Clean] Found unused items: {found_items}")
+            else:
+                print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
+                print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
 
         return wm.invoke_props_dialog(self)
 
@@ -443,6 +486,21 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
     def execute(self, context):
         # Use parallel execution for better performance
         unused_flags = unused_parallel.get_unused_for_smart_select()
+        
+        # Debug: Print only when something is detected
+        detected_categories = []
+        for category, has_unused in unused_flags.items():
+            if has_unused:
+                detected_categories.append(category)
+        
+        if detected_categories:
+            print(f"[Atomic Smart Select] Detected unused items in: {', '.join(detected_categories)}")
+            # Get actual counts for debug
+            all_unused = unused_parallel.get_all_unused_parallel()
+            for category in detected_categories:
+                count = len(all_unused.get(category, []))
+                if count > 0:
+                    print(f"  - {category}: {count} unused items")
         
         # Also populate the full cache for use by Clean operator
         # This allows Clean to reuse the results without recalculation
