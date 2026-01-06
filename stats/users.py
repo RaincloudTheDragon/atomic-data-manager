@@ -760,6 +760,8 @@ def node_group_compositors(node_group_key):
 def node_group_materials(node_group_key):
     # returns a list of material keys that use the node group in their
     # node trees
+    # Note: Unlike image_materials(), this returns ALL materials using the node group,
+    # not just used ones. This allows node_groups_deep() to check if materials are unused.
 
     users = []
     node_group = bpy.data.node_groups[node_group_key]
@@ -768,6 +770,10 @@ def node_group_materials(node_group_key):
     node_group_users = node_group_node_groups(node_group_key)
 
     for material in bpy.data.materials:
+        # Skip library-linked and override materials
+        from ..utils import compat
+        if compat.is_library_or_override(material):
+            continue
 
         # if material uses nodes and has a valid node tree, check each node
         if material.use_nodes and material.node_tree:
