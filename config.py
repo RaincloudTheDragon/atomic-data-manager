@@ -32,6 +32,7 @@ Blender, not in here.
 enable_missing_file_warning = True
 include_fake_users = False
 enable_pie_menu_ui = True
+enable_debug_prints = False
 
 # hidden atomic preferences
 pie_menu_type = "D"
@@ -40,3 +41,12 @@ pie_menu_any = False
 pie_menu_ctrl = False
 pie_menu_oskey = False
 pie_menu_shift = False
+
+
+def debug_print(*args, **kwargs):
+    """
+    Print debug messages only if enable_debug_prints is True.
+    Usage: debug_print("message") or debug_print(f"formatted {value}")
+    """
+    if enable_debug_prints:
+        print(*args, **kwargs)

@@ -27,7 +27,36 @@ import bpy
 from bpy.utils import register_class
 from ..utils import compat
 from .. import config
+import sys
 # updater removed in Blender 4.5 extension format
+
+# Get the root module name dynamically
+def _get_addon_module_name():
+    """Get the root addon module name for bl_idname."""
+    # In Blender 5.0 extensions loaded via VSCode, the module name is the full path
+    # e.g., "bl_ext.vscode_development.atomic_data_manager"
+    # We need to get it from the parent package (atomic_data_manager)
+    try:
+        # Get parent package name from __package__ (remove .ui suffix)
+        if __package__:
+            parent_pkg = __package__.rsplit('.', 1)[0] if '.' in __package__ else __package__
+            # Get the actual module from sys.modules to get its __name__
+            parent_module = sys.modules.get(parent_pkg)
+            if parent_module and hasattr(parent_module, '__name__'):
+                module_name = parent_module.__name__
+                config.debug_print(f"[Atomic Debug] Using parent module __name__ as bl_idname: {module_name}")
+                return module_name
+            else:
+                # Use the package name directly
+                config.debug_print(f"[Atomic Debug] Using parent package name as bl_idname: {parent_pkg}")
+                return parent_pkg
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] Could not get parent module name: {e}")
+    
+    # Last fallback
+    module_name = "atomic_data_manager"
+    config.debug_print(f"[Atomic Debug] Using fallback bl_idname: {module_name}")
+    return module_name
 
 
 def _get_addon_prefs():
@@ -105,6 +134,9 @@ def copy_prefs_to_config(self, context):
 
     config.include_fake_users = \
         atomic_preferences.include_fake_users
+
+    config.enable_debug_prints = \
+        atomic_preferences.enable_debug_prints
 
     # hidden atomic preferences
     config.pie_menu_type = \
@@ -192,7 +224,9 @@ def remove_pie_menu_hotkeys():
 
 # Atomic Data Manager Preference Panel UI
 class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
-    bl_idname = "atomic_data_manager"
+    # bl_idname must match the add-on's module name exactly
+    # Get it dynamically to ensure it matches what Blender registered
+    bl_idname = _get_addon_module_name()
 
     # visible atomic preferences
     enable_missing_file_warning: bpy.props.BoolProperty(
@@ -212,6 +246,11 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
                     "your project from anywhere.",
         default=True,
         update=update_pie_menu_hotkeys
+    )
+
+    enable_debug_prints: bpy.props.BoolProperty(
+        description="Enable debug print statements in the console",
+        default=False
     )
 
     # hidden atomic preferences
@@ -243,6 +282,9 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+        
+        # Debug: verify draw is being called
+        config.debug_print("[Atomic Debug] Preferences draw() method called")
 
         split = layout.split()
 
@@ -264,6 +306,13 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             self,
             "include_fake_users",
             text="Include Fake Users"
+        )
+
+        # enable debug prints toggle
+        col.prop(
+            self,
+            "enable_debug_prints",
+            text="Enable Debug Prints"
         )
 
         # pie menu settings
@@ -317,7 +366,13 @@ keymaps = []
 
 def register():
     for cls in reg_list:
-        register_class(cls)
+        try:
+            register_class(cls)
+            config.debug_print(f"[Atomic Debug] Registered preferences class: {cls.__name__} with bl_idname: {cls.bl_idname}")
+        except Exception as e:
+            print(f"[Atomic Error] Failed to register preferences class {cls.__name__}: {e}")
+            import traceback
+            traceback.print_exc()
 
     # make sure global preferences are updated on registration
     copy_prefs_to_config(None, None)

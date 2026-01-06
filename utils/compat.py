@@ -7,6 +7,7 @@ between Blender 4.2 LTS, 4.5 LTS, and 5.0.
 import bpy
 from bpy.utils import register_class, unregister_class
 from . import version
+from .. import config
 
 
 def safe_register_class(cls):
@@ -116,7 +117,7 @@ def get_scene_compositor_node_tree(scene):
     Get the compositor node tree from a scene, handling version differences.
     
     In Blender 4.2/4.5: scene.node_tree
-    In Blender 5.0+: scene.compositing_node_tree
+    In Blender 5.0+: scene.compositing_node_group
     
     Args:
         scene: The scene object
@@ -129,22 +130,22 @@ def get_scene_compositor_node_tree(scene):
         # Try compositing_node_group first (Blender 5.0+)
         try:
             node_tree = getattr(scene, 'compositing_node_group', None)
-            print(f"[Atomic Debug] get_scene_compositor_node_tree: scene='{scene.name}', use_nodes={scene.use_nodes}, compositing_node_group={node_tree}")
+            config.debug_print(f"[Atomic Debug] get_scene_compositor_node_tree: scene='{scene.name}', use_nodes={scene.use_nodes}, compositing_node_group={node_tree}")
             if node_tree:
-                print(f"[Atomic Debug] get_scene_compositor_node_tree: Found compositor node tree: {node_tree.name}")
+                config.debug_print(f"[Atomic Debug] get_scene_compositor_node_tree: Found compositor node tree: {node_tree.name}")
                 return node_tree
         except (AttributeError, TypeError) as e:
-            print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_group access failed: {e}")
+            config.debug_print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_group access failed: {e}")
         
         # Fallback: try compositing_node_tree (in case it exists in some versions)
         try:
             node_tree = getattr(scene, 'compositing_node_tree', None)
-            print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_tree={node_tree}")
+            config.debug_print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_tree={node_tree}")
             if node_tree:
-                print(f"[Atomic Debug] get_scene_compositor_node_tree: Found via compositing_node_tree: {node_tree.name}")
+                config.debug_print(f"[Atomic Debug] get_scene_compositor_node_tree: Found via compositing_node_tree: {node_tree.name}")
                 return node_tree
         except (AttributeError, TypeError) as e:
-            print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_tree access failed: {e}")
+            config.debug_print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_tree access failed: {e}")
     else:
         # Blender 4.2/4.5 uses node_tree
         try:
