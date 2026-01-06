@@ -34,6 +34,36 @@ from .utils import clean
 from .utils import nuke
 from ..ui.utils import ui_layouts
 
+
+def _safe_set_atom_property(atom, prop_name, value):
+    """
+    Safely set an atom property, catching errors when Blender is in read-only state.
+    
+    Args:
+        atom: The atomic property group instance
+        prop_name: Name of the property to set
+        value: Value to set
+    
+    Returns:
+        bool: True if successful, False if failed (read-only context)
+    """
+    if atom is None:
+        return False
+    try:
+        setattr(atom, prop_name, value)
+        return True
+    except (AttributeError, RuntimeError) as e:
+        # Blender is in read-only state (e.g., during file loading, drawing/rendering)
+        # AttributeError: Writing to ID classes in this context is not allowed
+        # RuntimeError: cannot modify blend data in this state
+        config.debug_print(f"[Atomic Debug] Cannot set {prop_name} in read-only context: {e}")
+        return False
+    except Exception as e:
+        # Catch any other unexpected errors
+        config.debug_print(f"[Atomic Debug] Unexpected error setting {prop_name}: {e}")
+        return False
+
+
 # Cache for unused data-blocks to avoid recalculation
 # This is invalidated when undo steps occur or after cleaning
 _unused_cache = None
@@ -238,7 +268,7 @@ class ATOMIC_OT_cancel_operation(bpy.types.Operator):
 
     def execute(self, context):
         atom = context.scene.atomic
-        atom.cancel_operation = True
+        _safe_set_atom_property(atom, 'cancel_operation', True)
         return {'FINISHED'}
 
 
@@ -679,10 +709,10 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 return context.window_manager.invoke_props_dialog(self)
         
         # Need to scan - initialize progress tracking
-        atom.is_operation_running = True
-        atom.operation_progress = 0.0
-        atom.operation_status = "Initializing Clean scan..."
-        atom.cancel_operation = False
+        _safe_set_atom_property(atom, 'is_operation_running', True)
+        _safe_set_atom_property(atom, 'operation_progress', 0.0)
+        _safe_set_atom_property(atom, 'operation_status', "Initializing Clean scan...")
+        _safe_set_atom_property(atom, 'cancel_operation', False)
         
         # Initialize module-level state for timer processing
         global _clean_invoke_state
@@ -705,10 +735,10 @@ def _process_clean_execute_step():
     
     # Check for cancellation
     if atom.cancel_operation:
-        atom.is_operation_running = False
-        atom.operation_progress = 0.0
-        atom.operation_status = "Operation cancelled"
-        atom.cancel_operation = False
+        _safe_set_atom_property(atom, 'is_operation_running', False)
+        _safe_set_atom_property(atom, 'operation_progress', 0.0)
+        _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
+        _safe_set_atom_property(atom, 'cancel_operation', False)
         _clean_execute_state = None
         # Force UI update
         for area in bpy.context.screen.areas:
@@ -722,7 +752,7 @@ def _process_clean_execute_step():
         if unused_list and _clean_execute_state['current_item_index'] < len(unused_list):
             # Delete current item
             item_key = unused_list[_clean_execute_state['current_item_index']]
-            atom.operation_status = f"Removing {category}: {item_key}..."
+            _safe_set_atom_property(atom, 'operation_status', f"Removing {category}: {item_key}...")
             
             try:
                 if category == 'collections':
@@ -762,7 +792,7 @@ def _process_clean_execute_step():
             
             _clean_execute_state['current_item_index'] += 1
             progress = (_clean_execute_state['deleted_count'] / _clean_execute_state['total_items']) * 100.0
-            atom.operation_progress = progress
+            _safe_set_atom_property(atom, 'operation_progress', progress)
             
             # Force UI update
             for area in bpy.context.screen.areas:
@@ -777,9 +807,9 @@ def _process_clean_execute_step():
     
     # All items deleted
     deleted_count = _clean_execute_state['deleted_count']
-    atom.is_operation_running = False
-    atom.operation_progress = 100.0
-    atom.operation_status = f"Complete! Removed {deleted_count} unused data-blocks"
+    _safe_set_atom_property(atom, 'is_operation_running', False)
+    _safe_set_atom_property(atom, 'operation_progress', 100.0)
+    _safe_set_atom_property(atom, 'operation_status', f"Complete! Removed {deleted_count} unused data-blocks")
     
     # Clear state
     _clean_execute_state = None
@@ -814,9 +844,9 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
     # If no categories detected, finish early
     if not detected_categories:
         atom = bpy.context.scene.atomic
-        atom.is_operation_running = False
-        atom.operation_progress = 100.0
-        atom.operation_status = "Complete! No unused items found"
+        _safe_set_atom_property(atom, 'is_operation_running', False)
+        _safe_set_atom_property(atom, 'operation_progress', 100.0)
+        _safe_set_atom_property(atom, 'operation_status', "Complete! No unused items found")
         _smart_select_state = None
         for area in bpy.context.screen.areas:
             area.tag_redraw()
@@ -824,7 +854,7 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
     
     # Start full scan for detected categories
     global _scan_state
-    print(f"[Atomic Debug] Smart Select: Quick scan complete, starting full scan for categories: {detected_categories}")
+    config.debug_print(f"[Atomic Debug] Smart Select: Quick scan complete, starting full scan for categories: {detected_categories}")
     _scan_state = {
         'mode': 'full',
         'categories_to_scan': detected_categories,
@@ -857,10 +887,10 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     _cache_valid = True
     
     atom = bpy.context.scene.atomic
-    atom.operation_progress = 75.0
+    _safe_set_atom_property(atom, 'operation_progress', 75.0)
     
     # Update UI toggles
-    atom.operation_status = "Updating selection..."
+    _safe_set_atom_property(atom, 'operation_status', "Updating selection...")
     atom.collections = _smart_select_state['unused_flags'].get('collections', False)
     atom.images = _smart_select_state['unused_flags'].get('images', False)
     atom.lights = _smart_select_state['unused_flags'].get('lights', False)
@@ -873,9 +903,9 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)
     
     # Operation complete
-    atom.is_operation_running = False
-    atom.operation_progress = 100.0
-    atom.operation_status = f"Complete! Found unused items in {len(_smart_select_state['detected_categories'])} categories"
+    _safe_set_atom_property(atom, 'is_operation_running', False)
+    _safe_set_atom_property(atom, 'operation_progress', 100.0)
+    _safe_set_atom_property(atom, 'operation_status', f"Complete! Found unused items in {len(_smart_select_state['detected_categories'])} categories")
     
     # Clear state
     _smart_select_state = None
@@ -913,9 +943,9 @@ def _on_clean_scan_complete(results, **kwargs):
             print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
     
     # Operation complete - show dialog
-    atom.is_operation_running = False
-    atom.operation_progress = 100.0
-    atom.operation_status = ""
+    _safe_set_atom_property(atom, 'is_operation_running', False)
+    _safe_set_atom_property(atom, 'operation_progress', 100.0)
+    _safe_set_atom_property(atom, 'operation_status', "")
     
     # Force UI update
     for area in bpy.context.screen.areas:
@@ -935,7 +965,7 @@ def _on_clean_scan_complete(results, **kwargs):
                 except (ReferenceError, AttributeError, TypeError) as e:
                     # Operator instance invalidated
                     _clean_operator_instance = None
-                    print(f"[Atomic Debug] Clean: Stored operator instance invalidated: {e}")
+                    config.debug_print(f"[Atomic Debug] Clean: Stored operator instance invalidated: {e}")
             
             # If we have a valid operator instance, populate and show dialog
             if operator_instance:
@@ -981,22 +1011,22 @@ def _process_unified_scan_step():
         atom = bpy.context.scene.atomic
         global _scan_state, _unused_cache, _cache_valid
         
-        print(f"[Atomic Debug] Unified Scanner: _scan_state = {_scan_state}")
+        config.debug_print(f"[Atomic Debug] Unified Scanner: _scan_state = {_scan_state}")
         
         # Check if scan state is initialized (mode should be set)
         if _scan_state is None or _scan_state.get('mode') is None:
             print("[Atomic Debug] Unified Scanner: _scan_state is not initialized, returning")
             return None  # No scan in progress
         
-        print(f"[Atomic Debug] Unified Scanner: mode = {_scan_state.get('mode')}, current_category_index = {_scan_state.get('current_category_index')}, categories_to_scan = {_scan_state.get('categories_to_scan')}")
+        config.debug_print(f"[Atomic Debug] Unified Scanner: mode = {_scan_state.get('mode')}, current_category_index = {_scan_state.get('current_category_index')}, categories_to_scan = {_scan_state.get('categories_to_scan')}")
         
         # Check for cancellation
         if atom.cancel_operation:
             print("[Atomic Debug] Unified Scanner: Operation cancelled")
-            atom.is_operation_running = False
-            atom.operation_progress = 0.0
-            atom.operation_status = "Operation cancelled"
-            atom.cancel_operation = False
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
+            _safe_set_atom_property(atom, 'cancel_operation', False)
             _scan_state = None
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
@@ -1011,8 +1041,8 @@ def _process_unified_scan_step():
                 # Filter cache to only include requested categories
                 filtered_results = {cat: _unused_cache[cat] for cat in _scan_state['categories_to_scan']}
                 _scan_state['results'] = filtered_results
-                atom.operation_progress = 50.0
-                atom.operation_status = "Using cached results..."
+                _safe_set_atom_property(atom, 'operation_progress', 50.0)
+                _safe_set_atom_property(atom, 'operation_status', "Using cached results...")
                 # Call callback with cached results
                 if _scan_state['callback']:
                     _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
@@ -1024,31 +1054,31 @@ def _process_unified_scan_step():
         # Process categories one by one
         total_categories = len(_scan_state['categories_to_scan'])
         current_idx = _scan_state['current_category_index']
-        print(f"[Atomic Debug] Unified Scanner: Processing category {current_idx + 1}/{total_categories} (index {current_idx})")
-        print(f"[Atomic Debug] Unified Scanner: Condition check: {current_idx} < {total_categories} = {current_idx < total_categories}")
+        config.debug_print(f"[Atomic Debug] Unified Scanner: Processing category {current_idx + 1}/{total_categories} (index {current_idx})")
+        config.debug_print(f"[Atomic Debug] Unified Scanner: Condition check: {current_idx} < {total_categories} = {current_idx < total_categories}")
         if current_idx < total_categories:
             category = _scan_state['categories_to_scan'][_scan_state['current_category_index']]
-            print(f"[Atomic Debug] Unified Scanner: Current category = {category}")
+            config.debug_print(f"[Atomic Debug] Unified Scanner: Current category = {category}")
             
             # Update status first, then return to let UI refresh
             if not _scan_state['status_updated']:
-                print(f"[Atomic Debug] Unified Scanner: Updating status for {category}")
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Updating status for {category}")
                 if _scan_state['mode'] == 'quick':
-                    atom.operation_status = f"Scanning {category}..."
+                    _safe_set_atom_property(atom, 'operation_status', f"Scanning {category}...")
                 else:
-                    atom.operation_status = f"Counting {category}..."
+                    _safe_set_atom_property(atom, 'operation_status', f"Counting {category}...")
                 progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                atom.operation_progress = progress
+                _safe_set_atom_property(atom, 'operation_progress', progress)
                 _scan_state['status_updated'] = True
                 # Force UI update and return to let it refresh
                 for area in bpy.context.screen.areas:
                     area.tag_redraw()
                 return 0.01  # Return to let UI update
             
-            print(f"[Atomic Debug] Unified Scanner: Status already updated, processing category '{category}' (mode={_scan_state['mode']})")
+            config.debug_print(f"[Atomic Debug] Unified Scanner: Status already updated, processing category '{category}' (mode={_scan_state['mode']})")
             # Handle incremental image scanning (for full scans only)
             if category == 'images' and _scan_state['mode'] == 'full':
-                print(f"[Atomic Debug] Unified Scanner: Entering images block")
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Entering images block")
                 # Initialize image list if not done
                 if _scan_state['images_list'] is None:
                     _scan_state['images_list'] = [img for img in bpy.data.images if not compat.is_library_or_override(img)]
@@ -1066,10 +1096,10 @@ def _process_unified_scan_step():
                 if _scan_state['images_index'] < total_images:
                     # Check for cancellation before processing batch
                     if atom.cancel_operation:
-                        atom.is_operation_running = False
-                        atom.operation_progress = 0.0
-                        atom.operation_status = "Operation cancelled"
-                        atom.cancel_operation = False
+                        _safe_set_atom_property(atom, 'is_operation_running', False)
+                        _safe_set_atom_property(atom, 'operation_progress', 0.0)
+                        _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
+                        _safe_set_atom_property(atom, 'cancel_operation', False)
                         _scan_state = None
                         for area in bpy.context.screen.areas:
                             area.tag_redraw()
@@ -1081,7 +1111,7 @@ def _process_unified_scan_step():
                     
                     # Update status with current image
                     current_image = _scan_state['images_list'][_scan_state['images_index']]
-                    atom.operation_status = f"Checking images {current_index}-{batch_end}/{total_images}: {current_image.name[:25]}..."
+                    _safe_set_atom_property(atom, 'operation_status', f"Checking images {current_index}-{batch_end}/{total_images}: {current_image.name[:25]}...")
                     
                     # Process batch
                     for i in range(_scan_state['images_index'], batch_end):
@@ -1094,7 +1124,7 @@ def _process_unified_scan_step():
                     # Update progress within images category
                     category_progress = (_scan_state['images_index'] / total_images) * (1.0 / total_categories)
                     base_progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                    atom.operation_progress = base_progress + category_progress * 50.0
+                    _safe_set_atom_property(atom, 'operation_progress', base_progress + category_progress * 50.0)
                     
                     # Force UI update
                     for area in bpy.context.screen.areas:
@@ -1111,14 +1141,14 @@ def _process_unified_scan_step():
                 _scan_state['current_category_index'] += 1
                 _scan_state['status_updated'] = False
                 progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                atom.operation_progress = progress
+                _safe_set_atom_property(atom, 'operation_progress', progress)
                 for area in bpy.context.screen.areas:
                     area.tag_redraw()
                 return 0.01  # Continue to next category
             
             # Handle incremental world scanning (for full scans only)
             elif category == 'worlds' and _scan_state['mode'] == 'full':
-                print(f"[Atomic Debug] Unified Scanner: Entering worlds block")
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Entering worlds block")
                 # Initialize world list if not done
                 if _scan_state['worlds_list'] is None:
                     _scan_state['worlds_list'] = [
@@ -1145,7 +1175,7 @@ def _process_unified_scan_step():
                     _scan_state['worlds_index'] += 1
                     progress_base = (_scan_state['current_category_index'] / total_categories) * 50.0
                     world_progress = (_scan_state['worlds_index'] / len(worlds_list)) * (50.0 / total_categories)
-                    atom.operation_progress = progress_base + world_progress
+                    _safe_set_atom_property(atom, 'operation_progress', progress_base + world_progress)
                     
                     # Force UI update
                     for area in bpy.context.screen.areas:
@@ -1160,21 +1190,21 @@ def _process_unified_scan_step():
                     _scan_state['current_category_index'] += 1
                     _scan_state['status_updated'] = False
                     progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                    atom.operation_progress = progress
+                    _safe_set_atom_property(atom, 'operation_progress', progress)
                     for area in bpy.context.screen.areas:
                         area.tag_redraw()
                     return 0.01  # Continue to next category
             
             # Handle other categories (quick scan or full scan for non-incremental categories)
             else:
-                print(f"[Atomic Debug] Unified Scanner: Processing category '{category}' in else block (mode={_scan_state['mode']})")
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Processing category '{category}' in else block (mode={_scan_state['mode']})")
                 # Initialize results dict if needed (for both quick and full scans)
                 if _scan_state['results'] is None:
                     _scan_state['results'] = {}
                 
                 if _scan_state['mode'] == 'quick':
                     # Quick scan: check if category has any unused items
-                    print(f"[Atomic Debug] Unified Scanner: Quick scan for '{category}'")
+                    config.debug_print(f"[Atomic Debug] Unified Scanner: Quick scan for '{category}'")
                     if category == 'collections':
                         result = unused_parallel._has_any_unused_collections()
                     elif category == 'images':
@@ -1199,10 +1229,10 @@ def _process_unified_scan_step():
                         result = False
                     
                     _scan_state['results'][category] = result
-                    print(f"[Atomic Debug] Unified Scanner: Stored result for '{category}': {result}, results now: {_scan_state['results']}")
+                    config.debug_print(f"[Atomic Debug] Unified Scanner: Stored result for '{category}': {result}, results now: {_scan_state['results']}")
                 
                 else:  # mode == 'full'
-                    print(f"[Atomic Debug] Unified Scanner: Full scan for '{category}'")
+                    config.debug_print(f"[Atomic Debug] Unified Scanner: Full scan for '{category}'")
                     # Full scan: get complete list of unused items
                     if category == 'collections':
                         unused_list = unused.collections_deep()
@@ -1231,8 +1261,8 @@ def _process_unified_scan_step():
                 _scan_state['current_category_index'] += 1
                 _scan_state['status_updated'] = False  # Reset for next category
                 progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                atom.operation_progress = progress
-                print(f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index {_scan_state['current_category_index']}/{total_categories}, results: {_scan_state['results']}")
+                _safe_set_atom_property(atom, 'operation_progress', progress)
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index {_scan_state['current_category_index']}/{total_categories}, results: {_scan_state['results']}")
                 
                 # Force UI update
                 for area in bpy.context.screen.areas:
@@ -1241,9 +1271,9 @@ def _process_unified_scan_step():
                 return 0.01  # Continue processing
         
         # All categories scanned
-        print(f"[Atomic Debug] Unified Scanner: All categories scanned! current_index={_scan_state.get('current_category_index')}, total={total_categories}, results={_scan_state.get('results')}")
-        atom.operation_progress = 50.0
-        atom.operation_status = "Scan complete, processing results..."
+        config.debug_print(f"[Atomic Debug] Unified Scanner: All categories scanned! current_index={_scan_state.get('current_category_index')}, total={total_categories}, results={_scan_state.get('results')}")
+        _safe_set_atom_property(atom, 'operation_progress', 50.0)
+        _safe_set_atom_property(atom, 'operation_status', "Scan complete, processing results...")
         
         # Ensure results is a dictionary, not None
         if _scan_state['results'] is None:
@@ -1256,7 +1286,7 @@ def _process_unified_scan_step():
         
         # Call callback function with results
         if _scan_state['callback']:
-            print(f"[Atomic Debug] Unified Scanner: Calling callback with results: {_scan_state['results']}")
+            config.debug_print(f"[Atomic Debug] Unified Scanner: Calling callback with results: {_scan_state['results']}")
             old_mode = _scan_state.get('mode')
             old_categories = _scan_state.get('categories_to_scan', [])[:]  # Copy list
             _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
@@ -1268,7 +1298,7 @@ def _process_unified_scan_step():
                 new_categories = _scan_state.get('categories_to_scan', [])
                 if (new_mode != old_mode or new_categories != old_categories):
                     # Different scan started by callback, keep it and continue
-                    print(f"[Atomic Debug] Unified Scanner: Callback started new scan (old: {old_mode}/{old_categories}, new: {new_mode}/{new_categories}), keeping _scan_state")
+                    config.debug_print(f"[Atomic Debug] Unified Scanner: Callback started new scan (old: {old_mode}/{old_categories}, new: {new_mode}/{new_categories}), keeping _scan_state")
                     # Force UI update
                     for area in bpy.context.screen.areas:
                         area.tag_redraw()
@@ -1294,9 +1324,9 @@ def _process_unified_scan_step():
         traceback.print_exc()
         try:
             atom = bpy.context.scene.atomic
-            atom.is_operation_running = False
-            atom.operation_progress = 0.0
-            atom.operation_status = f"Error: {str(e)}"
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', f"Error: {str(e)}")
         except:
             pass
         _scan_state = None
@@ -1344,15 +1374,15 @@ def _process_clean_invoke_step():
         atom = bpy.context.scene.atomic
         global _clean_invoke_state, _scan_state
         
-        print(f"[Atomic Debug] Clean: _clean_invoke_state = {_clean_invoke_state}")
-        print(f"[Atomic Debug] Clean: _scan_state = {_scan_state}")
+        config.debug_print(f"[Atomic Debug] Clean: _clean_invoke_state = {_clean_invoke_state}")
+        config.debug_print(f"[Atomic Debug] Clean: _scan_state = {_scan_state}")
         
         # Check for cancellation
         if atom.cancel_operation:
-            atom.is_operation_running = False
-            atom.operation_progress = 0.0
-            atom.operation_status = "Operation cancelled"
-            atom.cancel_operation = False
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
+            _safe_set_atom_property(atom, 'cancel_operation', False)
             _clean_invoke_state = None
             _scan_state = None
             # Force UI update
@@ -1362,22 +1392,22 @@ def _process_clean_invoke_step():
         
         # Check if scan has been started
         scan_started = _clean_invoke_state.get('scan_started', False)
-        print(f"[Atomic Debug] Clean: scan_started = {scan_started}, condition result = {not scan_started}")
+        config.debug_print(f"[Atomic Debug] Clean: scan_started = {scan_started}, condition result = {not scan_started}")
         if not scan_started:
             print("[Atomic Debug] Clean: Starting scan initialization")
             # Start unified scanner for selected categories only
             _clean_invoke_state['scan_started'] = True
-            print(f"[Atomic Debug] Clean: Selected categories: {_clean_invoke_state['selected_categories']}")
+            config.debug_print(f"[Atomic Debug] Clean: Selected categories: {_clean_invoke_state['selected_categories']}")
             if not _clean_invoke_state['selected_categories']:
                 # No categories selected, finish immediately
-                atom.is_operation_running = False
-                atom.operation_progress = 100.0
-                atom.operation_status = "No categories selected"
+                _safe_set_atom_property(atom, 'is_operation_running', False)
+                _safe_set_atom_property(atom, 'operation_progress', 100.0)
+                _safe_set_atom_property(atom, 'operation_status', "No categories selected")
                 _clean_invoke_state = None
                 for area in bpy.context.screen.areas:
                     area.tag_redraw()
                 return None
-            atom.operation_status = f"Starting scan of {len(_clean_invoke_state['selected_categories'])} categories..."
+            _safe_set_atom_property(atom, 'operation_status', f"Starting scan of {len(_clean_invoke_state['selected_categories'])} categories...")
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
             print("[Atomic Debug] Clean: Creating _scan_state for full scan")
@@ -1401,7 +1431,7 @@ def _process_clean_invoke_step():
             bpy.app.timers.register(_process_unified_scan_step)
             print("[Atomic Debug] Clean: Calling _process_unified_scan_step() immediately")
             result = _process_unified_scan_step()
-            print(f"[Atomic Debug] Clean: _process_unified_scan_step() returned: {result}")
+            config.debug_print(f"[Atomic Debug] Clean: _process_unified_scan_step() returned: {result}")
             return None  # Stop this timer
         
         # If we get here, something went wrong (shouldn't happen)
@@ -1414,9 +1444,9 @@ def _process_clean_invoke_step():
         try:
             if hasattr(bpy.context, 'scene') and bpy.context.scene is not None:
                 atom = bpy.context.scene.atomic
-                atom.is_operation_running = False
-                atom.operation_progress = 0.0
-                atom.operation_status = f"Error: {str(e)}"
+                _safe_set_atom_property(atom, 'is_operation_running', False)
+                _safe_set_atom_property(atom, 'operation_progress', 0.0)
+                _safe_set_atom_property(atom, 'operation_status', f"Error: {str(e)}")
         except:
             pass
         return None
@@ -1445,10 +1475,10 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
         atom = context.scene.atomic
         
         # Initialize progress tracking
-        atom.is_operation_running = True
-        atom.operation_progress = 0.0
-        atom.operation_status = "Initializing Smart Select..."
-        atom.cancel_operation = False
+        _safe_set_atom_property(atom, 'is_operation_running', True)
+        _safe_set_atom_property(atom, 'operation_progress', 0.0)
+        _safe_set_atom_property(atom, 'operation_status', "Initializing Smart Select...")
+        _safe_set_atom_property(atom, 'cancel_operation', False)
         
         # Initialize module-level state for timer processing
         global _smart_select_state
@@ -1477,15 +1507,15 @@ def _process_smart_select_step():
         atom = bpy.context.scene.atomic
         global _smart_select_state, _scan_state
         
-        print(f"[Atomic Debug] Smart Select: _smart_select_state = {_smart_select_state}")
-        print(f"[Atomic Debug] Smart Select: _scan_state = {_scan_state}")
+        config.debug_print(f"[Atomic Debug] Smart Select: _smart_select_state = {_smart_select_state}")
+        config.debug_print(f"[Atomic Debug] Smart Select: _scan_state = {_scan_state}")
         
         # Check for cancellation
         if atom.cancel_operation:
-            atom.is_operation_running = False
-            atom.operation_progress = 0.0
-            atom.operation_status = "Operation cancelled"
-            atom.cancel_operation = False
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
+            _safe_set_atom_property(atom, 'cancel_operation', False)
             _smart_select_state = None
             _scan_state = None
             # Force UI update
@@ -1498,7 +1528,7 @@ def _process_smart_select_step():
             print("[Atomic Debug] Smart Select: Starting quick scan initialization")
             # Start quick scan
             _smart_select_state['quick_scan_started'] = True
-            atom.operation_status = "Starting quick scan..."
+            _safe_set_atom_property(atom, 'operation_status', "Starting quick scan...")
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
             print("[Atomic Debug] Smart Select: Creating _scan_state for quick scan")
@@ -1522,7 +1552,7 @@ def _process_smart_select_step():
             bpy.app.timers.register(_process_unified_scan_step)
             print("[Atomic Debug] Smart Select: Calling _process_unified_scan_step() immediately")
             result = _process_unified_scan_step()
-            print(f"[Atomic Debug] Smart Select: _process_unified_scan_step() returned: {result}")
+            config.debug_print(f"[Atomic Debug] Smart Select: _process_unified_scan_step() returned: {result}")
             return None  # Stop this timer
         
         # If we get here, something went wrong (shouldn't happen)
@@ -1535,9 +1565,9 @@ def _process_smart_select_step():
         try:
             if hasattr(bpy.context, 'scene') and bpy.context.scene is not None:
                 atom = bpy.context.scene.atomic
-                atom.is_operation_running = False
-                atom.operation_progress = 0.0
-                atom.operation_status = f"Error: {str(e)}"
+                _safe_set_atom_property(atom, 'is_operation_running', False)
+                _safe_set_atom_property(atom, 'operation_progress', 0.0)
+                _safe_set_atom_property(atom, 'operation_status', f"Error: {str(e)}")
         except:
             pass
         return None
