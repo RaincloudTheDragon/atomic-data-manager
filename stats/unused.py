@@ -267,6 +267,7 @@ def _is_compositor_node_tree(node_group):
     """
     Check if a node group is a compositor node tree.
     In Blender 5.0+, each scene has a compositing_node_tree that should be ignored.
+    Also ignores node groups named "Compositor Nodes" universally.
     
     Args:
         node_group: The node group to check
@@ -274,6 +275,10 @@ def _is_compositor_node_tree(node_group):
     Returns:
         bool: True if the node group is a compositor node tree
     """
+    # Always ignore node groups named "Compositor Nodes"
+    if node_group.name == "Compositor Nodes":
+        return True
+    
     # In Blender 5.0+, check if this node group is any scene's compositing_node_tree
     if version.is_version_at_least(5, 0, 0):
         for scene in bpy.data.scenes:
@@ -293,6 +298,80 @@ def node_groups_deep():
     # returns a list of keys of unused node_groups
 
     unused = []
+    # Track which node groups we've already determined are unused (to avoid infinite recursion)
+    _unused_node_groups_cache = set()
+
+    def _is_node_group_unused(ng_name, visited=None):
+        """Recursively check if a node group is unused.
+        Returns True if the node group is only used by unused materials/objects/node_groups."""
+        if visited is None:
+            visited = set()
+        
+        # Avoid infinite recursion
+        if ng_name in visited:
+            return False
+        visited.add(ng_name)
+        
+        # Check cache first
+        if ng_name in _unused_node_groups_cache:
+            return True
+        
+        node_group = bpy.data.node_groups.get(ng_name)
+        if not node_group:
+            return False
+        
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(node_group):
+            return False
+        # Skip compositor node trees
+        if _is_compositor_node_tree(node_group):
+            return False
+        
+        # First check: node group has no users at all
+        if not users.node_group_all(ng_name):
+            if not node_group.use_fake_user or config.include_fake_users:
+                _unused_node_groups_cache.add(ng_name)
+                return True
+        
+        # Second check: node group is used, but check if it's ONLY used by unused materials/objects/node_groups
+        # Get all materials and objects that use this node group
+        materials_using_ng = users.node_group_materials(ng_name)
+        objects_using_ng = users.node_group_objects(ng_name)
+        parent_node_groups = users.node_group_node_groups(ng_name)
+        
+        # Collect all objects that use this node group (directly or via materials)
+        all_objects_using_ng = list(objects_using_ng)  # Direct object usage via geometry nodes
+        
+        # For each material using this node group, get objects using that material
+        for mat_name in materials_using_ng:
+            # Get objects using this material
+            objects_using_mat = users.material_objects(mat_name)
+            objects_using_mat.extend(users.material_geometry_nodes(mat_name))
+            all_objects_using_ng.extend(objects_using_mat)
+        
+        # Remove duplicates
+        all_objects_using_ng = list(set(all_objects_using_ng))
+        
+        # Check if all objects are unused
+        all_objects_unused = True
+        if all_objects_using_ng:
+            all_objects_unused = all(not users.object_all(obj_name) for obj_name in all_objects_using_ng)
+        
+        # Check if all parent node groups are unused (recursive)
+        all_parent_ngs_unused = True
+        if parent_node_groups:
+            for parent_ng_name in parent_node_groups:
+                if not _is_node_group_unused(parent_ng_name, visited.copy()):
+                    all_parent_ngs_unused = False
+                    break
+        
+        # If node group is only used by unused objects and unused parent node groups, mark it as unused
+        if all_objects_unused and all_parent_ngs_unused:
+            if not node_group.use_fake_user or config.include_fake_users:
+                _unused_node_groups_cache.add(ng_name)
+                return True
+        
+        return False
 
     for node_group in bpy.data.node_groups:
         # Skip library-linked and override datablocks
@@ -301,12 +380,9 @@ def node_groups_deep():
         # Skip compositor node trees (Blender 5.0+ creates one per file)
         if _is_compositor_node_tree(node_group):
             continue
-        if not users.node_group_all(node_group.name):
-
-            # check if node group has a fake user or if ignore fake users
-            # is enabled
-            if not node_group.use_fake_user or config.include_fake_users:
-                unused.append(node_group.name)
+        
+        if _is_node_group_unused(node_group.name):
+            unused.append(node_group.name)
 
     return unused
 
