@@ -1,3 +1,21 @@
+## [v2.3.0] - 2026-01-06
+
+### Features
+- Added "Enable Debug Prints" preference to control debug console output
+  - Debug messages now only print when this preference is enabled (default: off)
+  - All debug print statements use centralized `config.debug_print()` helper
+
+### Fixes
+- Fixed preferences not displaying in Blender 5.0 extensions
+  - Preferences now correctly match the full module path (`bl_ext.vscode_development.atomic_data_manager`)
+  - Added safe property setter to handle read-only context errors during file loading
+- Fixed node groups used only by unused materials/objects not being detected as unused (#5)
+  - Node groups now recursively check if parent node groups are unused
+  - Fixed compositor node tree detection to use reference comparison instead of name
+  - Fixed missing import error in node_group_compositors()
+- Made Clean execute deletion synchronous for faster performance
+- Fixed callback-initiated scan state not being preserved, causing scans to fail
+
 ## [v2.2.0] - 2026-01-05
 
 ### Features
