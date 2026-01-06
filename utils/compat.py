@@ -124,14 +124,35 @@ def get_scene_compositor_node_tree(scene):
     Returns:
         NodeTree or None: The compositor node tree if available
     """
-    # Blender 5.0+ uses compositing_node_tree
+    # Blender 5.0+ uses compositing_node_group (not compositing_node_tree!)
     if version.is_version_at_least(5, 0, 0):
-        if hasattr(scene, 'compositing_node_tree') and scene.compositing_node_tree:
-            return scene.compositing_node_tree
+        # Try compositing_node_group first (Blender 5.0+)
+        try:
+            node_tree = getattr(scene, 'compositing_node_group', None)
+            print(f"[Atomic Debug] get_scene_compositor_node_tree: scene='{scene.name}', use_nodes={scene.use_nodes}, compositing_node_group={node_tree}")
+            if node_tree:
+                print(f"[Atomic Debug] get_scene_compositor_node_tree: Found compositor node tree: {node_tree.name}")
+                return node_tree
+        except (AttributeError, TypeError) as e:
+            print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_group access failed: {e}")
+        
+        # Fallback: try compositing_node_tree (in case it exists in some versions)
+        try:
+            node_tree = getattr(scene, 'compositing_node_tree', None)
+            print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_tree={node_tree}")
+            if node_tree:
+                print(f"[Atomic Debug] get_scene_compositor_node_tree: Found via compositing_node_tree: {node_tree.name}")
+                return node_tree
+        except (AttributeError, TypeError) as e:
+            print(f"[Atomic Debug] get_scene_compositor_node_tree: compositing_node_tree access failed: {e}")
     else:
         # Blender 4.2/4.5 uses node_tree
-        if hasattr(scene, 'node_tree') and scene.node_tree:
-            return scene.node_tree
+        try:
+            node_tree = getattr(scene, 'node_tree', None)
+            if node_tree:
+                return node_tree
+        except (AttributeError, TypeError):
+            pass
     return None
 
 

@@ -267,7 +267,6 @@ def _is_compositor_node_tree(node_group):
     """
     Check if a node group is a compositor node tree.
     In Blender 5.0+, each scene has a compositing_node_tree that should be ignored.
-    Also ignores node groups named "Compositor Nodes" universally.
     
     Args:
         node_group: The node group to check
@@ -275,22 +274,29 @@ def _is_compositor_node_tree(node_group):
     Returns:
         bool: True if the node group is a compositor node tree
     """
-    # Always ignore node groups named "Compositor Nodes"
-    if node_group.name == "Compositor Nodes":
+    # Check if this node group is any scene's compositor node tree
+    # Use compat function to handle version differences properly
+    for scene in bpy.data.scenes:
+        if scene.use_nodes:
+            node_tree = compat.get_scene_compositor_node_tree(scene)
+            print(f"[Atomic Debug] _is_compositor_node_tree: scene='{scene.name}', use_nodes={scene.use_nodes}, node_tree={node_tree}")
+            if node_tree:
+                print(f"[Atomic Debug] _is_compositor_node_tree: node_tree.name='{node_tree.name}', checking against '{node_group.name}'")
+                # Check by reference, not just name (in case user renamed it)
+                if node_tree == node_group:
+                    print(f"[Atomic Debug] _is_compositor_node_tree: '{node_group.name}' is scene '{scene.name}' compositor node tree")
+                    return True
+                else:
+                    print(f"[Atomic Debug] _is_compositor_node_tree: node_tree != node_group (reference comparison failed)")
+    
+    # Also check if it's used as a node within any compositor (via node_group_compositors)
+    # This handles the case where the node group is used within a compositor, not just as the tree itself
+    comp_users = users.node_group_compositors(node_group.name)
+    if comp_users:
+        print(f"[Atomic Debug] _is_compositor_node_tree: '{node_group.name}' is used in compositor: {comp_users}")
         return True
     
-    # In Blender 5.0+, check if this node group is any scene's compositing_node_tree
-    if version.is_version_at_least(5, 0, 0):
-        for scene in bpy.data.scenes:
-            if hasattr(scene, 'compositing_node_tree') and scene.compositing_node_tree:
-                if scene.compositing_node_tree.name == node_group.name:
-                    return True
-    else:
-        # In Blender 4.2/4.5, check scene.node_tree
-        for scene in bpy.data.scenes:
-            if hasattr(scene, 'node_tree') and scene.node_tree:
-                if scene.node_tree.name == node_group.name:
-                    return True
+    print(f"[Atomic Debug] _is_compositor_node_tree: '{node_group.name}' is NOT a compositor node tree")
     return False
 
 
@@ -328,8 +334,11 @@ def node_groups_deep():
             return False
         
         # First check: node group has no users at all
-        if not users.node_group_all(ng_name):
+        all_users = users.node_group_all(ng_name)
+        print(f"[Atomic Debug] _is_node_group_unused: '{ng_name}' - all_users = {all_users}")
+        if not all_users:
             if not node_group.use_fake_user or config.include_fake_users:
+                print(f"[Atomic Debug] _is_node_group_unused: '{ng_name}' has no users, marking as unused")
                 _unused_node_groups_cache.add(ng_name)
                 return True
         

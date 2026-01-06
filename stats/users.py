@@ -724,7 +724,7 @@ def node_group_all(node_group_key):
 
 def node_group_compositors(node_group_key):
     # returns a list containing "Compositor" if the node group is used in
-    # the scene's compositor
+    # any scene's compositor (either as the compositor's node tree itself, or as a node within it)
 
     users = []
     node_group = bpy.data.node_groups[node_group_key]
@@ -732,27 +732,40 @@ def node_group_compositors(node_group_key):
     # a list of node groups that use our node group
     node_group_users = node_group_node_groups(node_group_key)
 
-    # Import compat module for version-safe compositor access
+    # Import compat and version modules for version-safe compositor access
     from ..utils import compat
+    from ..utils import version
 
-    # if our compositor uses nodes and has a valid node tree
-    scene = bpy.context.scene
-    if scene.use_nodes:
-        node_tree = compat.get_scene_compositor_node_tree(scene)
-        if node_tree:
-            # check each node in the compositor
-            for node in node_tree.nodes:
-
-                # if the node is a group and has a valid node tree
-                if hasattr(node, 'node_tree') and node.node_tree:
-
-                    # if the node group is our node group
-                    if node.node_tree.name == node_group.name:
-                        users.append("Compositor")
-
-                    # if the node group is in our list of node group users
-                    if node.node_tree.name in node_group_users:
-                        users.append("Compositor")
+    # Check ALL scenes, not just the current one
+    for scene in bpy.data.scenes:
+        # First check: is this node group the compositor's node tree itself?
+        if version.is_version_at_least(5, 0, 0):
+            if hasattr(scene, 'compositing_node_tree') and scene.compositing_node_tree:
+                # Check by reference, not just name (in case user renamed it)
+                if scene.compositing_node_tree == node_group:
+                    users.append("Compositor")
+                    continue  # Already found, skip checking nodes within it
+        else:
+            if hasattr(scene, 'node_tree') and scene.node_tree:
+                # Check by reference, not just name (in case user renamed it)
+                if scene.node_tree == node_group:
+                    users.append("Compositor")
+                    continue  # Already found, skip checking nodes within it
+        
+        # Second check: is this node group used as a node within the compositor?
+        if scene.use_nodes:
+            node_tree = compat.get_scene_compositor_node_tree(scene)
+            if node_tree:
+                # check each node in the compositor
+                for node in node_tree.nodes:
+                    # if the node is a group and has a valid node tree
+                    if hasattr(node, 'node_tree') and node.node_tree:
+                        # if the node group is our node group (check by reference)
+                        if node.node_tree == node_group:
+                            users.append("Compositor")
+                        # if the node group is in our list of node group users
+                        elif node.node_tree.name in node_group_users:
+                            users.append("Compositor")
 
     return distinct(users)
 

@@ -42,6 +42,10 @@ _cache_valid = False
 # Store reference to clean operator instance for dialog invocation
 _clean_operator_instance = None
 
+# Store scan results for dialog invocation (when operator instance is invalidated)
+_clean_pending_results = None
+_clean_pending_categories = None
+
 # Module-level state for timer-based operations
 _smart_select_state = {
     'current_category_index': 0,
@@ -629,8 +633,17 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         atom = context.scene.atomic
         
         # Store operator instance for dialog invocation
-        global _clean_operator_instance
+        global _clean_operator_instance, _clean_pending_results, _clean_pending_categories
         _clean_operator_instance = self
+        
+        # Check if there are pending results from a completed scan
+        if _clean_pending_results is not None:
+            # Populate from pending results and show dialog
+            _populate_unused_lists(self, atom, _clean_pending_results)
+            # Clear pending results
+            _clean_pending_results = None
+            _clean_pending_categories = None
+            return context.window_manager.invoke_props_dialog(self)
         
         # Determine which categories are selected
         selected_categories = []
@@ -875,29 +888,28 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
 def _on_clean_scan_complete(results, **kwargs):
     """Callback for Clean scan completion.
     Populates operator properties and shows dialog."""
-    global _clean_operator_instance, _clean_invoke_state
+    global _clean_operator_instance, _clean_invoke_state, _clean_pending_results, _clean_pending_categories
     
     atom = bpy.context.scene.atomic
     
-    # Populate operator properties with unused items
-    operator_instance = _clean_invoke_state.get('operator_instance')
-    if operator_instance:
-        _populate_unused_lists(operator_instance, atom, results)
+    # Store results for later use (operator instance may be invalidated)
+    scan_results = results
+    selected_categories = _clean_invoke_state.get('selected_categories', [])
     
     # Calculate found items for debug
     found_items = {}
-    for category in _clean_invoke_state['selected_categories']:
+    for category in selected_categories:
         unused_list = results.get(category, [])
         if unused_list:
             found_items[category] = len(unused_list)
     
     # Debug output
-    if _clean_invoke_state['selected_categories']:
+    if selected_categories:
         if found_items:
-            print(f"[Atomic Clean] Selected categories: {', '.join(_clean_invoke_state['selected_categories'])}")
+            print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
             print(f"[Atomic Clean] Found unused items: {found_items}")
         else:
-            print(f"[Atomic Clean] Selected categories: {', '.join(_clean_invoke_state['selected_categories'])}")
+            print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
             print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
     
     # Operation complete - show dialog
@@ -911,13 +923,41 @@ def _on_clean_scan_complete(results, **kwargs):
     
     # Use a timer to invoke the dialog
     def show_dialog():
+        global _clean_operator_instance, _clean_pending_results, _clean_pending_categories
         try:
+            # Try to use stored operator instance first
+            operator_instance = None
             if _clean_operator_instance is not None:
-                wm = bpy.context.window_manager
-                wm.invoke_props_dialog(_clean_operator_instance)
-                _clean_operator_instance = None
-        except:
-            pass  # Dialog may fail if context is invalid
+                try:
+                    # Check if operator instance is still valid by accessing a property
+                    _ = _clean_operator_instance.bl_idname
+                    operator_instance = _clean_operator_instance
+                except (ReferenceError, AttributeError, TypeError) as e:
+                    # Operator instance invalidated
+                    _clean_operator_instance = None
+                    print(f"[Atomic Debug] Clean: Stored operator instance invalidated: {e}")
+            
+            # If we have a valid operator instance, populate and show dialog
+            if operator_instance:
+                try:
+                    _populate_unused_lists(operator_instance, atom, scan_results)
+                    wm = bpy.context.window_manager
+                    wm.invoke_props_dialog(operator_instance)
+                    _clean_operator_instance = None
+                except (ReferenceError, AttributeError, TypeError) as e:
+                    print(f"[Atomic Error] Clean: Failed to populate/show dialog: {e}")
+                    # Fall through to pending results approach
+                    operator_instance = None
+            
+            # If operator instance is invalid, store results and invoke new operator
+            if not operator_instance:
+                # Store results for new operator invocation
+                _clean_pending_results = scan_results
+                _clean_pending_categories = selected_categories
+                # Invoke a new operator instance
+                bpy.ops.atomic.clean('INVOKE_DEFAULT')
+        except Exception as e:
+            print(f"[Atomic Error] Clean: Failed to show dialog: {e}")
         return None  # Run once
     
     # Clear state
