@@ -15,6 +15,7 @@
   - Fixed missing import error in node_group_compositors()
 - Made Clean execute deletion synchronous for faster performance
 - Fixed callback-initiated scan state not being preserved, causing scans to fail
+- Fixed instanced collection usage detection
 
 ## [v2.2.0] - 2026-01-05
 
