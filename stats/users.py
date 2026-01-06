@@ -31,6 +31,7 @@ a material would be searching for the image_materials() function.
 """
 
 import bpy
+from ..utils import compat
 
 
 def collection_all(collection_key):
@@ -42,7 +43,8 @@ def collection_all(collection_key):
            collection_meshes(collection_key) + \
            collection_others(collection_key) + \
            collection_rigidbody_world(collection_key) + \
-           collection_scenes(collection_key)
+           collection_scenes(collection_key) + \
+           collection_instances(collection_key)
 
 
 def collection_cameras(collection_key):
@@ -185,6 +187,32 @@ def collection_scenes(collection_key):
     for scene in bpy.data.scenes:
         if _scene_collection_contains(scene.collection, collection):
             users.append(scene.name)
+
+    return distinct(users)
+
+
+def collection_instances(collection_key):
+    # returns a list of object keys that instance this collection
+    # Collection instances are objects with instance_type='COLLECTION' and
+    # instance_collection pointing to this collection
+    # Only counts objects that are actually in scene collections
+
+    users = []
+    collection = bpy.data.collections[collection_key]
+
+    for obj in bpy.data.objects:
+        # Skip library-linked and override objects
+        if compat.is_library_or_override(obj):
+            continue
+        
+        # Check if object is a collection instance
+        if hasattr(obj, 'instance_type') and obj.instance_type == 'COLLECTION':
+            if hasattr(obj, 'instance_collection') and obj.instance_collection:
+                if obj.instance_collection.name == collection.name:
+                    # Only count if the instance object is in a scene
+                    # (otherwise the collection isn't really being used)
+                    if object_all(obj.name):
+                        users.append(obj.name)
 
     return distinct(users)
 
@@ -1421,22 +1449,68 @@ def texture_particles(texture_key):
     return distinct(users)
 
 
-def object_all(object_key):
+def object_all(object_key, _visited_objects=None):
     # returns a list of scene names where the object is used
     # An object is "used" if it's in any collection that's part of any scene's collection hierarchy
+    # OR if it's in a collection that is instanced (and that instance is in a scene)
+    # _visited_objects is used to prevent infinite recursion when checking instanced collections
 
-    users = []
-    obj = bpy.data.objects[object_key]
+    if _visited_objects is None:
+        _visited_objects = set()
+    
+    # Prevent infinite recursion
+    if object_key in _visited_objects:
+        return []
+    _visited_objects.add(object_key)
+    
+    try:
+        users = []
+        obj = bpy.data.objects[object_key]
 
-    # Get all collections that contain this object
-    for collection in obj.users_collection:
-        # Check if this collection is in any scene's hierarchy
-        for scene in bpy.data.scenes:
-            if _scene_collection_contains(scene.collection, collection):
-                if scene.name not in users:
-                    users.append(scene.name)
-
-    return distinct(users)
+        # Get all collections that contain this object
+        for collection in obj.users_collection:
+            # Check if this collection is in any scene's hierarchy
+            for scene in bpy.data.scenes:
+                if _scene_collection_contains(scene.collection, collection):
+                    if scene.name not in users:
+                        users.append(scene.name)
+            
+            # Also check if this collection is instanced (and the instance is in a scene)
+            # Get all objects that instance this collection
+            for instance_obj in bpy.data.objects:
+                # Skip library-linked and override objects
+                if compat.is_library_or_override(instance_obj):
+                    continue
+                
+                # Check if object is a collection instance
+                if hasattr(instance_obj, 'instance_type') and instance_obj.instance_type == 'COLLECTION':
+                    if hasattr(instance_obj, 'instance_collection') and instance_obj.instance_collection:
+                        if instance_obj.instance_collection.name == collection.name:
+                            # Check if the instance object is in a scene (using visited set to prevent recursion)
+                            # First check if instance object is directly in a scene collection
+                            instance_direct_scenes = []
+                            for instance_collection in instance_obj.users_collection:
+                                for scene in bpy.data.scenes:
+                                    if _scene_collection_contains(scene.collection, instance_collection):
+                                        if scene.name not in instance_direct_scenes:
+                                            instance_direct_scenes.append(scene.name)
+                            
+                            # If instance object is directly in a scene, the instanced collection's objects are used
+                            if instance_direct_scenes:
+                                for scene_name in instance_direct_scenes:
+                                    if scene_name not in users:
+                                        users.append(scene_name)
+                            else:
+                                # Instance object is not directly in a scene, but might be in an instanced collection
+                                # Recursively check (with visited set to prevent infinite loops)
+                                instance_scenes = object_all(instance_obj.name, _visited_objects)
+                                for scene_name in instance_scenes:
+                                    if scene_name not in users:
+                                        users.append(scene_name)
+        
+        return distinct(users)
+    finally:
+        _visited_objects.remove(object_key)
 
 
 def armature_all(armature_key):

@@ -255,7 +255,7 @@ class ATOMIC_OT_clear_cache(bpy.types.Operator):
 
     def execute(self, context):
         _invalidate_cache()
-        print("[Atomic] Cache cleared manually")
+        config.debug_print("[Atomic Debug] Cache cleared manually")
         return {'FINISHED'}
 
 
@@ -936,11 +936,11 @@ def _on_clean_scan_complete(results, **kwargs):
     # Debug output
     if selected_categories:
         if found_items:
-            print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
-            print(f"[Atomic Clean] Found unused items: {found_items}")
+            config.debug_print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
+            config.debug_print(f"[Atomic Clean] Found unused items: {found_items}")
         else:
-            print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
-            print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
+            config.debug_print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
+            config.debug_print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
     
     # Operation complete - show dialog
     _safe_set_atom_property(atom, 'is_operation_running', False)
@@ -975,7 +975,7 @@ def _on_clean_scan_complete(results, **kwargs):
                     wm.invoke_props_dialog(operator_instance)
                     _clean_operator_instance = None
                 except (ReferenceError, AttributeError, TypeError) as e:
-                    print(f"[Atomic Error] Clean: Failed to populate/show dialog: {e}")
+                    config.debug_print(f"[Atomic Error] Clean: Failed to populate/show dialog: {e}")
                     # Fall through to pending results approach
                     operator_instance = None
             
@@ -987,7 +987,7 @@ def _on_clean_scan_complete(results, **kwargs):
                 # Invoke a new operator instance
                 bpy.ops.atomic.clean('INVOKE_DEFAULT')
         except Exception as e:
-            print(f"[Atomic Error] Clean: Failed to show dialog: {e}")
+            config.debug_print(f"[Atomic Error] Clean: Failed to show dialog: {e}")
         return None  # Run once
     
     # Clear state
@@ -999,14 +999,12 @@ def _on_clean_scan_complete(results, **kwargs):
 def _process_unified_scan_step():
     """Unified scanning function that handles both quick and full scans with incremental support.
     Works for both Smart Select and Clean operations."""
-    print("[Atomic Debug] Unified Scanner: _process_unified_scan_step() called")
+    config.debug_print("[Atomic Debug] Unified Scanner: _process_unified_scan_step() called")
     try:
         # Check if context is valid
         if not hasattr(bpy.context, 'scene') or bpy.context.scene is None:
-            print("[Atomic Debug] Unified Scanner: Invalid context, returning")
+            config.debug_print("[Atomic Debug] Unified Scanner: Invalid context, returning")
             return None
-        from ..utils import compat
-        from .. import config
         from ..stats import unused, unused_parallel
         atom = bpy.context.scene.atomic
         global _scan_state, _unused_cache, _cache_valid
@@ -1015,14 +1013,14 @@ def _process_unified_scan_step():
         
         # Check if scan state is initialized (mode should be set)
         if _scan_state is None or _scan_state.get('mode') is None:
-            print("[Atomic Debug] Unified Scanner: _scan_state is not initialized, returning")
+            config.debug_print("[Atomic Debug] Unified Scanner: _scan_state is not initialized, returning")
             return None  # No scan in progress
         
         config.debug_print(f"[Atomic Debug] Unified Scanner: mode = {_scan_state.get('mode')}, current_category_index = {_scan_state.get('current_category_index')}, categories_to_scan = {_scan_state.get('categories_to_scan')}")
         
         # Check for cancellation
         if atom.cancel_operation:
-            print("[Atomic Debug] Unified Scanner: Operation cancelled")
+            config.debug_print("[Atomic Debug] Unified Scanner: Operation cancelled")
             _safe_set_atom_property(atom, 'is_operation_running', False)
             _safe_set_atom_property(atom, 'operation_progress', 0.0)
             _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
@@ -1034,7 +1032,7 @@ def _process_unified_scan_step():
         
         # Check cache first (only for full scans)
         if _scan_state['mode'] == 'full' and _cache_valid and _unused_cache is not None:
-            print("[Atomic Debug] Unified Scanner: Using cached results")
+            config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
             # Check if cache has all requested categories
             cache_has_all = all(cat in _unused_cache for cat in _scan_state['categories_to_scan'])
             if cache_has_all:
@@ -1043,6 +1041,7 @@ def _process_unified_scan_step():
                 _scan_state['results'] = filtered_results
                 _safe_set_atom_property(atom, 'operation_progress', 50.0)
                 _safe_set_atom_property(atom, 'operation_status', "Using cached results...")
+                config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
                 # Call callback with cached results
                 if _scan_state['callback']:
                     _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
@@ -1320,7 +1319,7 @@ def _process_unified_scan_step():
     except Exception as e:
         # Handle any errors
         import traceback
-        print(f"[Atomic Error] Unified scan step failed: {e}")
+        config.debug_print(f"[Atomic Error] Unified scan step failed: {e}")
         traceback.print_exc()
         try:
             atom = bpy.context.scene.atomic
@@ -1365,11 +1364,11 @@ def _populate_unused_lists(operator_instance, atom, all_unused):
 def _process_clean_invoke_step():
     """Process Clean invoke in steps to avoid blocking the UI.
     Uses unified scanner for full scan of selected categories only."""
-    print("[Atomic Debug] Clean: _process_clean_invoke_step() called")
+    config.debug_print("[Atomic Debug] Clean: _process_clean_invoke_step() called")
     try:
         # Check if context is valid
         if not hasattr(bpy.context, 'scene') or bpy.context.scene is None:
-            print("[Atomic Debug] Clean: Invalid context, returning")
+            config.debug_print("[Atomic Debug] Clean: Invalid context, returning")
             return None
         atom = bpy.context.scene.atomic
         global _clean_invoke_state, _scan_state
@@ -1394,7 +1393,7 @@ def _process_clean_invoke_step():
         scan_started = _clean_invoke_state.get('scan_started', False)
         config.debug_print(f"[Atomic Debug] Clean: scan_started = {scan_started}, condition result = {not scan_started}")
         if not scan_started:
-            print("[Atomic Debug] Clean: Starting scan initialization")
+            config.debug_print("[Atomic Debug] Clean: Starting scan initialization")
             # Start unified scanner for selected categories only
             _clean_invoke_state['scan_started'] = True
             config.debug_print(f"[Atomic Debug] Clean: Selected categories: {_clean_invoke_state['selected_categories']}")
@@ -1410,7 +1409,7 @@ def _process_clean_invoke_step():
             _safe_set_atom_property(atom, 'operation_status', f"Starting scan of {len(_clean_invoke_state['selected_categories'])} categories...")
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
-            print("[Atomic Debug] Clean: Creating _scan_state for full scan")
+            config.debug_print("[Atomic Debug] Clean: Creating _scan_state for full scan")
             _scan_state = {
             'mode': 'full',
             'categories_to_scan': _clean_invoke_state['selected_categories'],
@@ -1427,19 +1426,19 @@ def _process_clean_invoke_step():
             }
             # Start unified scanner and stop this timer (unified scanner will handle everything)
             # Always register the timer - it will handle its own lifecycle
-            print("[Atomic Debug] Clean: Registering unified scanner timer")
+            config.debug_print("[Atomic Debug] Clean: Registering unified scanner timer")
             bpy.app.timers.register(_process_unified_scan_step)
-            print("[Atomic Debug] Clean: Calling _process_unified_scan_step() immediately")
+            config.debug_print("[Atomic Debug] Clean: Calling _process_unified_scan_step() immediately")
             result = _process_unified_scan_step()
             config.debug_print(f"[Atomic Debug] Clean: _process_unified_scan_step() returned: {result}")
             return None  # Stop this timer
         
         # If we get here, something went wrong (shouldn't happen)
-        print("[Atomic Debug] Clean: Reached end of function unexpectedly")
+        config.debug_print("[Atomic Debug] Clean: Reached end of function unexpectedly")
         return None
     except Exception as e:
         import traceback
-        print(f"[Atomic Error] Clean invoke step failed: {e}")
+        config.debug_print(f"[Atomic Error] Clean invoke step failed: {e}")
         traceback.print_exc()
         try:
             if hasattr(bpy.context, 'scene') and bpy.context.scene is not None:
@@ -1498,11 +1497,11 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
 def _process_smart_select_step():
     """Process Smart Select in steps to avoid blocking the UI.
     Uses unified scanner for both quick and full scans."""
-    print("[Atomic Debug] Smart Select: _process_smart_select_step() called")
+    config.debug_print("[Atomic Debug] Smart Select: _process_smart_select_step() called")
     try:
         # Check if context is valid
         if not hasattr(bpy.context, 'scene') or bpy.context.scene is None:
-            print("[Atomic Debug] Smart Select: Invalid context, returning")
+            config.debug_print("[Atomic Debug] Smart Select: Invalid context, returning")
             return None
         atom = bpy.context.scene.atomic
         global _smart_select_state, _scan_state
@@ -1525,13 +1524,13 @@ def _process_smart_select_step():
         
         # Step 1: Quick scan to detect categories with unused items
         if not _smart_select_state.get('quick_scan_started', False):
-            print("[Atomic Debug] Smart Select: Starting quick scan initialization")
+            config.debug_print("[Atomic Debug] Smart Select: Starting quick scan initialization")
             # Start quick scan
             _smart_select_state['quick_scan_started'] = True
             _safe_set_atom_property(atom, 'operation_status', "Starting quick scan...")
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
-            print("[Atomic Debug] Smart Select: Creating _scan_state for quick scan")
+            config.debug_print("[Atomic Debug] Smart Select: Creating _scan_state for quick scan")
             _scan_state = {
             'mode': 'quick',
             'categories_to_scan': list(unused_parallel.CATEGORIES),
@@ -1548,19 +1547,19 @@ def _process_smart_select_step():
             }
             # Start unified scanner and stop this timer (unified scanner will handle everything)
             # Always register the timer - it will handle its own lifecycle
-            print("[Atomic Debug] Smart Select: Registering unified scanner timer")
+            config.debug_print("[Atomic Debug] Smart Select: Registering unified scanner timer")
             bpy.app.timers.register(_process_unified_scan_step)
-            print("[Atomic Debug] Smart Select: Calling _process_unified_scan_step() immediately")
+            config.debug_print("[Atomic Debug] Smart Select: Calling _process_unified_scan_step() immediately")
             result = _process_unified_scan_step()
             config.debug_print(f"[Atomic Debug] Smart Select: _process_unified_scan_step() returned: {result}")
             return None  # Stop this timer
         
         # If we get here, something went wrong (shouldn't happen)
-        print("[Atomic Debug] Smart Select: Reached end of function unexpectedly")
+        config.debug_print("[Atomic Debug] Smart Select: Reached end of function unexpectedly")
         return None
     except Exception as e:
         import traceback
-        print(f"[Atomic Error] Smart Select step failed: {e}")
+        config.debug_print(f"[Atomic Error] Smart Select step failed: {e}")
         traceback.print_exc()
         try:
             if hasattr(bpy.context, 'scene') and bpy.context.scene is not None:
