@@ -24,6 +24,7 @@ some functions for syncing the preference properties with external factors.
 """
 
 import bpy
+import os
 from bpy.utils import register_class
 from ..utils import compat
 from .. import config
@@ -137,6 +138,12 @@ def copy_prefs_to_config(self, context):
 
     config.enable_debug_prints = \
         atomic_preferences.enable_debug_prints
+
+    config.single_threaded_image_deep_scan = \
+        atomic_preferences.single_threaded_image_deep_scan
+
+    config.reserve_threads_for_deep_scan = \
+        atomic_preferences.reserve_threads_for_deep_scan
 
     # hidden atomic preferences
     config.pie_menu_type = \
@@ -253,6 +260,18 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=False
     )
 
+    single_threaded_image_deep_scan: bpy.props.BoolProperty(
+        description="Use slower but more stable single-threaded deep scan",
+        default=False
+    )
+
+    reserve_threads_for_deep_scan: bpy.props.IntProperty(
+        description="Number of CPU threads to reserve (worker count = total_threads - reserved)",
+        default=1,
+        min=0,
+        max=max(0, (os.cpu_count() or 4) - 2)  # Dynamic max: machine threads minus 2
+    )
+
     # hidden atomic preferences
     pie_menu_type: bpy.props.StringProperty(
         default="D"
@@ -313,6 +332,20 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             self,
             "enable_debug_prints",
             text="Enable Debug Prints"
+        )
+
+        # Image deep scan settings
+        col.separator()
+        col.label(text="Image Deep Scan:", icon='IMAGE_DATA')
+        col.prop(
+            self,
+            "single_threaded_image_deep_scan",
+            text="Single-Threaded Mode (Slower, More Stable)"
+        )
+        col.prop(
+            self,
+            "reserve_threads_for_deep_scan",
+            text="Reserve Threads"
         )
 
         # pie menu settings
