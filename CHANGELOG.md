@@ -1,3 +1,8 @@
+## [v2.3.1] 2026-01-13
+
+### Fixes
+- Integrate proper UDIM detection
+
 ## [v2.3.0] - 2026-01-06
 
 ### Features
