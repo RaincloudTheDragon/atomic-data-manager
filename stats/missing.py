@@ -101,3 +101,54 @@ def images():
 def libraries():
     # returns a list of keys of libraries with a non-existent filepath
     return get_missing(bpy.data.libraries)
+
+
+def get_missing_library_info(library_key):
+    """
+    Get information about a missing library for matching and validation.
+    
+    Returns:
+        dict with keys:
+            - 'filepath': original filepath
+            - 'filename': basename for matching
+            - 'linked_data_blocks': list of data-block names linked from this library
+    """
+    if library_key not in bpy.data.libraries:
+        return None
+    
+    library = bpy.data.libraries[library_key]
+    filepath = library.filepath
+    filename = os.path.basename(bpy.path.abspath(filepath)) if filepath else ""
+    
+    # Get linked data-block names (collections, objects, materials, etc.)
+    linked_data_blocks = []
+    try:
+        # Collections
+        for collection in bpy.data.collections:
+            if collection.library == library:
+                linked_data_blocks.append(('COLLECTION', collection.name))
+        # Objects
+        for obj in bpy.data.objects:
+            if obj.library == library:
+                linked_data_blocks.append(('OBJECT', obj.name))
+        # Materials
+        for material in bpy.data.materials:
+            if material.library == library:
+                linked_data_blocks.append(('MATERIAL', material.name))
+        # Meshes
+        for mesh in bpy.data.meshes:
+            if mesh.library == library:
+                linked_data_blocks.append(('MESH', mesh.name))
+        # Armatures
+        for armature in bpy.data.armatures:
+            if armature.library == library:
+                linked_data_blocks.append(('ARMATURE', armature.name))
+    except Exception:
+        # If we can't access library data, return what we have
+        pass
+    
+    return {
+        'filepath': filepath,
+        'filename': filename,
+        'linked_data_blocks': linked_data_blocks
+    }
