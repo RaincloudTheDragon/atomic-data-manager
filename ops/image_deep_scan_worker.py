@@ -33,18 +33,22 @@ import os
 
 # Parse command-line arguments
 # Format: -- job_index image_list_json output_json
+print("[Atomic Worker] Starting worker script...")
+
 if '--' not in sys.argv:
     print("[Atomic Error] Missing '--' separator in arguments")
     sys.exit(1)
 
 arg_index = sys.argv.index('--')
 if len(sys.argv) < arg_index + 4:
-    print("[Atomic Error] Missing required arguments")
+    print(f"[Atomic Error] Missing required arguments. Got {len(sys.argv) - arg_index - 1} args after '--', need at least 3")
     sys.exit(1)
 
 job_index = int(sys.argv[arg_index + 1])
 image_list_json_path = sys.argv[arg_index + 2]
 output_json_path = sys.argv[arg_index + 3]
+
+print(f"[Atomic Worker] Job {job_index}: Processing images...")
 
 try:
     # Load image list from JSON
@@ -54,55 +58,44 @@ try:
     image_names = image_list_data.get('images', [])
     blend_file_path = image_list_data.get('blend_file', '')
     
-    # Import necessary modules
-    # We need to find the addon path - try multiple methods
-    addon_dir = None
+    # Import addon modules - find the loaded addon in sys.modules
+    users = None
+    compat = None
+    config = None
     
-    # Method 1: Same directory as this script (standard installation)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    potential_addon_dir = os.path.dirname(script_dir)  # Go up one level from ops/
-    if os.path.exists(os.path.join(potential_addon_dir, "__init__.py")):
-        addon_dir = potential_addon_dir
-    
-    # Method 2: Check if addon is already loaded in sys.modules
-    if not addon_dir:
-        for module_name in sys.modules:
-            if 'atomic_data_manager' in module_name and not module_name.startswith('bl_ext'):
-                module = sys.modules[module_name]
-                if hasattr(module, '__file__') and module.__file__:
-                    potential_dir = os.path.dirname(module.__file__)
-                    if os.path.exists(os.path.join(potential_dir, "stats")):
-                        addon_dir = potential_dir
+    # Find the addon module (could be bl_ext.* for extensions or atomic_data_manager for legacy)
+    addon_module = None
+    for mod_name in sys.modules:
+        if 'atomic_data_manager' in mod_name and not mod_name.endswith('image_deep_scan_worker'):
+            # Found it - get the base module
+            parts = mod_name.split('.')
+            # Find the atomic_data_manager part
+            for i, part in enumerate(parts):
+                if part == 'atomic_data_manager':
+                    base_name = '.'.join(parts[:i+1])
+                    if base_name in sys.modules:
+                        addon_module = sys.modules[base_name]
                         break
+            if addon_module:
+                break
     
-    # Method 3: Search sys.modules for loaded addon
-    if not addon_dir:
-        for module_name, module in sys.modules.items():
-            if 'atomic_data_manager' in module_name and hasattr(module, '__file__') and module.__file__:
-                potential_dir = os.path.dirname(module.__file__)
-                if os.path.exists(os.path.join(potential_dir, "stats")):
-                    addon_dir = potential_dir
-                    break
-    
-    if not addon_dir:
-        print("[Atomic Error] Could not find atomic_data_manager addon directory")
-        sys.exit(1)
-    
-    # Add addon directory to path if not already there
-    if addon_dir not in sys.path:
-        sys.path.insert(0, addon_dir)
-    
-    # Import addon modules
-    try:
-        from stats import users
-        from utils import compat
-        import config
-    except ImportError as e:
-        print(f"[Atomic Error] Failed to import addon modules: {e}")
-        print(f"[Atomic Debug] Addon directory: {addon_dir}")
-        print(f"[Atomic Debug] sys.path: {sys.path[:5]}")
-        import traceback
-        traceback.print_exc()
+    if addon_module:
+        try:
+            # Import submodules from the addon
+            import importlib
+            base_name = addon_module.__name__
+            users = importlib.import_module(f'{base_name}.stats.users')
+            compat = importlib.import_module(f'{base_name}.utils.compat')
+            config = importlib.import_module(f'{base_name}.config')
+            print(f"[Atomic Worker] Addon modules imported via {base_name}")
+        except ImportError as e:
+            print(f"[Atomic Error] Failed to import addon submodules: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+    else:
+        print("[Atomic Error] Could not find atomic_data_manager addon in sys.modules")
+        print(f"[Atomic Debug] Available modules with 'atomic': {[m for m in sys.modules if 'atomic' in m.lower()]}")
         sys.exit(1)
     
     # Initialize config (worker instances need this)
