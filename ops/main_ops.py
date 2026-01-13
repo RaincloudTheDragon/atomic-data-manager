@@ -1088,12 +1088,10 @@ def _process_unified_scan_step():
                         _scan_state['results'] = {}
                     _scan_state['results'][category] = []
                 
-                # Process multiple images per callback (batch size: 5 images)
-                BATCH_SIZE = 5
                 total_images = len(_scan_state['images_list'])
                 
                 if _scan_state['images_index'] < total_images:
-                    # Check for cancellation before processing batch
+                    # Check for cancellation before processing each image
                     if atom.cancel_operation:
                         _safe_set_atom_property(atom, 'is_operation_running', False)
                         _safe_set_atom_property(atom, 'operation_progress', 0.0)
@@ -1104,21 +1102,18 @@ def _process_unified_scan_step():
                             area.tag_redraw()
                         return None
                     
-                    # Process a batch of images
-                    batch_end = min(_scan_state['images_index'] + BATCH_SIZE, total_images)
+                    # Process one image at a time (no batching for better cancellation responsiveness)
                     current_index = _scan_state['images_index'] + 1
+                    current_image = _scan_state['images_list'][_scan_state['images_index']]
                     
                     # Update status with current image
-                    current_image = _scan_state['images_list'][_scan_state['images_index']]
-                    _safe_set_atom_property(atom, 'operation_status', f"Checking images {current_index}-{batch_end}/{total_images}: {current_image.name[:25]}...")
+                    _safe_set_atom_property(atom, 'operation_status', f"Checking image {current_index}/{total_images}: {current_image.name[:25]}...")
                     
-                    # Process batch
-                    for i in range(_scan_state['images_index'], batch_end):
-                        image = _scan_state['images_list'][i]
-                        if _check_single_image(image):
-                            _scan_state['images_unused'].append(image.name)
+                    # Process single image
+                    if _check_single_image(current_image):
+                        _scan_state['images_unused'].append(current_image.name)
                     
-                    _scan_state['images_index'] = batch_end
+                    _scan_state['images_index'] += 1
                     
                     # Update progress within images category
                     category_progress = (_scan_state['images_index'] / total_images) * (1.0 / total_categories)
