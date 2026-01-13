@@ -235,6 +235,9 @@ def _process_library_search_step():
             # Thread will finish naturally, we'll handle cancellation in next step
             pass
         state['is_searching'] = False
+        _safe_set_atom_property(atom, 'is_operation_running', False)
+        _safe_set_atom_property(atom, 'operation_progress', 0.0)
+        _safe_set_atom_property(atom, 'operation_status', "")
         config.debug_print("[Atomic Debug] Library search cancelled")
         return None
     
@@ -264,6 +267,15 @@ def _process_library_search_step():
             state['search_error'] = error_msg
             state['is_searching'] = False
             _safe_set_atom_property(atom, 'operation_status', f"Error: {error_msg}")
+            # Clear progress after showing error
+            def clear_error_progress():
+                _safe_set_atom_property(atom, 'is_operation_running', False)
+                _safe_set_atom_property(atom, 'operation_progress', 0.0)
+                _safe_set_atom_property(atom, 'operation_status', "")
+                for area in bpy.context.screen.areas:
+                    area.tag_redraw()
+                return None  # Run once
+            bpy.app.timers.register(clear_error_progress, first_interval=3.0)  # Clear after 3 seconds
             return None
         except queue.Empty:
             pass
@@ -276,6 +288,21 @@ def _process_library_search_step():
         
         # Match libraries
         _match_libraries()
+        
+        # Clear operation running state after a short delay to show completion message
+        # This allows the user to see the completion message briefly
+        def clear_progress():
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', "")
+            # Redraw UI
+            for area in bpy.context.screen.areas:
+                area.tag_redraw()
+            return None  # Run once
+        
+        # Only register timer if not already cleared (avoid duplicate timers)
+        if atom.is_operation_running:
+            bpy.app.timers.register(clear_progress, first_interval=1.5)  # Clear after 1.5 seconds
         
         # Redraw UI
         for area in bpy.context.screen.areas:
@@ -365,8 +392,14 @@ def _validate_replacement_library(library_key, replacement_path, original_info):
     return warnings
 
 
-def _relink_library(library_key, new_filepath):
-    """Relink a library to a new filepath"""
+def _relink_library(library_key, new_filepath, use_relative_path=True):
+    """Relink a library to a new filepath
+    
+    Args:
+        library_key: Key of the library to relink
+        new_filepath: New filepath (can be absolute or relative)
+        use_relative_path: If True, use relative path when available (default: True)
+    """
     if library_key not in bpy.data.libraries:
         return False, "Library not found"
     
@@ -394,7 +427,12 @@ def _relink_library(library_key, new_filepath):
         
         # Update library filepath
         try:
-            library.filepath = bpy.path.relpath(abs_path)
+            if use_relative_path:
+                # Use relative path when available (bpy.path.relpath returns relative if possible, absolute otherwise)
+                library.filepath = bpy.path.relpath(abs_path)
+            else:
+                # Use absolute path
+                library.filepath = abs_path
         except Exception as e:
             return False, f"Error setting library filepath: {str(e)}"
         
@@ -448,6 +486,13 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
         update=_update_search_directory
     )
     
+    # Relative path option
+    relative_path: bpy.props.BoolProperty(
+        name="Relative Path",
+        description="Select the file relative to the blend file",
+        default=True
+    )
+    
     # Selected matches for libraries with multiple candidates
     selected_matches: bpy.props.StringProperty(default="")  # JSON-like storage: "lib_key:filepath|lib_key:filepath"
     
@@ -461,6 +506,10 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
         # Directory selection
         row = layout.row()
         row.prop(self, 'search_directory')
+        
+        # Relative path checkbox
+        row = layout.row()
+        row.prop(self, 'relative_path', text="Relative Path")
         
         # Update state with current directory
         if self.search_directory:
@@ -570,11 +619,13 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                         op.library_key = lib_key
                         op.filepath = selected_match
                         op.ignore_warnings = True
+                        op.use_relative_path = self.relative_path
                     else:
                         op = row.operator("atomic.search_missing_relink", text="Relink")
                         op.library_key = lib_key
                         op.filepath = selected_match
                         op.ignore_warnings = False
+                        op.use_relative_path = self.relative_path
         
         # Error display
         if state.get('search_error'):
@@ -772,9 +823,10 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
     library_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
     ignore_warnings: bpy.props.BoolProperty(default=False)
+    use_relative_path: bpy.props.BoolProperty(default=True)
     
     def execute(self, context):
-        success, message = _relink_library(self.library_key, self.filepath)
+        success, message = _relink_library(self.library_key, self.filepath, self.use_relative_path)
         
         if success:
             self.report({'INFO'}, f"Library relinked: {message}")
@@ -782,6 +834,13 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
             global _library_search_state
             if self.library_key in _library_search_state.get('matches', {}):
                 del _library_search_state['matches'][self.library_key]
+            
+            # Clear progress state if operation was running
+            atom = context.scene.atomic
+            if atom.is_operation_running:
+                _safe_set_atom_property(atom, 'is_operation_running', False)
+                _safe_set_atom_property(atom, 'operation_progress', 0.0)
+                _safe_set_atom_property(atom, 'operation_status', "")
         else:
             self.report({'ERROR'}, message)
         
