@@ -59,8 +59,23 @@ def get_missing(data):
             # Blender 4.2/4.5: Both use 'packed_file' (singular)
             is_packed = bool(datablock.packed_file) if hasattr(datablock, 'packed_file') else False
 
+        # Check if file exists (with special handling for UDIM images)
+        file_exists = False
+        if abspath and isinstance(datablock, bpy.types.Image) and '<UDIM>' in abspath:
+            # UDIM image: check if any UDIM tile files exist
+            # UDIM tiles are numbered 1001, 1002, etc. (standard range is 1001-1099)
+            # Check a reasonable range of UDIM tiles
+            for udim_tile in range(1001, 1100):  # Check tiles 1001-1099
+                udim_path = abspath.replace('<UDIM>', str(udim_tile))
+                if os.path.isfile(udim_path):
+                    file_exists = True
+                    break
+        elif abspath:
+            # Regular file: check if it exists
+            file_exists = os.path.isfile(abspath)
+
         # if data-block is not packed and has an invalid filepath
-        if not is_packed and not os.path.isfile(abspath):
+        if not is_packed and not file_exists:
 
             # if data-block is not in our do not flag list
             # append it to the missing data list
