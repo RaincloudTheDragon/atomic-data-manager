@@ -25,6 +25,13 @@ various selection operations.
 """
 
 import bpy
+import os
+import json
+import tempfile
+import time
+import re
+import subprocess
+import math
 from bpy.utils import register_class
 from ..utils import compat
 from ..stats import unused
@@ -133,6 +140,8 @@ def _invalidate_cache():
     global _unused_cache, _cache_valid
     _unused_cache = None
     _cache_valid = False
+    # Optionally clear disk cache on invalidation
+    # (We keep it for now to allow cache reuse across sessions)
 
 
 # Cache for expensive operations during image scanning
@@ -152,6 +161,458 @@ def _clear_image_scan_cache():
         'material_objects_results': {},
         'object_all_results': {},
     }
+
+
+def _get_cache_filepath():
+    """Get the cache file path based on the current blend file name"""
+    if not bpy.data.filepath:
+        return None
+    
+    # Get blend filename and make it filesystem-safe
+    blend_path = bpy.data.filepath
+    blend_filename = os.path.basename(blend_path)
+    # Remove extension and make safe for filename
+    blend_name = os.path.splitext(blend_filename)[0]
+    # Replace invalid filename characters
+    safe_name = re.sub(r'[<>:"/\\|?*]', '_', blend_name)
+    
+    # Create cache filename
+    cache_filename = f"atomic_cache_{safe_name}.json"
+    cache_path = os.path.join(tempfile.gettempdir(), cache_filename)
+    
+    return cache_path
+
+
+def _load_cache_from_disk():
+    """Load cache from JSON file if it exists and is valid"""
+    cache_path = _get_cache_filepath()
+    if not cache_path or not os.path.exists(cache_path):
+        return None
+    
+    try:
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        
+        # Validate cache
+        if cache_data.get('blend_file') != bpy.data.filepath:
+            config.debug_print("[Atomic Debug] Cache file is for different blend file, ignoring")
+            return None
+        
+        # Check cache version
+        if cache_data.get('cache_version') != '1.0':
+            config.debug_print("[Atomic Debug] Cache version mismatch, ignoring")
+            return None
+        
+        # Optionally check cache age (e.g., invalidate if > 1 hour old)
+        timestamp = cache_data.get('timestamp', 0)
+        if timestamp and (time.time() - timestamp) > 3600:  # 1 hour
+            config.debug_print("[Atomic Debug] Cache is too old, ignoring")
+            return None
+        
+        return cache_data
+    except (json.JSONDecodeError, IOError, OSError) as e:
+        config.debug_print(f"[Atomic Error] Failed to load cache: {e}")
+        return None
+
+
+def _save_cache_to_disk(results, image_scan_cache):
+    """Save cache to JSON file"""
+    cache_path = _get_cache_filepath()
+    if not cache_path:
+        return False
+    
+    try:
+        cache_data = {
+            'blend_file': bpy.data.filepath,
+            'timestamp': time.time(),
+            'cache_version': '1.0',
+            'results': results,
+            'image_scan_cache': image_scan_cache
+        }
+        
+        # Atomic write: write to temp file first, then rename
+        temp_path = cache_path + '.tmp'
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f, indent=2)
+        
+        # Rename temp file to final file (atomic on most filesystems)
+        try:
+            if os.path.exists(cache_path):
+                os.remove(cache_path)
+            os.rename(temp_path, cache_path)
+        except (OSError, IOError) as e:
+            # If rename fails, try to clean up temp file
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except:
+                pass
+            config.debug_print(f"[Atomic Error] Failed to save cache: {e}")
+            return False
+        
+        config.debug_print(f"[Atomic Debug] Cache saved to {cache_path}")
+        return True
+    except (IOError, OSError, TypeError) as e:
+        config.debug_print(f"[Atomic Error] Failed to save cache: {e}")
+        return False
+
+
+# Multi-process deep scan state
+_deep_scan_state = {
+    'is_running': False,
+    'worker_processes': [],  # List of (job_index, subprocess.Popen) tuples
+    'job_outputs': {},  # {job_index: output_json_path}
+    'completed_jobs': set(),
+    'total_jobs': 0,
+    'images_per_job': 0,
+    'image_batches': [],  # List of image name lists for each job
+    'start_time': None,  # Time when scan started
+    'timeout_seconds': 3600  # 1 hour timeout per job
+}
+
+
+def _calculate_job_distribution(total_images):
+    """Calculate how many jobs to create and how to distribute images"""
+    import os as os_module
+    cpu_count = os_module.cpu_count() or 4
+    reserved = config.reserve_threads_for_deep_scan
+    worker_threads = max(1, cpu_count - reserved)
+    
+    # Calculate images per job (round up)
+    images_per_job = math.ceil(total_images / worker_threads) if worker_threads > 0 else total_images
+    
+    # Ensure at least 1 image per job
+    if images_per_job < 1:
+        images_per_job = 1
+    
+    # Recalculate actual number of jobs needed
+    actual_jobs = math.ceil(total_images / images_per_job) if images_per_job > 0 else 1
+    
+    return actual_jobs, images_per_job, worker_threads
+
+
+def _split_images_into_batches(image_list, images_per_job):
+    """Split image list into batches for each job"""
+    batches = []
+    for i in range(0, len(image_list), images_per_job):
+        batches.append(image_list[i:i + images_per_job])
+    return batches
+
+
+def _launch_worker_processes(blend_file_path, image_batches, temp_dir):
+    """Launch headless Blender instances for each job"""
+    global _deep_scan_state
+    
+    # Get Blender executable path
+    blender_exe = bpy.app.binary_path
+    if not blender_exe or not os.path.exists(blender_exe):
+        config.debug_print("[Atomic Error] Could not find Blender executable")
+        return False
+    
+    # Get worker script path (in the same directory as this file)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    worker_script = os.path.join(script_dir, 'image_deep_scan_worker.py')
+    
+    if not os.path.exists(worker_script):
+        config.debug_print(f"[Atomic Error] Worker script not found: {worker_script}")
+        return False
+    
+    processes = []
+    job_outputs = {}
+    
+    for job_index, image_batch in enumerate(image_batches):
+        # Create temporary JSON file for image list
+        image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
+        output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
+        
+        # Write image list to JSON (image_batch contains image objects)
+        image_list_data = {
+            'images': [img.name for img in image_batch],
+            'blend_file': blend_file_path
+        }
+        
+        try:
+            with open(image_list_json, 'w', encoding='utf-8') as f:
+                json.dump(image_list_data, f)
+        except Exception as e:
+            config.debug_print(f"[Atomic Error] Failed to write image list for job {job_index}: {e}")
+            continue
+        
+        job_outputs[job_index] = output_json
+        
+        # Launch headless Blender process
+        # Format: blender.exe -b blendfile.blend --python worker_script.py -- job_index image_list_json output_json
+        cmd = [
+            blender_exe,
+            '-b',  # Background mode
+            blend_file_path,
+            '--python', worker_script,
+            '--',
+            str(job_index),
+            image_list_json,
+            output_json
+        ]
+        
+        try:
+            # Launch process (hide window on Windows)
+            startupinfo = None
+            if os.name == 'nt':  # Windows
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+            
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                startupinfo=startupinfo
+            )
+            processes.append((job_index, process))
+            config.debug_print(f"[Atomic Debug] Launched worker process for job {job_index}")
+        except Exception as e:
+            config.debug_print(f"[Atomic Error] Failed to launch worker process for job {job_index}: {e}")
+            continue
+    
+    _deep_scan_state['worker_processes'] = processes
+    _deep_scan_state['job_outputs'] = job_outputs
+    _deep_scan_state['completed_jobs'] = set()
+    
+    return len(processes) > 0
+
+
+def _process_deep_scan_step():
+    """Timer callback to monitor worker processes and merge results"""
+    global _deep_scan_state, _image_scan_cache, _scan_state
+    
+    atom = bpy.context.scene.atomic
+    
+    # Initialize start time if not set
+    if _deep_scan_state['start_time'] is None:
+        _deep_scan_state['start_time'] = time.time()
+    
+    # Check for cancellation
+    if atom.cancel_operation:
+        # Kill all worker processes
+        for job_index, process in _deep_scan_state['worker_processes']:
+            try:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            except Exception as e:
+                config.debug_print(f"[Atomic Error] Error killing process {job_index}: {e}")
+                try:
+                    process.kill()
+                except:
+                    pass
+        
+        _deep_scan_state['is_running'] = False
+        _safe_set_atom_property(atom, 'is_operation_running', False)
+        _safe_set_atom_property(atom, 'operation_progress', 0.0)
+        _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
+        _safe_set_atom_property(atom, 'cancel_operation', False)
+        
+        # Cleanup temp files
+        temp_dir = tempfile.gettempdir()
+        for job_index in range(_deep_scan_state['total_jobs']):
+            try:
+                image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
+                output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
+                if os.path.exists(image_list_json):
+                    os.remove(image_list_json)
+                if os.path.exists(output_json):
+                    os.remove(output_json)
+                if os.path.exists(output_json + '.tmp'):
+                    os.remove(output_json + '.tmp')
+            except:
+                pass
+        
+        return None
+    
+    # Check for timeout
+    elapsed_time = time.time() - _deep_scan_state['start_time']
+    if elapsed_time > _deep_scan_state['timeout_seconds']:
+        config.debug_print(f"[Atomic Error] Deep scan timeout after {elapsed_time:.1f} seconds")
+        # Kill all processes
+        for job_index, process in _deep_scan_state['worker_processes']:
+            if job_index not in _deep_scan_state['completed_jobs']:
+                try:
+                    process.kill()
+                except:
+                    pass
+        
+        _deep_scan_state['is_running'] = False
+        _safe_set_atom_property(atom, 'operation_status', "Deep scan timed out, falling back to single-threaded...")
+        
+        # Fall back to single-threaded
+        config.debug_print("[Atomic Error] Deep scan failed, falling back to single-threaded")
+        _clear_image_scan_cache()
+        
+        # Reset image scan state to continue with single-threaded
+        if _scan_state and _scan_state.get('images_list'):
+            _scan_state['images_index'] = 0
+            _scan_state['images_unused'] = []
+        
+        # Continue with single-threaded scan (will be handled by next timer call)
+        return None
+    
+    # Check process status
+    all_complete = True
+    completed_count = 0
+    failed_processes = []
+    
+    for job_index, process in _deep_scan_state['worker_processes']:
+        if job_index in _deep_scan_state['completed_jobs']:
+            completed_count += 1
+            continue
+        
+        try:
+            return_code = process.poll()
+            if return_code is None:
+                # Process still running
+                all_complete = False
+            else:
+                # Process finished
+                _deep_scan_state['completed_jobs'].add(job_index)
+                completed_count += 1
+                
+                if return_code != 0:
+                    config.debug_print(f"[Atomic Warning] Worker process {job_index} exited with code {return_code}")
+                    failed_processes.append(job_index)
+        except Exception as e:
+            config.debug_print(f"[Atomic Error] Error checking process {job_index}: {e}")
+            failed_processes.append(job_index)
+            _deep_scan_state['completed_jobs'].add(job_index)
+            completed_count += 1
+    
+    # Update progress
+    total_jobs = _deep_scan_state['total_jobs']
+    if total_jobs > 0:
+        progress = (completed_count / total_jobs) * 90.0  # Reserve 10% for merging
+        _safe_set_atom_property(atom, 'operation_progress', progress)
+        _safe_set_atom_property(atom, 'operation_status', f"Deep scan: {completed_count}/{total_jobs} jobs completed...")
+    
+    # If all processes complete, merge results
+    if all_complete:
+        _safe_set_atom_property(atom, 'operation_status', "Merging results...")
+        _safe_set_atom_property(atom, 'operation_progress', 90.0)
+        
+        # Merge results from all jobs
+        unused_images = []
+        merged_cache = {
+            'image_all_results': {},
+            'image_materials_results': {},
+            'material_objects_results': {},
+            'object_all_results': {},
+        }
+        
+        failed_jobs = []
+        
+        for job_index in range(total_jobs):
+            output_json = _deep_scan_state['job_outputs'].get(job_index)
+            if not output_json or not os.path.exists(output_json):
+                config.debug_print(f"[Atomic Warning] Missing output for job {job_index}")
+                failed_jobs.append(job_index)
+                continue
+            
+            try:
+                with open(output_json, 'r', encoding='utf-8') as f:
+                    job_result = json.load(f)
+                
+                if not job_result.get('success', False):
+                    config.debug_print(f"[Atomic Warning] Job {job_index} failed: {job_result.get('error', 'Unknown error')}")
+                    failed_jobs.append(job_index)
+                    continue
+                
+                # Merge unused images
+                unused_images.extend(job_result.get('unused_images', []))
+                
+                # Merge cache data
+                job_cache = job_result.get('image_scan_cache', {})
+                merged_cache['image_all_results'].update(job_cache.get('image_all_results', {}))
+                merged_cache['image_materials_results'].update(job_cache.get('image_materials_results', {}))
+                merged_cache['material_objects_results'].update(job_cache.get('material_objects_results', {}))
+                merged_cache['object_all_results'].update(job_cache.get('object_all_results', {}))
+                
+            except (json.JSONDecodeError, IOError, OSError) as e:
+                config.debug_print(f"[Atomic Error] Failed to read job {job_index} result: {e}")
+                failed_jobs.append(job_index)
+        
+        # Update global cache
+        global _image_scan_cache
+        _image_scan_cache = merged_cache
+        
+        # Store results in scan state
+        if _scan_state and 'results' in _scan_state:
+            _scan_state['results']['images'] = unused_images
+        
+        # Save cache to disk
+        if _scan_state and 'results' in _scan_state:
+            _save_cache_to_disk(_scan_state['results'], merged_cache)
+        
+        # Handle failed jobs - if too many failed, fall back to single-threaded
+        if len(failed_jobs) > 0:
+            config.debug_print(f"[Atomic Warning] {len(failed_jobs)} jobs failed: {failed_jobs}")
+            if len(failed_jobs) >= total_jobs:
+                # All jobs failed, fall back to single-threaded
+                config.debug_print("[Atomic Error] All jobs failed, falling back to single-threaded scan")
+                _deep_scan_state['is_running'] = False
+                _clear_image_scan_cache()
+                _safe_set_atom_property(atom, 'operation_status', "All jobs failed, falling back to single-threaded...")
+                
+                # Reset image scan state to continue with single-threaded
+                if _scan_state and _scan_state.get('images_list'):
+                    _scan_state['images_index'] = 0
+                    _scan_state['images_unused'] = []
+                
+                # Continue with single-threaded scan (will be handled by next timer call)
+                return None
+        
+        # Cleanup temporary files
+        temp_dir = tempfile.gettempdir()
+        for job_index in range(total_jobs):
+            try:
+                image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
+                output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
+                if os.path.exists(image_list_json):
+                    os.remove(image_list_json)
+                if os.path.exists(output_json):
+                    os.remove(output_json)
+                if os.path.exists(output_json + '.tmp'):
+                    os.remove(output_json + '.tmp')
+            except Exception as e:
+                config.debug_print(f"[Atomic Debug] Error cleaning up temp files for job {job_index}: {e}")
+        
+        _deep_scan_state['is_running'] = False
+        _safe_set_atom_property(atom, 'operation_progress', 100.0)
+        _safe_set_atom_property(atom, 'operation_status', f"Deep scan complete! Found {len(unused_images)} unused images")
+        
+        # Continue with normal scan flow - move to next category
+        if _scan_state:
+            _scan_state['current_category_index'] += 1
+            _scan_state['status_updated'] = False
+            # Clear image-specific state
+            _scan_state['images_list'] = None
+            _scan_state['images_index'] = 0
+            _scan_state['images_unused'] = []
+            
+            # Restart unified scan timer to continue with next category
+            total_categories = len(_scan_state['categories_to_scan'])
+            progress = (_scan_state['current_category_index'] / total_categories) * 50.0
+            _safe_set_atom_property(atom, 'operation_progress', progress)
+        
+        # Redraw UI
+        for area in bpy.context.screen.areas:
+            area.tag_redraw()
+        
+        # Restart unified scan to continue with next category
+        bpy.app.timers.register(_process_unified_scan_step)
+        return None  # Stop this timer
+    
+    # Continue polling
+    return 0.5  # Check every 0.5 seconds
 
 
 def _check_single_image(image):
@@ -1083,10 +1544,97 @@ def _process_unified_scan_step():
                     _scan_state['images_list'] = [img for img in bpy.data.images if not compat.is_library_or_override(img)]
                     _scan_state['images_index'] = 0
                     _scan_state['images_unused'] = []
-                    _clear_image_scan_cache()  # Clear cache at start of image scanning
                     if _scan_state['results'] is None:
                         _scan_state['results'] = {}
                     _scan_state['results'][category] = []
+                    
+                    # Check if deep scan is enabled
+                    if atom.images_deep_scan:
+                        # Try to load cache first
+                        cache_data = _load_cache_from_disk()
+                        if cache_data:
+                            config.debug_print("[Atomic Debug] Loaded cache from disk")
+                            _scan_state['results'][category] = cache_data.get('results', {}).get('images', [])
+                            # Restore image scan cache
+                            global _image_scan_cache
+                            _image_scan_cache = cache_data.get('image_scan_cache', {
+                                'image_all_results': {},
+                                'image_materials_results': {},
+                                'material_objects_results': {},
+                                'object_all_results': {},
+                            })
+                            # Move to next category
+                            _scan_state['current_category_index'] += 1
+                            _scan_state['status_updated'] = False
+                            progress = (_scan_state['current_category_index'] / len(_scan_state['categories_to_scan'])) * 50.0
+                            _safe_set_atom_property(atom, 'operation_progress', progress)
+                            for area in bpy.context.screen.areas:
+                                area.tag_redraw()
+                            return 0.01
+                        
+                        # No cache, start deep scan
+                        total_images = len(_scan_state['images_list'])
+                        if total_images == 0:
+                            # No images to scan
+                            _scan_state['results'][category] = []
+                            _scan_state['current_category_index'] += 1
+                            _scan_state['status_updated'] = False
+                            return 0.01
+                        
+                        # Check preference for single-threaded vs multi-process
+                        use_multi_process = False
+                        if not config.single_threaded_image_deep_scan:
+                            # Try multi-process implementation
+                            blend_file_path = bpy.data.filepath
+                            if blend_file_path:
+                                # Calculate job distribution
+                                num_jobs, images_per_job, worker_threads = _calculate_job_distribution(total_images)
+                                config.debug_print(f"[Atomic Debug] Deep scan: {num_jobs} jobs, {images_per_job} images per job, {worker_threads} worker threads")
+                                
+                                # Split images into batches
+                                image_batches = _split_images_into_batches(_scan_state['images_list'], images_per_job)
+                                
+                                # Initialize deep scan state
+                                global _deep_scan_state
+                                _deep_scan_state['is_running'] = True
+                                _deep_scan_state['total_jobs'] = num_jobs
+                                _deep_scan_state['images_per_job'] = images_per_job
+                                _deep_scan_state['image_batches'] = image_batches
+                                _deep_scan_state['start_time'] = time.time()
+                                _deep_scan_state['completed_jobs'] = set()
+                                _deep_scan_state['worker_processes'] = []
+                                _deep_scan_state['job_outputs'] = {}
+                                
+                                # Launch worker processes
+                                temp_dir = tempfile.gettempdir()
+                                if _launch_worker_processes(blend_file_path, image_batches, temp_dir):
+                                    use_multi_process = True
+                                    _safe_set_atom_property(atom, 'operation_status', f"Launching {num_jobs} worker processes...")
+                                    # Start monitoring timer
+                                    bpy.app.timers.register(_process_deep_scan_step)
+                                    return 0.1  # Continue monitoring
+                                else:
+                                    config.debug_print("[Atomic Error] Failed to launch worker processes, falling back to single-threaded")
+                                    _deep_scan_state['is_running'] = False
+                            else:
+                                config.debug_print("[Atomic Error] Cannot run multi-process deep scan: blend file not saved, using single-threaded")
+                        
+                        if not use_multi_process:
+                            # Use single-threaded implementation (current code path)
+                            _clear_image_scan_cache()
+                            config.debug_print("[Atomic Debug] Using single-threaded deep scan")
+                    else:
+                        # Deep scan disabled, only do shallow checks (fast path only)
+                        config.debug_print("[Atomic Debug] Deep scan disabled, skipping deep image checks")
+                        _scan_state['results'][category] = []
+                        # Move to next category immediately
+                        _scan_state['current_category_index'] += 1
+                        _scan_state['status_updated'] = False
+                        progress = (_scan_state['current_category_index'] / len(_scan_state['categories_to_scan'])) * 50.0
+                        _safe_set_atom_property(atom, 'operation_progress', progress)
+                        for area in bpy.context.screen.areas:
+                            area.tag_redraw()
+                        return 0.01
                 
                 total_images = len(_scan_state['images_list'])
                 
@@ -1128,6 +1676,11 @@ def _process_unified_scan_step():
                 
                 # All images processed, store result and move to next category
                 _scan_state['results'][category] = _scan_state['images_unused']
+                
+                # Save cache to disk if deep scan was used
+                if atom.images_deep_scan:
+                    _save_cache_to_disk(_scan_state['results'], _image_scan_cache)
+                
                 _scan_state['images_list'] = None
                 _scan_state['images_index'] = 0
                 _scan_state['images_unused'] = []
