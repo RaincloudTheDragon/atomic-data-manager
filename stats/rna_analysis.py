@@ -47,6 +47,31 @@ DATA_BLOCK_TYPES = {
 }
 
 
+def _safe_snapshot(collection):
+    """
+    Create a safe snapshot of a Blender collection/iterable.
+    Returns an empty list if the collection is invalid (e.g., after opening a new blend file).
+    
+    This function catches all exceptions because Blender's RNA system can crash
+    at the C level when collections become invalid after opening a new blend file.
+    """
+    try:
+        # First, try to check if the collection is accessible
+        # This might fail if the collection is invalid, but it's safer than
+        # directly calling list() which can crash in Blender's C code
+        if collection is None:
+            return []
+        
+        # Try to get an iterator - this is where crashes often occur
+        # when collections become invalid after opening a new blend file
+        return list(collection)
+    except Exception:
+        # Catch all exceptions (RuntimeError, ReferenceError, SystemError, etc.)
+        # because Blender's RNA system can raise various exceptions or crash
+        # when collections become invalid after opening a new blend file
+        return []
+
+
 def _is_id_datablock_property(prop):
     """Check if a property is a pointer to an ID data-block."""
     if prop.type != 'POINTER':
@@ -144,11 +169,9 @@ def _extract_references_from_datablock(datablock, depth=0, max_depth=5):
                 try:
                     collection = getattr(datablock, prop.identifier, None)
                     if collection:
-                        # Use list() to create a snapshot and avoid iteration issues
-                        try:
-                            items = list(collection)
-                        except (RuntimeError, ReferenceError):
-                            # Collection may be invalid
+                        # Use snapshot to avoid iteration issues
+                        items = _safe_snapshot(collection)
+                        if not items:
                             continue
                         
                         for item in items:
@@ -202,9 +225,8 @@ def _extract_node_tree_references(node_tree):
     
     try:
         # Create a snapshot of nodes to avoid iteration issues
-        try:
-            nodes = list(node_tree.nodes)
-        except (RuntimeError, ReferenceError):
+        nodes = _safe_snapshot(node_tree.nodes)
+        if not nodes:
             return references
         
         for node in nodes:
@@ -269,9 +291,6 @@ def _extract_node_tree_references(node_tree):
             except (AttributeError, RuntimeError, ReferenceError):
                 # Node may have been deleted or is invalid
                 continue
-                # Recursively check nested node tree
-                nested_refs = _extract_node_tree_references(node.node_tree)
-                references.extend(nested_refs)
     except (AttributeError, TypeError):
         pass
     
@@ -301,92 +320,180 @@ def dump_rna_references(output_path=None):
     for data_type, data_collection in DATA_BLOCK_TYPES.items():
         config.debug_print(f"[Atomic Debug] RNA Analysis: Processing {data_type}...")
         
-        for datablock in data_collection:
+        # Create a snapshot of the data collection to avoid iteration issues
+        # This is critical when a new blend file is opened - old data-blocks become invalid
+        datablocks = _safe_snapshot(data_collection)
+        
+        for datablock in datablocks:
             # Skip library-linked and override datablocks
-            if compat.is_library_or_override(datablock):
+            try:
+                if compat.is_library_or_override(datablock):
+                    continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                # Datablock may be invalid
                 continue
             
-            item_name = datablock.name
+            try:
+                item_name = datablock.name
+            except (AttributeError, RuntimeError, ReferenceError):
+                # Datablock may have been deleted or is invalid
+                continue
+            
             references = []
             
             # Extract direct references
-            direct_refs = _extract_references_from_datablock(datablock)
-            references.extend(direct_refs)
+            try:
+                direct_refs = _extract_references_from_datablock(datablock)
+                references.extend(direct_refs)
+            except (AttributeError, RuntimeError, ReferenceError):
+                # Datablock may have become invalid during processing
+                direct_refs = []
             
             # Special handling for materials (node trees)
-            if data_type == 'materials' and hasattr(datablock, 'node_tree') and datablock.node_tree:
-                node_refs = _extract_node_tree_references(datablock.node_tree)
-                references.extend(node_refs)
+            try:
+                if data_type == 'materials' and hasattr(datablock, 'node_tree') and datablock.node_tree:
+                    node_refs = _extract_node_tree_references(datablock.node_tree)
+                    references.extend(node_refs)
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
             
             # Special handling for node groups
-            if data_type == 'node_groups':
-                node_refs = _extract_node_tree_references(datablock)
-                references.extend(node_refs)
+            try:
+                if data_type == 'node_groups':
+                    node_refs = _extract_node_tree_references(datablock)
+                    references.extend(node_refs)
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
             
             # Special handling for scenes (compositor, rigidbody_world, collection, world, etc.)
-            if data_type == 'scenes':
-                node_tree = compat.get_scene_compositor_node_tree(datablock)
-                if node_tree:
-                    node_refs = _extract_node_tree_references(node_tree)
-                    references.extend(node_refs)
-                
-                # Scene's root collection
-                if hasattr(datablock, 'collection') and datablock.collection:
-                    if not compat.is_library_or_override(datablock.collection):
-                        references.append({
-                            'property': 'collection',
-                            'type': 'Collection',
-                            'name': datablock.collection.name
-                        })
-                
-                # RigidBodyWorld collection reference
-                if hasattr(datablock, 'rigidbody_world') and datablock.rigidbody_world:
-                    if hasattr(datablock.rigidbody_world, 'collection') and datablock.rigidbody_world.collection:
-                        if not compat.is_library_or_override(datablock.rigidbody_world.collection):
-                            references.append({
-                                'property': 'rigidbody_world.collection',
-                                'type': 'Collection',
-                                'name': datablock.rigidbody_world.collection.name
-                            })
+            try:
+                if data_type == 'scenes':
+                    # Compositor node tree reference
+                    node_tree = compat.get_scene_compositor_node_tree(datablock)
+                    if node_tree:
+                        try:
+                            if not compat.is_library_or_override(node_tree):
+                                references.append({
+                                    'property': 'node_tree',
+                                    'type': 'NodeTree',
+                                    'name': node_tree.name
+                                })
+                                # Also extract references from within the node tree
+                                node_refs = _extract_node_tree_references(node_tree)
+                                references.extend(node_refs)
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+                    
+                    # Scene's root collection
+                    if hasattr(datablock, 'collection') and datablock.collection:
+                        try:
+                            if not compat.is_library_or_override(datablock.collection):
+                                references.append({
+                                    'property': 'collection',
+                                    'type': 'Collection',
+                                    'name': datablock.collection.name
+                                })
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+                    
+                    # Scene's world reference
+                    if hasattr(datablock, 'world') and datablock.world:
+                        try:
+                            if not compat.is_library_or_override(datablock.world):
+                                references.append({
+                                    'property': 'world',
+                                    'type': 'World',
+                                    'name': datablock.world.name
+                                })
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+                    
+                    # RigidBodyWorld collection reference
+                    if hasattr(datablock, 'rigidbody_world') and datablock.rigidbody_world:
+                        try:
+                            if hasattr(datablock.rigidbody_world, 'collection') and datablock.rigidbody_world.collection:
+                                if not compat.is_library_or_override(datablock.rigidbody_world.collection):
+                                    references.append({
+                                        'property': 'rigidbody_world.collection',
+                                        'type': 'Collection',
+                                        'name': datablock.rigidbody_world.collection.name
+                                    })
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
             
             # Special handling for collections (objects property)
-            if data_type == 'collections':
-                # Collections have an 'objects' property that contains objects
-                # This is a collection property, so it should be detected by _is_id_datablock_collection
-                # But let's also explicitly check to ensure it's captured
-                if hasattr(datablock, 'objects'):
-                    for obj in datablock.objects:
-                        if not compat.is_library_or_override(obj):
-                            references.append({
-                                'property': 'objects',
-                                'type': 'Object',
-                                'name': obj.name
-                            })
+            try:
+                if data_type == 'collections':
+                    # Collections have an 'objects' property that contains objects
+                    # This is a collection property, so it should be detected by _is_id_datablock_collection
+                    # But let's also explicitly check to ensure it's captured
+                    if hasattr(datablock, 'objects'):
+                        # Create a snapshot to avoid iteration issues
+                        objects = _safe_snapshot(datablock.objects)
+                        
+                        for obj in objects:
+                            if obj is None:
+                                continue
+                            try:
+                                if not compat.is_library_or_override(obj):
+                                    references.append({
+                                        'property': 'objects',
+                                        'type': 'Object',
+                                        'name': obj.name
+                                    })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                # Object may have been deleted or is invalid
+                                continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
             
             # Special handling for objects (modifiers with node groups, material slots)
-            if data_type == 'objects':
-                # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
-                if hasattr(datablock, 'modifiers'):
-                    for modifier in datablock.modifiers:
-                        if compat.is_geometry_nodes_modifier(modifier):
-                            ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                            if ng and not compat.is_library_or_override(ng):
-                                references.append({
-                                    'property': 'modifiers.node_group',
-                                    'type': 'NodeTree',
-                                    'name': ng.name
-                                })
-                
-                # Objects have material slots that reference materials
-                if hasattr(datablock, 'material_slots'):
-                    for slot in datablock.material_slots:
-                        if slot and hasattr(slot, 'material') and slot.material:
-                            if not compat.is_library_or_override(slot.material):
-                                references.append({
-                                    'property': 'material_slots.material',
-                                    'type': 'Material',
-                                    'name': slot.material.name
-                                })
+            try:
+                if data_type == 'objects':
+                    # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
+                    if hasattr(datablock, 'modifiers'):
+                        # Create a snapshot to avoid iteration issues
+                        modifiers = _safe_snapshot(datablock.modifiers)
+                        
+                        for modifier in modifiers:
+                            if modifier is None:
+                                continue
+                            try:
+                                if compat.is_geometry_nodes_modifier(modifier):
+                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                    if ng and not compat.is_library_or_override(ng):
+                                        references.append({
+                                            'property': 'modifiers.node_group',
+                                            'type': 'NodeTree',
+                                            'name': ng.name
+                                        })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                # Modifier may be invalid
+                                continue
+                    
+                    # Objects have material slots that reference materials
+                    if hasattr(datablock, 'material_slots'):
+                        # Create a snapshot to avoid iteration issues
+                        material_slots = _safe_snapshot(datablock.material_slots)
+                        
+                        for slot in material_slots:
+                            if slot is None:
+                                continue
+                            try:
+                                if hasattr(slot, 'material') and slot.material:
+                                    if not compat.is_library_or_override(slot.material):
+                                        references.append({
+                                            'property': 'material_slots.material',
+                                            'type': 'Material',
+                                            'name': slot.material.name
+                                        })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                # Slot or material may be invalid
+                                continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
             
             # Store references
             rna_data[data_type][item_name] = {
@@ -576,46 +683,93 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
         """Recursively get all collections in the scene hierarchy."""
         collections = []
         if root_collection and not compat.is_library_or_override(root_collection):
-            collections.append(root_collection)
-            # Add all descendant collections
-            for child in root_collection.children_recursive:
-                if not compat.is_library_or_override(child):
-                    collections.append(child)
+            try:
+                collections.append(root_collection)
+                # Add all descendant collections
+                try:
+                    children = list(root_collection.children_recursive)
+                except (RuntimeError, ReferenceError):
+                    children = []
+                
+                for child in children:
+                    if child is None:
+                        continue
+                    try:
+                        if not compat.is_library_or_override(child):
+                            collections.append(child)
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        # Child may be invalid
+                        continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                # Root collection may be invalid
+                pass
         return collections
     
     # Objects in scenes/view layers (directly in scene.objects)
     for scene in bpy.data.scenes:
         if compat.is_library_or_override(scene):
             continue
-        for obj in scene.objects:
-            if not compat.is_library_or_override(obj):
-                roots.append(('objects', obj.name))
-                # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
-                if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
-                    data_type_map = {
-                        'LIGHT': 'lights',
-                        'MESH': 'meshes',
-                        'ARMATURE': 'armatures',
-                        'CURVE': 'curves',
-                        'SURFACE': 'curves',  # Surface objects also use curve data
-                        'FONT': 'curves',  # Font objects also use curve data
-                        'META': 'metaballs',
-                        'LATTICE': 'lattices',
-                        'VOLUME': 'volumes',
-                    }
-                    obj_type = obj.type
-                    if obj_type in data_type_map:
-                        data_type = data_type_map[obj_type]
-                        if not compat.is_library_or_override(obj.data):
-                            roots.append((data_type, obj.data.name))
-                
-                # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
-                if hasattr(obj, 'modifiers'):
-                    for modifier in obj.modifiers:
-                        if compat.is_geometry_nodes_modifier(modifier):
-                            ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                            if ng and not compat.is_library_or_override(ng):
-                                roots.append(('node_groups', ng.name))
+        
+        # Add scene itself as a root so its references (compositor node tree, world, etc.) are traversed
+        try:
+            roots.append(('scenes', scene.name))
+        except (AttributeError, RuntimeError, ReferenceError):
+            # Scene may be invalid
+            pass
+        
+        # Create a snapshot to avoid iteration issues
+        scene_objects = _safe_snapshot(scene.objects)
+        
+        for obj in scene_objects:
+            if obj is None:
+                continue
+            try:
+                if not compat.is_library_or_override(obj):
+                    roots.append(('objects', obj.name))
+                    # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
+                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                        try:
+                            data_type_map = {
+                                'LIGHT': 'lights',
+                                'MESH': 'meshes',
+                                'ARMATURE': 'armatures',
+                                'CURVE': 'curves',
+                                'SURFACE': 'curves',  # Surface objects also use curve data
+                                'FONT': 'curves',  # Font objects also use curve data
+                                'META': 'metaballs',
+                                'LATTICE': 'lattices',
+                                'VOLUME': 'volumes',
+                            }
+                            obj_type = obj.type
+                            if obj_type in data_type_map:
+                                data_type = data_type_map[obj_type]
+                                if not compat.is_library_or_override(obj.data):
+                                    roots.append((data_type, obj.data.name))
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            # Object or data may be invalid
+                            pass
+                    
+                    # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
+                    if hasattr(obj, 'modifiers'):
+                        try:
+                            modifiers = list(obj.modifiers)
+                        except (RuntimeError, ReferenceError):
+                            modifiers = []
+                        
+                        for modifier in modifiers:
+                            if modifier is None:
+                                continue
+                            try:
+                                if compat.is_geometry_nodes_modifier(modifier):
+                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                    if ng and not compat.is_library_or_override(ng):
+                                        roots.append(('node_groups', ng.name))
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                # Modifier may be invalid
+                                continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                # Object may have been deleted or is invalid
+                continue
         
         # World assigned to scene
         if scene.world and not compat.is_library_or_override(scene.world):
@@ -636,44 +790,77 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
         # This ensures objects in collections are marked as used
         # Note: The graph traversal should also handle this, but we add them explicitly as a safety measure
         for collection in scene_collections:
-            for obj in collection.objects:
-                if not compat.is_library_or_override(obj):
-                    roots.append(('objects', obj.name))
-                    # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
-                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
-                        data_type_map = {
-                            'LIGHT': 'lights',
-                            'MESH': 'meshes',
-                            'ARMATURE': 'armatures',
-                            'CURVE': 'curves',
-                            'SURFACE': 'curves',  # Surface objects also use curve data
-                            'FONT': 'curves',  # Font objects also use curve data
-                            'META': 'metaballs',
-                            'LATTICE': 'lattices',
-                            'VOLUME': 'volumes',
-                        }
-                        obj_type = obj.type
-                        if obj_type in data_type_map:
-                            data_type = data_type_map[obj_type]
-                            if not compat.is_library_or_override(obj.data):
-                                roots.append((data_type, obj.data.name))
-                    
-                    # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
-                    if hasattr(obj, 'modifiers'):
-                        for modifier in obj.modifiers:
-                            if compat.is_geometry_nodes_modifier(modifier):
-                                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                if ng and not compat.is_library_or_override(ng):
-                                    roots.append(('node_groups', ng.name))
+            # Create a snapshot to avoid iteration issues
+            collection_objects = _safe_snapshot(collection.objects)
+            
+            for obj in collection_objects:
+                if obj is None:
+                    continue
+                try:
+                    if not compat.is_library_or_override(obj):
+                        roots.append(('objects', obj.name))
+                        # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
+                        if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                            try:
+                                data_type_map = {
+                                    'LIGHT': 'lights',
+                                    'MESH': 'meshes',
+                                    'ARMATURE': 'armatures',
+                                    'CURVE': 'curves',
+                                    'SURFACE': 'curves',  # Surface objects also use curve data
+                                    'FONT': 'curves',  # Font objects also use curve data
+                                    'META': 'metaballs',
+                                    'LATTICE': 'lattices',
+                                    'VOLUME': 'volumes',
+                                }
+                                obj_type = obj.type
+                                if obj_type in data_type_map:
+                                    data_type = data_type_map[obj_type]
+                                    if not compat.is_library_or_override(obj.data):
+                                        roots.append((data_type, obj.data.name))
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                # Object or data may be invalid
+                                pass
+                        
+                        # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
+                        if hasattr(obj, 'modifiers'):
+                            try:
+                                modifiers = list(obj.modifiers)
+                            except (RuntimeError, ReferenceError):
+                                modifiers = []
+                            
+                            for modifier in modifiers:
+                                if modifier is None:
+                                    continue
+                                try:
+                                    if compat.is_geometry_nodes_modifier(modifier):
+                                        ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                        if ng and not compat.is_library_or_override(ng):
+                                            roots.append(('node_groups', ng.name))
+                                except (AttributeError, RuntimeError, ReferenceError):
+                                    # Modifier may be invalid
+                                    continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    # Object may have been deleted or is invalid
+                    continue
     
     # Fake users
     if not include_fake_users:
         for data_type, data_collection in DATA_BLOCK_TYPES.items():
-            for datablock in data_collection:
-                if compat.is_library_or_override(datablock):
+            # Create a snapshot to avoid iteration issues
+            datablocks = _safe_snapshot(data_collection)
+            
+            for datablock in datablocks:
+                if datablock is None:
                     continue
-                if hasattr(datablock, 'use_fake_user') and datablock.use_fake_user:
-                    roots.append((data_type, datablock.name))
+                try:
+                    if compat.is_library_or_override(datablock):
+                        continue
+                    if hasattr(datablock, 'use_fake_user') and datablock.use_fake_user:
+                        roots.append((data_type, datablock.name))
+                except (AttributeError, RuntimeError, ReferenceError):
+                    # Datablock may be invalid
+                    continue
     
     # Traverse graph from roots
     visited = set()
@@ -705,14 +892,27 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
     category_do_not_flag = do_not_flag.get(category, [])
     
     # Iterate over all data-blocks in the category
-    for datablock in DATA_BLOCK_TYPES[category]:
-        if compat.is_library_or_override(datablock):
+    try:
+        # Create a snapshot to avoid iteration issues
+        category_datablocks = _safe_snapshot(DATA_BLOCK_TYPES[category])
+    except KeyError:
+        # Category doesn't exist in DATA_BLOCK_TYPES
+        category_datablocks = []
+    
+    for datablock in category_datablocks:
+        if datablock is None:
             continue
-        
-        item_name = datablock.name
-        if (category, item_name) not in used:
-            if item_name not in category_do_not_flag:
-                unused.append(item_name)
+        try:
+            if compat.is_library_or_override(datablock):
+                continue
+            
+            item_name = datablock.name
+            if (category, item_name) not in used:
+                if item_name not in category_do_not_flag:
+                    unused.append(item_name)
+        except (AttributeError, RuntimeError, ReferenceError):
+            # Datablock may be invalid
+            continue
     
     config.debug_print(f"[Atomic Debug] RNA Analysis: Found {len(unused)} unused {category}")
     return unused
