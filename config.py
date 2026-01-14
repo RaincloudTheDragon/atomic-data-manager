@@ -33,8 +33,6 @@ enable_missing_file_warning = True
 include_fake_users = False
 enable_pie_menu_ui = True
 enable_debug_prints = False
-single_threaded_image_deep_scan = False
-max_deep_scan_workers = 4
 
 # hidden atomic preferences
 pie_menu_type = "D"
