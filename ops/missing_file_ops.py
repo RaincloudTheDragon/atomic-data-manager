@@ -167,6 +167,8 @@ def _search_blend_files_worker(directory, progress_queue, found_files, error_que
         # First pass: count files for progress (with error handling)
         try:
             for root, dirs, files in os.walk(directory):
+                # Filter out directories starting with '.' (e.g., .git, .vscode)
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
                 try:
                     total_files += len([f for f in files if f.lower().endswith('.blend')])
                     scanned_dirs += 1
@@ -184,6 +186,8 @@ def _search_blend_files_worker(directory, progress_queue, found_files, error_que
         found_count = 0
         try:
             for root, dirs, files in os.walk(directory):
+                # Filter out directories starting with '.' (e.g., .git, .vscode)
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
                 try:
                     for file in files:
                         if file.lower().endswith('.blend'):
