@@ -1,4 +1,27 @@
-## [v2.3.1] 2026-01-13
+## [v2.4.0] - 2026-01-13
+
+### Features
+- **Major Architecture Change: RNA-Based Analysis System**
+  - Replaced multi-process worker system with faster, more robust RNA-based dependency analysis
+  - All data types now use unified RNA introspection for dependency tracking
+  - Eliminated worker processes, job indexing, and subprocess overhead
+  - RNA data can be optionally dumped to JSON for debugging
+- Improved Clean dialog layout
+  - Increased dialog width to 1000px for better visibility
+  - Items now display in 4-column grid layout to reduce vertical scrolling
+
+### Fixes
+- Fixed node groups used by objects via Geometry Nodes modifiers not being detected as used
+- Fixed RigidBodyWorld and other scene-linked data-blocks incorrectly flagged as cleanable
+- Fixed area lights and other object data-blocks in scene collections not being marked as used
+- Added safety checks to prevent crashes during RNA extraction (recursion limits, data-block validation)
+- Fixed RNA extraction handling for objects' modifier node groups
+
+### Performance
+- Significantly faster scanning across all categories using RNA analysis
+- Single-pass dependency graph building shared across all category scans
+
+## [v2.3.1] - 2026-01-13
 
 ### Fixes
 - Integrate proper UDIM detection
