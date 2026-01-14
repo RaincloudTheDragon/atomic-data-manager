@@ -1,3 +1,12 @@
+## [v2.4.1] - 2026-01-14
+
+### Fixes
+- Fixed RNA analysis crashes when opening new blend files by rebuilding data-block type references dynamically
+- Fixed indentation errors that prevented RNA dump from processing most data-blocks
+- Fixed compositing nodetree detection by adding scenes as root nodes in dependency graph
+- RNA dump JSON file now always generated regardless of debug print settings
+- Refactored repetitive snapshotting code into `_safe_snapshot()` helper function
+
 ## [v2.4.0] - 2026-01-13
 
 ### Features
