@@ -863,7 +863,9 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
         return {'FINISHED'}
 
 
-# TODO: Implement replace missing once file browser bugs are fixed
+# Module-level state for replace missing
+_replace_missing_state = {}
+
 # Atomic Data Manager Replace Missing Files Operator
 class ATOMIC_OT_replace_missing(bpy.types.Operator):
     """Replace each missing file with a new file"""
@@ -872,16 +874,252 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
 
     def draw(self, context):
         layout = self.layout
-
+        global _replace_missing_state
+        
+        missing_libs = missing.libraries()
+        
+        if not missing_libs:
+            row = layout.row()
+            row.label(text="No missing libraries found!", icon='INFO')
+            return
+        
+        # Header
         row = layout.row()
-        row.label(text="Unsupported Operation!")
-
+        row.label(text="Select replacement files for missing libraries:", icon='LIBRARY_DATA_DIRECT')
+        
+        row = layout.separator()
+        
+        # List each missing library
+        for lib_key in missing_libs:
+            lib_info = missing.get_missing_library_info(lib_key)
+            if not lib_info:
+                continue
+            
+            # Box for each library
+            box = layout.box()
+            
+            # First row: icon and missing path
+            row = box.row()
+            
+            # Library icon on far left
+            row.label(text="", icon='LIBRARY_DATA_DIRECT')
+            
+            # Path display (truncate if too long)
+            path_display = lib_info['filepath']
+            if len(path_display) > 50:
+                path_display = "..." + path_display[-47:]
+            row.label(text=path_display)
+            
+            # Second row: replacement path input and browse button
+            row = box.row()
+            row.separator()
+            
+            split = row.split(factor=0.7)
+            
+            # Left side: show current path or prompt
+            col = split.column()
+            current_path = _replace_missing_state.get(lib_key, "")
+            
+            if current_path:
+                # Show current path with edit option
+                row_path = col.row(align=True)
+                path_display_short = current_path
+                if len(path_display_short) > 50:
+                    path_display_short = "..." + path_display_short[-47:]
+                row_path.label(text=path_display_short, icon='FILEBROWSER')
+                edit_op = row_path.operator("atomic.replace_missing_set_path", text="Edit", icon='GREASEPENCIL')
+                edit_op.library_key = lib_key
+                edit_op.filepath = current_path
+            else:
+                # Show prompt with set path button
+                row_path = col.row(align=True)
+                row_path.label(text="No replacement path set", icon='INFO')
+                set_op = row_path.operator("atomic.replace_missing_set_path", text="Set Path", icon='PASTEDOWN')
+                set_op.library_key = lib_key
+                set_op.filepath = ""
+            
+            # Right side: Browse button
+            col = split.column()
+            op = col.operator("atomic.replace_missing_browse", text="Browse", icon='FILEBROWSER')
+            op.library_key = lib_key
+            op.filename = lib_info['filename']
+            
+            # Third row: Relink button if path is set
+            if current_path:
+                row = box.row()
+                row.separator()
+                relink_op = row.operator("atomic.replace_missing_relink", text="Relink Library", icon='LINKED')
+                relink_op.library_key = lib_key
+                relink_op.filepath = current_path
+    
     def execute(self, context):
         return {'FINISHED'}
 
     def invoke(self, context, event):
+        # Refresh missing libraries list and clean state
+        global _replace_missing_state
+        missing_libs = missing.libraries()
+        
+        # Clean up state for libraries that are no longer missing
+        _replace_missing_state = {k: v for k, v in _replace_missing_state.items() if k in missing_libs}
+        
+        if not missing_libs:
+            self.report({'INFO'}, "No missing libraries found")
+            return {'CANCELLED'}
+        
         wm = context.window_manager
-        return wm.invoke_props_dialog(self)
+        return wm.invoke_props_dialog(self, width=800)
+
+
+# Operator to set replacement path from text input
+class ATOMIC_OT_replace_missing_set_path(bpy.types.Operator):
+    """Set replacement path for a library"""
+    bl_idname = "atomic.replace_missing_set_path"
+    bl_label = "Set Replacement Path"
+    bl_options = {'INTERNAL'}
+    
+    library_key: bpy.props.StringProperty()
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="Path to the replacement library file",
+        subtype='FILE_PATH'
+    )
+    
+    def invoke(self, context, event):
+        global _replace_missing_state
+        # Use filepath from state if available
+        if not self.filepath:
+            self.filepath = _replace_missing_state.get(self.library_key, "")
+        
+        context.window_manager.invoke_props_dialog(self, width=500)
+        return {'RUNNING_MODAL'}
+    
+    def draw(self, context):
+        layout = self.layout
+        lib_info = missing.get_missing_library_info(self.library_key)
+        
+        if lib_info:
+            row = layout.row()
+            row.label(text=f"Library: {self.library_key}", icon='LIBRARY_DATA_DIRECT')
+            row = layout.row()
+            row.label(text=f"Missing: {lib_info['filename']}")
+        
+        row = layout.separator()
+        row = layout.row()
+        row.prop(self, 'filepath')
+    
+    def execute(self, context):
+        global _replace_missing_state
+        if self.filepath:
+            _replace_missing_state[self.library_key] = self.filepath
+            # Redraw
+            for area in context.screen.areas:
+                area.tag_redraw()
+        return {'FINISHED'}
+
+
+# File browser operator for selecting replacement library
+class ATOMIC_OT_replace_missing_browse(bpy.types.Operator):
+    """Browse for replacement library file"""
+    bl_idname = "atomic.replace_missing_browse"
+    bl_label = "Browse for Library"
+    bl_options = {'INTERNAL'}
+    
+    library_key: bpy.props.StringProperty()
+    filename: bpy.props.StringProperty()
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="Path to the replacement library file",
+        subtype='FILE_PATH'
+    )
+    filter_glob: bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+    
+    def invoke(self, context, event):
+        global _replace_missing_state
+        
+        # Try to use outliner.lib_operation if library is accessible
+        if self.library_key in bpy.data.libraries:
+            library = bpy.data.libraries[self.library_key]
+            try:
+                # Use Blender's built-in relocate operation which pre-fills filename
+                # This requires the library to be selected in outliner, so we'll use file browser instead
+                pass
+            except Exception:
+                pass
+        
+        # Pre-fill filename if available
+        if self.filename:
+            # Try to set initial directory to blend file directory
+            if bpy.data.filepath:
+                initial_dir = os.path.dirname(bpy.path.abspath(bpy.data.filepath))
+            else:
+                initial_dir = os.path.expanduser("~")
+            
+            # Set filepath with filename pre-filled (directory + filename)
+            self.filepath = os.path.join(initial_dir, self.filename)
+        else:
+            # Use existing path from state if available
+            self.filepath = _replace_missing_state.get(self.library_key, "")
+            # If no path, try to get from library
+            if not self.filepath and self.library_key in bpy.data.libraries:
+                library = bpy.data.libraries[self.library_key]
+                if library.filepath:
+                    # Use the directory from the missing path, with the filename
+                    missing_dir = os.path.dirname(bpy.path.abspath(library.filepath))
+                    if os.path.isdir(missing_dir):
+                        self.filepath = os.path.join(missing_dir, os.path.basename(bpy.path.abspath(library.filepath)))
+        
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+    
+    def execute(self, context):
+        global _replace_missing_state
+        
+        if not self.filepath:
+            return {'CANCELLED'}
+        
+        # Store in state
+        _replace_missing_state[self.library_key] = self.filepath
+        
+        # Redraw
+        for area in context.screen.areas:
+            area.tag_redraw()
+        
+        return {'FINISHED'}
+
+
+# Operator to relink a library
+class ATOMIC_OT_replace_missing_relink(bpy.types.Operator):
+    """Relink the library to the specified path"""
+    bl_idname = "atomic.replace_missing_relink"
+    bl_label = "Relink Library"
+    bl_options = {'INTERNAL'}
+    
+    library_key: bpy.props.StringProperty()
+    filepath: bpy.props.StringProperty()
+    
+    def execute(self, context):
+        global _replace_missing_state
+        
+        if not self.filepath:
+            self.report({'ERROR'}, "No filepath specified")
+            return {'CANCELLED'}
+        
+        success, message = _relink_library(self.library_key, self.filepath, use_relative_path=True)
+        
+        if success:
+            self.report({'INFO'}, f"Library relinked: {message}")
+            # Remove from state
+            if self.library_key in _replace_missing_state:
+                del _replace_missing_state[self.library_key]
+            
+            # Redraw all areas
+            for area in context.screen.areas:
+                area.tag_redraw()
+        else:
+            self.report({'ERROR'}, message)
+        
+        return {'FINISHED'}
 
 
 reg_list = [
@@ -893,6 +1131,9 @@ reg_list = [
     ATOMIC_OT_search_missing_select,
     ATOMIC_OT_search_missing_relink,
     ATOMIC_OT_replace_missing,
+    ATOMIC_OT_replace_missing_browse,
+    ATOMIC_OT_replace_missing_set_path,
+    ATOMIC_OT_replace_missing_relink,
     ATOMIC_OT_remove_missing
 ]
 
