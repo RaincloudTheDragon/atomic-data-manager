@@ -83,12 +83,31 @@ def _is_id_datablock_collection(prop):
     return False
 
 
-def _extract_references_from_datablock(datablock):
-    """Extract all data-block references from a single data-block instance."""
+def _extract_references_from_datablock(datablock, depth=0, max_depth=5):
+    """
+    Extract all data-block references from a single data-block instance.
+    
+    Args:
+        datablock: The data-block to extract references from
+        depth: Current recursion depth (default: 0)
+        max_depth: Maximum recursion depth to prevent infinite loops (default: 5)
+    """
     references = []
+    
+    # Prevent infinite recursion
+    if depth >= max_depth:
+        return references
+    
+    # Safety check: ensure datablock is valid
+    if datablock is None:
+        return references
     
     try:
         rna = datablock.bl_rna
+    except (AttributeError, TypeError, RuntimeError):
+        return references
+    
+    try:
         for prop in rna.properties:
             # Skip internal/read-only properties
             if prop.identifier.startswith('_') or prop.is_readonly:
@@ -99,12 +118,25 @@ def _extract_references_from_datablock(datablock):
                 try:
                     value = getattr(datablock, prop.identifier, None)
                     if value and hasattr(value, 'name'):
-                        references.append({
-                            'property': prop.identifier,
-                            'type': value.bl_rna.identifier if hasattr(value, 'bl_rna') else 'unknown',
-                            'name': value.name
-                        })
-                except (AttributeError, TypeError):
+                        # Additional safety: check if value is still valid
+                        try:
+                            name = value.name
+                            type_identifier = 'unknown'
+                            if hasattr(value, 'bl_rna'):
+                                try:
+                                    type_identifier = value.bl_rna.identifier
+                                except (AttributeError, RuntimeError):
+                                    pass
+                            
+                            references.append({
+                                'property': prop.identifier,
+                                'type': type_identifier,
+                                'name': name
+                            })
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            # Data-block may have been deleted or is invalid
+                            pass
+                except (AttributeError, TypeError, RuntimeError):
                     pass
             
             # Check for collection properties containing ID data-blocks
@@ -112,14 +144,35 @@ def _extract_references_from_datablock(datablock):
                 try:
                     collection = getattr(datablock, prop.identifier, None)
                     if collection:
-                        for item in collection:
-                            if hasattr(item, 'name'):
-                                references.append({
-                                    'property': prop.identifier,
-                                    'type': item.bl_rna.identifier if hasattr(item, 'bl_rna') else 'unknown',
-                                    'name': item.name
-                                })
-                except (AttributeError, TypeError):
+                        # Use list() to create a snapshot and avoid iteration issues
+                        try:
+                            items = list(collection)
+                        except (RuntimeError, ReferenceError):
+                            # Collection may be invalid
+                            continue
+                        
+                        for item in items:
+                            if item is None:
+                                continue
+                            try:
+                                if hasattr(item, 'name'):
+                                    name = item.name
+                                    type_identifier = 'unknown'
+                                    if hasattr(item, 'bl_rna'):
+                                        try:
+                                            type_identifier = item.bl_rna.identifier
+                                        except (AttributeError, RuntimeError):
+                                            pass
+                                    
+                                    references.append({
+                                        'property': prop.identifier,
+                                        'type': type_identifier,
+                                        'name': name
+                                    })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                # Item may have been deleted or is invalid
+                                continue
+                except (AttributeError, TypeError, RuntimeError):
                     pass
             
             # Special handling for nested structures (e.g., node trees)
@@ -128,13 +181,13 @@ def _extract_references_from_datablock(datablock):
                 try:
                     value = getattr(datablock, prop.identifier, None)
                     if value:
-                        # Recursively extract from nested structures
-                        nested_refs = _extract_references_from_datablock(value)
+                        # Recursively extract from nested structures with depth limit
+                        nested_refs = _extract_references_from_datablock(value, depth + 1, max_depth)
                         references.extend(nested_refs)
-                except (AttributeError, TypeError, RecursionError):
+                except (AttributeError, TypeError, RecursionError, RuntimeError):
                     pass
     
-    except (AttributeError, TypeError):
+    except (AttributeError, TypeError, RuntimeError):
         pass
     
     return references
@@ -148,18 +201,35 @@ def _extract_node_tree_references(node_tree):
         return references
     
     try:
-        for node in node_tree.nodes:
-            # Check node properties for data-block references
-            node_refs = _extract_references_from_datablock(node)
-            references.extend(node_refs)
-            
-            # Special handling for group nodes
-            if hasattr(node, 'node_tree') and node.node_tree:
-                references.append({
-                    'property': 'node_tree',
-                    'type': 'NodeTree',
-                    'name': node.node_tree.name
-                })
+        # Create a snapshot of nodes to avoid iteration issues
+        try:
+            nodes = list(node_tree.nodes)
+        except (RuntimeError, ReferenceError):
+            return references
+        
+        for node in nodes:
+            if node is None:
+                continue
+            try:
+                # Check node properties for data-block references
+                node_refs = _extract_references_from_datablock(node)
+                references.extend(node_refs)
+                
+                # Special handling for group nodes
+                if hasattr(node, 'node_tree') and node.node_tree:
+                    try:
+                        ng = node.node_tree
+                        if ng and hasattr(ng, 'name'):
+                            references.append({
+                                'property': 'node_tree',
+                                'type': 'NodeTree',
+                                'name': ng.name
+                            })
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        pass
+            except (AttributeError, RuntimeError, ReferenceError):
+                # Node may have been deleted or is invalid
+                continue
                 # Recursively check nested node tree
                 nested_refs = _extract_node_tree_references(node.node_tree)
                 references.extend(nested_refs)
@@ -214,12 +284,50 @@ def dump_rna_references(output_path=None):
                 node_refs = _extract_node_tree_references(datablock)
                 references.extend(node_refs)
             
-            # Special handling for scenes (compositor)
+            # Special handling for scenes (compositor, rigidbody_world, etc.)
             if data_type == 'scenes':
                 node_tree = compat.get_scene_compositor_node_tree(datablock)
                 if node_tree:
                     node_refs = _extract_node_tree_references(node_tree)
                     references.extend(node_refs)
+                
+                # RigidBodyWorld collection reference
+                if hasattr(datablock, 'rigidbody_world') and datablock.rigidbody_world:
+                    if hasattr(datablock.rigidbody_world, 'collection') and datablock.rigidbody_world.collection:
+                        if not compat.is_library_or_override(datablock.rigidbody_world.collection):
+                            references.append({
+                                'property': 'rigidbody_world.collection',
+                                'type': 'Collection',
+                                'name': datablock.rigidbody_world.collection.name
+                            })
+            
+            # Special handling for collections (objects property)
+            if data_type == 'collections':
+                # Collections have an 'objects' property that contains objects
+                # This is a collection property, so it should be detected by _is_id_datablock_collection
+                # But let's also explicitly check to ensure it's captured
+                if hasattr(datablock, 'objects'):
+                    for obj in datablock.objects:
+                        if not compat.is_library_or_override(obj):
+                            references.append({
+                                'property': 'objects',
+                                'type': 'Object',
+                                'name': obj.name
+                            })
+            
+            # Special handling for objects (modifiers with node groups)
+            if data_type == 'objects':
+                # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
+                if hasattr(datablock, 'modifiers'):
+                    for modifier in datablock.modifiers:
+                        if compat.is_geometry_nodes_modifier(modifier):
+                            ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                            if ng and not compat.is_library_or_override(ng):
+                                references.append({
+                                    'property': 'modifiers.node_group',
+                                    'type': 'NodeTree',
+                                    'name': ng.name
+                                })
             
             # Store references
             rna_data[data_type][item_name] = {
@@ -268,6 +376,20 @@ def dump_rna_references(output_path=None):
                 rna_data[data_type][item_name]['referenced_by'] = sources
     
     config.debug_print(f"[Atomic Debug] RNA Analysis: Reference dump complete. Processed {sum(len(items) for items in rna_data.values())} data-blocks.")
+    
+    # Debug: Show sample of extracted references
+    if config.enable_debug_prints:
+        sample_count = 0
+        for data_type, items in rna_data.items():
+            for item_name, item_data in items.items():
+                refs = item_data.get('references', [])
+                if refs and sample_count < 5:
+                    config.debug_print(f"[Atomic Debug] RNA Sample: {data_type}.{item_name} references: {[r.get('name') for r in refs[:3]]}")
+                    sample_count += 1
+                    if sample_count >= 5:
+                        break
+            if sample_count >= 5:
+                break
     
     # Save to file if path provided
     if output_path:
@@ -377,28 +499,113 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
     # Find root items (those that are directly used in scenes/view layers)
     roots = []
     
-    # Objects in scenes/view layers
+    # Debug: Check if graph has any data
+    if config.enable_debug_prints:
+        total_nodes = sum(len(items) for items in graph.values())
+        config.debug_print(f"[Atomic Debug] RNA Analysis: Graph has {total_nodes} total nodes")
+        # Check if collections have object references
+        collection_count = 0
+        for coll_name, coll_data in graph.get('collections', {}).items():
+            refs = coll_data.get('references', set())
+            obj_refs = [r for r in refs if r[0] == 'objects']
+            if obj_refs and collection_count < 3:
+                config.debug_print(f"[Atomic Debug] RNA Analysis: Collection '{coll_name}' references {len(obj_refs)} objects (sample: {[r[1] for r in list(obj_refs)[:3]]})")
+                collection_count += 1
+    
+    # Helper function to get all collections in a scene hierarchy
+    def get_all_scene_collections(root_collection):
+        """Recursively get all collections in the scene hierarchy."""
+        collections = []
+        if root_collection and not compat.is_library_or_override(root_collection):
+            collections.append(root_collection)
+            # Add all descendant collections
+            for child in root_collection.children_recursive:
+                if not compat.is_library_or_override(child):
+                    collections.append(child)
+        return collections
+    
+    # Objects in scenes/view layers (directly in scene.objects)
     for scene in bpy.data.scenes:
         if compat.is_library_or_override(scene):
             continue
         for obj in scene.objects:
             if not compat.is_library_or_override(obj):
                 roots.append(('objects', obj.name))
+                # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
+                if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                    data_type_map = {
+                        'LIGHT': 'lights',
+                        'MESH': 'meshes',
+                        'ARMATURE': 'armatures',
+                        'CURVE': 'curves',
+                        'SURFACE': 'curves',  # Surface objects also use curve data
+                        'FONT': 'curves',  # Font objects also use curve data
+                        'META': 'metaballs',
+                        'LATTICE': 'lattices',
+                        'VOLUME': 'volumes',
+                    }
+                    obj_type = obj.type
+                    if obj_type in data_type_map:
+                        data_type = data_type_map[obj_type]
+                        if not compat.is_library_or_override(obj.data):
+                            roots.append((data_type, obj.data.name))
+                
+                # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
+                if hasattr(obj, 'modifiers'):
+                    for modifier in obj.modifiers:
+                        if compat.is_geometry_nodes_modifier(modifier):
+                            ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                            if ng and not compat.is_library_or_override(ng):
+                                roots.append(('node_groups', ng.name))
         
         # World assigned to scene
         if scene.world and not compat.is_library_or_override(scene.world):
             roots.append(('worlds', scene.world.name))
         
-        # Collections in scene
-        for collection in scene.collection.children_recursive:
-            if not compat.is_library_or_override(collection):
-                roots.append(('collections', collection.name))
-    
-    # Collections directly in scenes
-    for scene in bpy.data.scenes:
-        if not compat.is_library_or_override(scene):
-            if scene.collection and not compat.is_library_or_override(scene.collection):
-                roots.append(('collections', scene.collection.name))
+        # Collections in scene (including root collection and all descendants)
+        scene_collections = get_all_scene_collections(scene.collection)
+        for collection in scene_collections:
+            roots.append(('collections', collection.name))
+        
+        # RigidBodyWorld collection (physics world)
+        if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:
+            if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:
+                if not compat.is_library_or_override(scene.rigidbody_world.collection):
+                    roots.append(('collections', scene.rigidbody_world.collection.name))
+        
+        # Objects in collections that are in scenes (via collection.objects)
+        # This ensures objects in collections are marked as used
+        # Note: The graph traversal should also handle this, but we add them explicitly as a safety measure
+        for collection in scene_collections:
+            for obj in collection.objects:
+                if not compat.is_library_or_override(obj):
+                    roots.append(('objects', obj.name))
+                    # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
+                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                        data_type_map = {
+                            'LIGHT': 'lights',
+                            'MESH': 'meshes',
+                            'ARMATURE': 'armatures',
+                            'CURVE': 'curves',
+                            'SURFACE': 'curves',  # Surface objects also use curve data
+                            'FONT': 'curves',  # Font objects also use curve data
+                            'META': 'metaballs',
+                            'LATTICE': 'lattices',
+                            'VOLUME': 'volumes',
+                        }
+                        obj_type = obj.type
+                        if obj_type in data_type_map:
+                            data_type = data_type_map[obj_type]
+                            if not compat.is_library_or_override(obj.data):
+                                roots.append((data_type, obj.data.name))
+                    
+                    # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
+                    if hasattr(obj, 'modifiers'):
+                        for modifier in obj.modifiers:
+                            if compat.is_geometry_nodes_modifier(modifier):
+                                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                if ng and not compat.is_library_or_override(ng):
+                                    roots.append(('node_groups', ng.name))
     
     # Fake users
     if not include_fake_users:

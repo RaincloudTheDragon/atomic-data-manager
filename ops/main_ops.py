@@ -555,7 +555,7 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self)
+        return wm.invoke_props_dialog(self, width=1000)
 
 
 # Atomic Data Manager Clean Operator
@@ -600,7 +600,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Collections",
                 items=self.unused_collections,
-                icon="OUTLINER_OB_GROUP_INSTANCE"
+                icon="OUTLINER_OB_GROUP_INSTANCE",
+                columns=4
             )
 
         # display when the main panel images property is toggled
@@ -609,7 +610,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Images",
                 items=self.unused_images,
-                icon="IMAGE_DATA"
+                icon="IMAGE_DATA",
+                columns=4
             )
 
         # display when the main panel lights property is toggled
@@ -618,7 +620,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Lights",
                 items=self.unused_lights,
-                icon="OUTLINER_OB_LIGHT"
+                icon="OUTLINER_OB_LIGHT",
+                columns=4
             )
 
         # display when the main panel materials property is toggled
@@ -627,7 +630,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Materials",
                 items=self.unused_materials,
-                icon="MATERIAL"
+                icon="MATERIAL",
+                columns=4
             )
 
         # display when the main panel node groups property is toggled
@@ -636,7 +640,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Node Groups",
                 items=self.unused_node_groups,
-                icon="NODETREE"
+                icon="NODETREE",
+                columns=4
             )
 
         # display when the main panel objects property is toggled
@@ -645,7 +650,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Objects",
                 items=self.unused_objects,
-                icon="OBJECT_DATA"
+                icon="OBJECT_DATA",
+                columns=4
             )
 
         # display when the main panel particle systems property is toggled
@@ -654,7 +660,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Particle Systems",
                 items=self.unused_particles,
-                icon="PARTICLES"
+                icon="PARTICLES",
+                columns=4
             )
 
         # display when the main panel textures property is toggled
@@ -663,7 +670,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Textures",
                 items=self.unused_textures,
-                icon="TEXTURE"
+                icon="TEXTURE",
+                columns=4
             )
 
         # display when the main panel armatures property is toggled
@@ -672,7 +680,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Armatures",
                 items=self.unused_armatures,
-                icon="ARMATURE_DATA"
+                icon="ARMATURE_DATA",
+                columns=4
             )
 
         # display when the main panel worlds property is toggled
@@ -681,7 +690,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 layout=layout,
                 title="Worlds",
                 items=self.unused_worlds,
-                icon="WORLD"
+                icon="WORLD",
+                columns=4
             )
 
         row = layout.row()  # extra spacing
@@ -803,7 +813,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             # Clear pending results
             _clean_pending_results = None
             _clean_pending_categories = None
-            return context.window_manager.invoke_props_dialog(self)
+            return context.window_manager.invoke_props_dialog(self, width=1000)
         
         # Determine which categories are selected
         selected_categories = []
@@ -836,7 +846,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             if cache_has_all:
                 # Use cached results immediately
                 _populate_unused_lists(self, atom, _unused_cache)
-                return context.window_manager.invoke_props_dialog(self)
+                return context.window_manager.invoke_props_dialog(self, width=1000)
         
         # Need to scan - initialize progress tracking
         _safe_set_atom_property(atom, 'is_operation_running', True)
@@ -1103,7 +1113,7 @@ def _on_clean_scan_complete(results, **kwargs):
                 try:
                     _populate_unused_lists(operator_instance, atom, scan_results)
                     wm = bpy.context.window_manager
-                    wm.invoke_props_dialog(operator_instance)
+                    wm.invoke_props_dialog(operator_instance, width=1000)
                     _clean_operator_instance = None
                 except (ReferenceError, AttributeError, TypeError) as e:
                     config.debug_print(f"[Atomic Error] Clean: Failed to populate/show dialog: {e}")
@@ -1221,7 +1231,14 @@ def _process_unified_scan_step():
             # Build RNA dependency graph if not already built (shared across all categories)
             if not hasattr(_process_unified_scan_step, '_rna_graph'):
                 config.debug_print("[Atomic Debug] Unified Scanner: Building RNA dependency graph...")
-                rna_data = rna_analysis.dump_rna_references()
+                # Optionally dump RNA data to file for debugging
+                if config.enable_debug_prints:
+                    import tempfile
+                    rna_dump_path = os.path.join(tempfile.gettempdir(), f"atomic_rna_dump_{int(time.time())}.json")
+                    rna_data = rna_analysis.dump_rna_references(output_path=rna_dump_path)
+                    config.debug_print(f"[Atomic Debug] Unified Scanner: RNA data dumped to {rna_dump_path}")
+                else:
+                    rna_data = rna_analysis.dump_rna_references()
                 _process_unified_scan_step._rna_graph = rna_analysis.build_dependency_graph(rna_data)
                 config.debug_print("[Atomic Debug] Unified Scanner: RNA dependency graph built")
             
