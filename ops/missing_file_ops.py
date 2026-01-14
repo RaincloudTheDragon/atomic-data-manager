@@ -871,6 +871,26 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
     """Replace each missing file with a new file"""
     bl_idname = "atomic.replace_missing"
     bl_label = "Replace Missing Files"
+    
+    # Property for inline path editing (shared, but updated per library in draw)
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="Path to the replacement library file",
+        subtype='FILE_PATH',
+        default="",
+        update=lambda self, context: self._update_filepath(context)
+    )
+    
+    def _update_filepath(self, context):
+        """Update state when filepath property changes"""
+        global _replace_missing_state
+        # Use getattr to safely access the attribute
+        lib_key = getattr(self, '_editing_lib_key', None)
+        if lib_key:
+            _replace_missing_state[lib_key] = self.filepath
+            # Redraw to update UI
+            for area in context.screen.areas:
+                area.tag_redraw()
 
     def draw(self, context):
         layout = self.layout
@@ -887,7 +907,7 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
         row = layout.row()
         row.label(text="Select replacement files for missing libraries:", icon='LIBRARY_DATA_DIRECT')
         
-        row = layout.separator()
+        layout.separator()
         
         # List each missing library
         for lib_key in missing_libs:
@@ -900,8 +920,6 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
             
             # First row: icon and missing path
             row = box.row()
-            
-            # Library icon on far left
             row.label(text="", icon='LIBRARY_DATA_DIRECT')
             
             # Path display (truncate if too long)
@@ -910,39 +928,32 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
                 path_display = "..." + path_display[-47:]
             row.label(text=path_display)
             
-            # Second row: replacement path input and browse button
+            # Second row: replacement path field with folder button (like searcher)
             row = box.row()
             row.separator()
             
-            split = row.split(factor=0.7)
-            
-            # Left side: show current path or prompt
-            col = split.column()
             current_path = _replace_missing_state.get(lib_key, "")
             
-            if current_path:
-                # Show current path with edit option
-                row_path = col.row(align=True)
-                path_display_short = current_path
-                if len(path_display_short) > 50:
-                    path_display_short = "..." + path_display_short[-47:]
-                row_path.label(text=path_display_short, icon='FILEBROWSER')
-                edit_op = row_path.operator("atomic.replace_missing_set_path", text="Edit", icon='GREASEPENCIL')
-                edit_op.library_key = lib_key
-                edit_op.filepath = current_path
-            else:
-                # Show prompt with set path button
-                row_path = col.row(align=True)
-                row_path.label(text="No replacement path set", icon='INFO')
-                set_op = row_path.operator("atomic.replace_missing_set_path", text="Set Path", icon='PASTEDOWN')
-                set_op.library_key = lib_key
-                set_op.filepath = ""
+            # Path field with folder icon button - like searcher's row.prop(self, 'search_directory')
+            # Use the main operator's filepath property, updating it for each library
+            # Set the library key first so update callback knows which library to update
+            self._editing_lib_key = lib_key
+            # Update filepath property for this library
+            # Assign directly - this will trigger the update callback if property exists
+            try:
+                self.filepath = current_path
+            except AttributeError:
+                # Property not accessible yet, use setattr as fallback
+                setattr(self, 'filepath', current_path)
             
-            # Right side: Browse button
-            col = split.column()
-            op = col.operator("atomic.replace_missing_browse", text="Browse", icon='FILEBROWSER')
-            op.library_key = lib_key
-            op.filename = lib_info['filename']
+            # Use row.prop() to show inline editable path field with folder icon
+            # The folder icon button is automatically included with subtype='FILE_PATH'
+            row.prop(self, 'filepath')
+            
+            # Additional browse button for file selection
+            browse_op = row.operator("atomic.replace_missing_browse", text="", icon='FILEBROWSER')
+            browse_op.library_key = lib_key
+            browse_op.filename = lib_info['filename']
             
             # Third row: Relink button if path is set
             if current_path:
@@ -963,6 +974,10 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
         # Clean up state for libraries that are no longer missing
         _replace_missing_state = {k: v for k, v in _replace_missing_state.items() if k in missing_libs}
         
+        # Initialize editing lib key attribute
+        if not hasattr(self, '_editing_lib_key'):
+            self._editing_lib_key = ""
+        
         if not missing_libs:
             self.report({'INFO'}, "No missing libraries found")
             return {'CANCELLED'}
@@ -971,7 +986,7 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
         return wm.invoke_props_dialog(self, width=800)
 
 
-# Operator to set replacement path from text input
+# Operator to set replacement path from text input (now works inline)
 class ATOMIC_OT_replace_missing_set_path(bpy.types.Operator):
     """Set replacement path for a library"""
     bl_idname = "atomic.replace_missing_set_path"
@@ -982,31 +997,27 @@ class ATOMIC_OT_replace_missing_set_path(bpy.types.Operator):
     filepath: bpy.props.StringProperty(
         name="File Path",
         description="Path to the replacement library file",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default="",
+        update=lambda self, context: self._update_filepath(context)
     )
+    
+    def _update_filepath(self, context):
+        """Update state when filepath changes"""
+        global _replace_missing_state
+        if self.library_key:
+            _replace_missing_state[self.library_key] = self.filepath
+            # Redraw to update UI
+            for area in context.screen.areas:
+                area.tag_redraw()
     
     def invoke(self, context, event):
         global _replace_missing_state
         # Use filepath from state if available
         if not self.filepath:
             self.filepath = _replace_missing_state.get(self.library_key, "")
-        
-        context.window_manager.invoke_props_dialog(self, width=500)
-        return {'RUNNING_MODAL'}
-    
-    def draw(self, context):
-        layout = self.layout
-        lib_info = missing.get_missing_library_info(self.library_key)
-        
-        if lib_info:
-            row = layout.row()
-            row.label(text=f"Library: {self.library_key}", icon='LIBRARY_DATA_DIRECT')
-            row = layout.row()
-            row.label(text=f"Missing: {lib_info['filename']}")
-        
-        row = layout.separator()
-        row = layout.row()
-        row.prop(self, 'filepath')
+        # Don't open dialog - this operator is now used inline
+        return {'FINISHED'}
     
     def execute(self, context):
         global _replace_missing_state
