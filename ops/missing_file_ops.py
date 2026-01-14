@@ -873,14 +873,6 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
     bl_label = "Replace Missing Files"
     
     # Property for inline path editing (shared, but updated per library in draw)
-    filepath: bpy.props.StringProperty(
-        name="File Path",
-        description="Path to the replacement library file",
-        subtype='FILE_PATH',
-        default="",
-        update=lambda self, context: self._update_filepath(context)
-    )
-    
     def _update_filepath(self, context):
         """Update state when filepath property changes"""
         global _replace_missing_state
@@ -891,6 +883,14 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
             # Redraw to update UI
             for area in context.screen.areas:
                 area.tag_redraw()
+    
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="Path to the replacement library file",
+        subtype='FILE_PATH',
+        default="",
+        update=_update_filepath
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -920,12 +920,10 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
             
             # First row: icon and missing path
             row = box.row()
-            row.label(text="", icon='LIBRARY_DATA_DIRECT')
+            row.label(text="", icon='LIBRARY_DATA_BROKEN')
             
-            # Path display (truncate if too long)
+            # Path display (show full path, no truncation)
             path_display = lib_info['filepath']
-            if len(path_display) > 50:
-                path_display = "..." + path_display[-47:]
             row.label(text=path_display)
             
             # Second row: replacement path field with folder button (like searcher)
