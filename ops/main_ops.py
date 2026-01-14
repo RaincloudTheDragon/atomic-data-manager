@@ -864,7 +864,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         
         # Start timer for processing
         bpy.app.timers.register(_process_clean_invoke_step)
-        
+
         return {'FINISHED'}
 
 
