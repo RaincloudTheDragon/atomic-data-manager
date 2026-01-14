@@ -42,38 +42,6 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
     missing_images = []
     missing_libraries = []
 
-    # missing file recovery option enum property
-    recovery_option: bpy.props.EnumProperty(
-        items=[
-            (
-                'IGNORE',
-                'Ignore Missing Files',
-                'Ignore the missing files and leave them offline'
-             ),
-            (
-                'RELOAD',
-                'Reload Missing Files',
-                'Reload the missing files from their existing file paths'
-            ),
-            (
-                'REMOVE',
-                'Remove Missing Files',
-                'Remove the missing files from the project'
-            ),
-            (
-                'SEARCH',
-                'Search for Missing Files (under development)',
-                'Search for the missing files in a directory'
-            ),
-            (
-                'REPLACE',
-                'Specify Replacement Files (under development)',
-                'Replace missing files with new files'
-            ),
-            ],
-        default='IGNORE'
-    )
-
     def draw(self, context):
         layout = self.layout
 
