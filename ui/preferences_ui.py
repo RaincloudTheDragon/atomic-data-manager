@@ -139,12 +139,6 @@ def copy_prefs_to_config(self, context):
     config.enable_debug_prints = \
         atomic_preferences.enable_debug_prints
 
-    config.single_threaded_image_deep_scan = \
-        atomic_preferences.single_threaded_image_deep_scan
-
-    config.max_deep_scan_workers = \
-        atomic_preferences.max_deep_scan_workers
-
     # hidden atomic preferences
     config.pie_menu_type = \
         atomic_preferences.pie_menu_type
@@ -260,18 +254,6 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=False
     )
 
-    single_threaded_image_deep_scan: bpy.props.BoolProperty(
-        description="Use slower but more stable single-threaded deep scan",
-        default=False
-    )
-
-    max_deep_scan_workers: bpy.props.IntProperty(
-        description="Maximum number of parallel Blender worker processes for deep scan",
-        default=4,
-        min=1,
-        max=max(1, os.cpu_count() or 4)  # Dynamic max: all machine threads
-    )
-
     # hidden atomic preferences
     pie_menu_type: bpy.props.StringProperty(
         default="D"
@@ -332,20 +314,6 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             self,
             "enable_debug_prints",
             text="Enable Debug Prints"
-        )
-
-        # Image deep scan settings
-        col.separator()
-        col.label(text="Image Deep Scan:", icon='IMAGE_DATA')
-        col.prop(
-            self,
-            "single_threaded_image_deep_scan",
-            text="Single-Threaded Mode (Slower, More Stable)"
-        )
-        col.prop(
-            self,
-            "max_deep_scan_workers",
-            text="Max Worker Processes"
         )
 
         # pie menu settings

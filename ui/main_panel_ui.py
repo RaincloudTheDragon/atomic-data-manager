@@ -182,21 +182,8 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
         col = split.column(align=True)
 
         # images buttons (deep scan checkbox, images checkbox, inspect button)
-        # Create a row to hold deep scan + the standard split layout
-        images_row = col.row(align=True)
-        
-        # Deep scan checkbox (left, small icon-only button)
-        images_row.prop(
-            atom,
-            "images_deep_scan",
-            text="",
-            toggle=True,
-            icon='ZOOM_ALL'
-        )
-        
-        # Now split the remaining space to match other rows (80% for checkbox, 20% for inspect)
-        # This maintains the same proportions as other category rows
-        images_split = images_row.split(factor=0.8, align=True)
+        # Standard split layout for images (matches other categories)
+        images_split = col.split(factor=0.8, align=True)
         
         # Images checkbox (will be slightly offset due to deep scan, but inspect aligns)
         images_split.prop(

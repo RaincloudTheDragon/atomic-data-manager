@@ -37,7 +37,6 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
     # main panel toggle buttons
     collections: bpy.props.BoolProperty(default=False)
     images: bpy.props.BoolProperty(default=False)
-    images_deep_scan: bpy.props.BoolProperty(default=False)
     lights: bpy.props.BoolProperty(default=False)
     materials: bpy.props.BoolProperty(default=False)
     node_groups: bpy.props.BoolProperty(default=False)

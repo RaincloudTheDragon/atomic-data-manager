@@ -125,12 +125,6 @@ _scan_state = {
     'current_category_index': 0,
     'results': {},  # Quick scan: {category: bool}, Full scan: {category: [items]}
     'status_updated': False,
-    # Incremental scanning state
-    'images_list': None,
-    'images_index': 0,
-    'images_unused': [],
-    'worlds_list': None,
-    'worlds_index': 0,
     'callback': None,  # Function to call when scan completes
     'callback_data': {}  # Data to pass to callback
 }
@@ -164,6 +158,9 @@ def _invalidate_cache():
     global _unused_cache, _cache_valid
     _unused_cache = None
     _cache_valid = False
+    # Clear RNA graph cache if it exists
+    if hasattr(_process_unified_scan_step, '_rna_graph'):
+        delattr(_process_unified_scan_step, '_rna_graph')
     # Optionally clear disk cache on invalidation
     # (We keep it for now to allow cache reuse across sessions)
 
@@ -281,533 +278,7 @@ def _save_cache_to_disk(results, image_scan_cache):
         return False
 
 
-# Multi-process deep scan state
-_deep_scan_state = {
-    'is_running': False,
-    'worker_processes': [],  # List of (job_index, subprocess.Popen) tuples
-    'job_outputs': {},  # {job_index: output_json_path}
-    'completed_jobs': set(),
-    'total_jobs': 0,
-    'images_per_job': 0,
-    'image_batches': [],  # List of image name lists for each job
-    'start_time': None,  # Time when scan started
-    'timeout_seconds': 3600  # 1 hour timeout per job
-}
-
-
-def _calculate_job_distribution(total_images):
-    """Calculate how many jobs to create and how to distribute images"""
-    # Use config value directly as max workers
-    max_workers = max(1, config.max_deep_scan_workers)
-    
-    # Calculate images per job (round up)
-    images_per_job = math.ceil(total_images / max_workers) if max_workers > 0 else total_images
-
-    # Ensure at least 1 image per job
-    if images_per_job < 1:
-        images_per_job = 1
-
-    # Recalculate actual number of jobs needed (don't spawn more workers than images)
-    actual_jobs = min(max_workers, math.ceil(total_images / images_per_job) if images_per_job > 0 else 1)
-
-    return actual_jobs, images_per_job, max_workers
-
-
-def _split_images_into_batches(image_list, images_per_job):
-    """Split image list into batches for each job"""
-    batches = []
-    for i in range(0, len(image_list), images_per_job):
-        batches.append(image_list[i:i + images_per_job])
-    return batches
-
-
-def _launch_worker_processes(blend_file_path, image_batches, temp_dir):
-    """Launch headless Blender instances for each job"""
-    global _deep_scan_state
-    
-    # Get Blender executable path
-    blender_exe = bpy.app.binary_path
-    if not blender_exe or not os.path.exists(blender_exe):
-        config.debug_print("[Atomic Error] Could not find Blender executable")
-        return False
-    
-    # Get worker script path (in the same directory as this file)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    worker_script = os.path.join(script_dir, 'image_deep_scan_worker.py')
-    
-    if not os.path.exists(worker_script):
-        config.debug_print(f"[Atomic Error] Worker script not found: {worker_script}")
-        return False
-    
-    processes = []
-    job_outputs = {}
-    
-    for job_index, image_batch in enumerate(image_batches):
-        # Create temporary JSON file for image list
-        image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
-        output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
-        stdout_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stdout.log")
-        stderr_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stderr.log")
-        
-        # Clean up any existing files from previous runs
-        for old_file in [output_json, output_json + '.tmp', stdout_log, stderr_log]:
-            try:
-                if os.path.exists(old_file):
-                    os.remove(old_file)
-            except Exception:
-                pass
-
-        # Write image list to JSON (image_batch contains image objects)
-        image_list_data = {
-            'images': [img.name for img in image_batch],
-            'blend_file': blend_file_path
-        }
-
-        try:
-            with open(image_list_json, 'w', encoding='utf-8') as f:
-                json.dump(image_list_data, f)
-        except Exception as e:
-            config.debug_print(f"[Atomic Error] Failed to write image list for job {job_index}: {e}")
-            continue
-
-        job_outputs[job_index] = output_json
-        
-        # Create log files for stdout/stderr (for independent processes)
-        stdout_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stdout.log")
-        stderr_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stderr.log")
-        
-        # Launch headless Blender process as independent external process
-        # Format: blender.exe -b blendfile.blend --python worker_script.py -- job_index image_list_json output_json
-        # With only 4 workers, addon loading conflicts are minimal
-        # The worker script calls sys.exit(0) at the end, which exits Blender
-        cmd = [
-            blender_exe,
-            '-b',  # Background mode
-            blend_file_path,
-            '--python', worker_script,
-            '--',
-            str(job_index),
-            image_list_json,
-            output_json
-        ]
-        
-        try:
-            # Launch process as independent external process (new console window on Windows)
-            # This ensures processes run independently and can utilize CPU cores separately
-            if os.name == 'nt':  # Windows
-                # Use Windows 'start' command to launch in a completely separate process
-                # This ensures the process is truly independent and not tied to the parent's thread pool
-                # Create a batch file that launches Blender, then use 'start' to launch the batch file
-                # This avoids command-line escaping issues
-                
-                # Create batch file that launches Blender
-                batch_file = os.path.join(temp_dir, f"atomic_job_{job_index}_launcher.bat")
-                with open(batch_file, 'w', encoding='utf-8') as f:
-                    f.write('@echo off\n')
-                    # Quote ALL arguments to be safe
-                    cmd_parts = [f'"{arg}"' for arg in cmd]
-                    cmd_line = ' '.join(cmd_parts)
-                    # Add trace to stdout
-                    f.write(f'echo [Batch] Starting job {job_index} >> "{stdout_log}"\n')
-                    f.write(f'echo [Batch] Command: {cmd_line} >> "{stdout_log}"\n')
-                    # Redirect output (append mode)
-                    f.write(f'{cmd_line} >> "{stdout_log}" 2>> "{stderr_log}"\n')
-                    f.write(f'echo [Batch] Exit code: %ERRORLEVEL% >> "{stdout_log}"\n')
-                    f.write('exit /b %ERRORLEVEL%\n')
-                
-                # Use 'start' to launch the batch file in a separate window
-                # This creates a truly independent process
-                # Use cmd /c to execute the batch file
-                start_cmd = f'start "Atomic Worker {job_index}" /MIN cmd /c "{batch_file}"'
-                
-                # Debug: Read and log batch file contents
-                try:
-                    with open(batch_file, 'r', encoding='utf-8') as f:
-                        batch_content = f.read()
-                        config.debug_print(f"[Atomic Debug] Batch file {job_index} contents:\n{batch_content}")
-                except Exception as e:
-                    config.debug_print(f"[Atomic Debug] Could not read batch file: {e}")
-                
-                config.debug_print(f"[Atomic Debug] Launching worker {job_index} via batch file: {batch_file}")
-                
-                # Execute start command - it returns immediately, process runs independently
-                # We use shell=True because 'start' is a shell builtin
-                process = subprocess.Popen(
-                    start_cmd,
-                    shell=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    # No creationflags needed - 'start' already creates independent process
-                )
-                # The Blender process is now running in a completely separate window
-                # We can't track it via this process object (it's just the cmd.exe that launched it)
-                # So we'll poll for output JSON files to detect completion
-            else:
-                # Non-Windows: use standard subprocess
-                stdout_handle = open(stdout_log, 'w', encoding='utf-8', buffering=1)
-                stderr_handle = open(stderr_log, 'w', encoding='utf-8', buffering=1)
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=stdout_handle,
-                    stderr=stderr_handle
-                )
-            
-            processes.append((job_index, process))
-            config.debug_print(f"[Atomic Debug] Launched worker process for job {job_index}")
-        except Exception as e:
-            config.debug_print(f"[Atomic Error] Failed to launch worker process for job {job_index}: {e}")
-            continue
-    
-    _deep_scan_state['worker_processes'] = processes
-    _deep_scan_state['job_outputs'] = job_outputs
-    _deep_scan_state['completed_jobs'] = set()
-    _deep_scan_state['worker_script'] = worker_script  # Store for cancellation
-    _deep_scan_state['blend_file_path'] = blend_file_path  # Store for cancellation
-    
-    return len(processes) > 0
-
-
-def _process_deep_scan_step():
-    """Timer callback to monitor worker processes and merge results"""
-    global _deep_scan_state, _image_scan_cache, _scan_state
-    
-    atom = bpy.context.scene.atomic
-    
-    # Initialize start time if not set
-    if _deep_scan_state['start_time'] is None:
-        _deep_scan_state['start_time'] = time.time()
-    
-    # Check for cancellation
-    if atom.cancel_operation:
-        config.debug_print("[Atomic Debug] Checking cancel: atom.cancel_operation = True")
-        # Kill all worker processes
-        # Since we used 'start' command, the process objects are just cmd.exe launchers
-        # We need to kill the actual Blender worker processes
-        config.debug_print("[Atomic Debug] Cancelling deep scan - killing worker processes...")
-        
-        # Try to kill via process objects first
-        for job_index, process in _deep_scan_state['worker_processes']:
-            try:
-                process.terminate()
-                try:
-                    process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
-            except Exception as e:
-                config.debug_print(f"[Atomic Debug] Error killing launcher process {job_index}: {e}")
-                try:
-                    process.kill()
-                except:
-                    pass
-        
-        # Kill all worker Blender processes
-        if os.name == 'nt':  # Windows
-            try:
-                import subprocess as sp
-                # Kill cmd.exe launchers by window title
-                sp.run(['taskkill', '/F', '/FI', 'WINDOWTITLE eq Atomic Worker*', '/T'], 
-                       stdout=sp.PIPE, stderr=sp.PIPE, timeout=5)
-                
-                # Use PowerShell to find and kill Blender processes running worker script
-                # This is more reliable than wmic
-                ps_cmd = '''
-                Get-WmiObject Win32_Process -Filter "name='blender.exe'" | 
-                Where-Object { $_.CommandLine -like '*image_deep_scan_worker*' } | 
-                ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-                '''
-                result = sp.run(['powershell', '-Command', ps_cmd], 
-                              stdout=sp.PIPE, stderr=sp.PIPE, timeout=10)
-                config.debug_print(f"[Atomic Debug] PowerShell kill result: {result.returncode}")
-            except Exception as e:
-                config.debug_print(f"[Atomic Debug] Could not kill worker processes: {e}")
-        
-        _deep_scan_state['is_running'] = False
-        _safe_set_atom_property(atom, 'is_operation_running', False)
-        _safe_set_atom_property(atom, 'operation_progress', 0.0)
-        _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
-        _safe_set_atom_property(atom, 'cancel_operation', False)
-        
-        # Invalidate cache when scan is cancelled
-        _invalidate_cache()
-        config.debug_print("[Atomic Debug] Cache invalidated due to cancellation")
-        
-        # Cleanup temp files
-        temp_dir = tempfile.gettempdir()
-        for job_index in range(_deep_scan_state['total_jobs']):
-            try:
-                image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
-                output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
-                batch_file = os.path.join(temp_dir, f"atomic_job_{job_index}_launcher.bat")
-                stdout_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stdout.log")
-                stderr_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stderr.log")
-                for f in [image_list_json, output_json, output_json + '.tmp', batch_file, stdout_log, stderr_log]:
-                    if os.path.exists(f):
-                        try:
-                            os.remove(f)
-                        except:
-                            pass
-            except:
-                pass
-        
-        config.debug_print("[Atomic Debug] Deep scan cancelled and cleaned up")
-        return None
-    
-    # Check for timeout
-    elapsed_time = time.time() - _deep_scan_state['start_time']
-    if elapsed_time > _deep_scan_state['timeout_seconds']:
-        config.debug_print(f"[Atomic Error] Deep scan timeout after {elapsed_time:.1f} seconds")
-        # Kill all processes
-        for job_index, process in _deep_scan_state['worker_processes']:
-            if job_index not in _deep_scan_state['completed_jobs']:
-                try:
-                    process.kill()
-                except:
-                    pass
-        
-        _deep_scan_state['is_running'] = False
-        _safe_set_atom_property(atom, 'is_operation_running', False)
-        _safe_set_atom_property(atom, 'operation_status', "Deep scan timed out")
-        
-        # Stop the operation - no fallback
-        config.debug_print("[Atomic Error] Deep scan timed out")
-        _clear_image_scan_cache()
-        return None
-    
-    # Check process status
-    all_complete = True
-    completed_count = 0
-    failed_processes = []
-    running_count = 0
-    
-    for job_index, process in _deep_scan_state['worker_processes']:
-        if job_index in _deep_scan_state['completed_jobs']:
-            completed_count += 1
-            continue
-        
-        # Check if output file exists (primary method for detached processes)
-        output_json = _deep_scan_state['job_outputs'].get(job_index)
-        if output_json and os.path.exists(output_json):
-            # Output file exists - job completed
-            _deep_scan_state['completed_jobs'].add(job_index)
-            completed_count += 1
-            config.debug_print(f"[Atomic Debug] Job {job_index} completed (output file found)")
-            continue
-        
-        # Check if Blender process is actually running by checking log files
-        stdout_log = os.path.join(tempfile.gettempdir(), f"atomic_job_{job_index}_stdout.log")
-        stderr_log = os.path.join(tempfile.gettempdir(), f"atomic_job_{job_index}_stderr.log")
-        
-        # If log files exist and have content, process is running
-        process_running = False
-        process_stale = False
-        if os.path.exists(stdout_log) or os.path.exists(stderr_log):
-            # Check if log files are being written to (recent modification)
-            current_time = time.time()
-            for log_file in [stdout_log, stderr_log]:
-                if os.path.exists(log_file):
-                    mtime = os.path.getmtime(log_file)
-                    # If modified in last 30 seconds, process is likely running
-                    if current_time - mtime < 30:
-                        process_running = True
-                        running_count += 1
-                        break
-                    # If log hasn't been modified in 5 minutes and no output file, process is likely crashed/stuck
-                    elif current_time - mtime > 300 and not (output_json and os.path.exists(output_json)):
-                        process_stale = True
-                        config.debug_print(f"[Atomic Warning] Job {job_index} appears stale (log not updated in {current_time - mtime:.0f} seconds, no output file)")
-        
-        # Also try to poll the process (works for non-detached processes)
-        try:
-            return_code = process.poll()
-            if return_code is None:
-                # Process still running (or detached and we can't poll)
-                all_complete = False
-                if not process_running:
-                    running_count += 1  # Assume running if we can't tell
-            else:
-                # Process finished - but check if output file exists
-                if output_json and os.path.exists(output_json):
-                    _deep_scan_state['completed_jobs'].add(job_index)
-                    completed_count += 1
-                else:
-                    # Process exited but no output - might have failed
-                    config.debug_print(f"[Atomic Warning] Worker process {job_index} exited with code {return_code} but no output file")
-                    # Read log files to see what happened
-                    if os.path.exists(stdout_log):
-                        try:
-                            with open(stdout_log, 'r', encoding='utf-8', errors='ignore') as f:
-                                stdout_content = f.read()
-                                if stdout_content:
-                                    # Show last 1000 chars which usually has the important info
-                                    config.debug_print(f"[Atomic Debug] Worker {job_index} stdout (last 1000 chars): ...{stdout_content[-1000:]}")
-                        except Exception as e:
-                            config.debug_print(f"[Atomic Debug] Could not read stdout log: {e}")
-                    if os.path.exists(stderr_log):
-                        try:
-                            with open(stderr_log, 'r', encoding='utf-8', errors='ignore') as f:
-                                stderr_content = f.read()
-                                if stderr_content:
-                                    # Show last 1000 chars which usually has the important info
-                                    config.debug_print(f"[Atomic Debug] Worker {job_index} stderr (last 1000 chars): ...{stderr_content[-1000:]}")
-                        except Exception as e:
-                            config.debug_print(f"[Atomic Debug] Could not read stderr log: {e}")
-                    failed_processes.append(job_index)
-                    # Mark as completed (failed) so we don't wait forever
-                    _deep_scan_state['completed_jobs'].add(job_index)
-                    completed_count += 1
-                    config.debug_print(f"[Atomic Warning] Marking job {job_index} as failed (exited with code {return_code}, no output)")
-                    all_complete = False
-        except (OSError, ValueError) as e:
-            # Process might be detached - can't poll, check output file and logs instead
-            # This is expected for processes launched via 'start' command
-            if not output_json or not os.path.exists(output_json):
-                # If process is stale (log not updated in 5+ minutes), mark as failed
-                if process_stale:
-                    config.debug_print(f"[Atomic Warning] Marking stale job {job_index} as failed (no output, log not updated)")
-                    _deep_scan_state['completed_jobs'].add(job_index)
-                    completed_count += 1
-                    failed_processes.append(job_index)
-                all_complete = False
-                if process_running:
-                    running_count += 1
-        except Exception as e:
-            config.debug_print(f"[Atomic Error] Error checking process {job_index}: {e}")
-            # If we can't check the process, check if output file exists
-            if output_json and os.path.exists(output_json):
-                _deep_scan_state['completed_jobs'].add(job_index)
-                completed_count += 1
-            else:
-                all_complete = False
-                if process_running:
-                    running_count += 1
-    
-    # Update progress - always report, even if we can't poll processes
-    total_jobs = _deep_scan_state['total_jobs']
-    if total_jobs > 0:
-        progress = (completed_count / total_jobs) * 90.0  # Reserve 10% for merging
-        _safe_set_atom_property(atom, 'operation_progress', progress)
-        _safe_set_atom_property(atom, 'operation_status', f"Deep scan: {completed_count}/{total_jobs} jobs completed, {running_count} running...")
-        config.debug_print(f"[Atomic Debug] Progress: {completed_count}/{total_jobs} completed, {running_count} running, {total_jobs - completed_count - running_count} pending")
-    
-    # If all processes complete, merge results
-    if all_complete:
-        _safe_set_atom_property(atom, 'operation_status', "Merging results...")
-        _safe_set_atom_property(atom, 'operation_progress', 90.0)
-        
-        # Merge results from all jobs
-        unused_images = []
-        merged_cache = {
-            'image_all_results': {},
-            'image_materials_results': {},
-            'material_objects_results': {},
-            'object_all_results': {},
-        }
-        
-        failed_jobs = []
-        
-        for job_index in range(total_jobs):
-            output_json = _deep_scan_state['job_outputs'].get(job_index)
-            if not output_json or not os.path.exists(output_json):
-                config.debug_print(f"[Atomic Warning] Missing output for job {job_index}")
-                failed_jobs.append(job_index)
-                continue
-            
-            try:
-                with open(output_json, 'r', encoding='utf-8') as f:
-                    job_result = json.load(f)
-                
-                if not job_result.get('success', False):
-                    config.debug_print(f"[Atomic Warning] Job {job_index} failed: {job_result.get('error', 'Unknown error')}")
-                    failed_jobs.append(job_index)
-                    continue
-                
-                # Merge unused images
-                unused_images.extend(job_result.get('unused_images', []))
-                
-                # Merge cache data
-                job_cache = job_result.get('image_scan_cache', {})
-                merged_cache['image_all_results'].update(job_cache.get('image_all_results', {}))
-                merged_cache['image_materials_results'].update(job_cache.get('image_materials_results', {}))
-                merged_cache['material_objects_results'].update(job_cache.get('material_objects_results', {}))
-                merged_cache['object_all_results'].update(job_cache.get('object_all_results', {}))
-                
-            except (json.JSONDecodeError, IOError, OSError) as e:
-                config.debug_print(f"[Atomic Error] Failed to read job {job_index} result: {e}")
-                failed_jobs.append(job_index)
-        
-        # Update global cache
-        global _image_scan_cache
-        _image_scan_cache = merged_cache
-        
-        # Store results in scan state
-        if _scan_state:
-            if 'results' not in _scan_state or _scan_state['results'] is None:
-                _scan_state['results'] = {}
-            _scan_state['results']['images'] = unused_images
-            config.debug_print(f"[Atomic Debug] Deep scan: Stored {len(unused_images)} unused images in scan results")
-            config.debug_print(f"[Atomic Debug] Deep scan: Full results dict now has keys: {list(_scan_state['results'].keys())}")
-        
-        # Save cache to disk
-        if _scan_state and 'results' in _scan_state:
-            _save_cache_to_disk(_scan_state['results'], merged_cache)
-        
-        # Handle failed jobs - if too many failed, fall back to single-threaded
-        if len(failed_jobs) > 0:
-            config.debug_print(f"[Atomic Warning] {len(failed_jobs)} jobs failed: {failed_jobs}")
-            if len(failed_jobs) >= total_jobs:
-                # All jobs failed, fall back to single-threaded
-                config.debug_print("[Atomic Error] All jobs failed")
-                _deep_scan_state['is_running'] = False
-                _clear_image_scan_cache()
-                _safe_set_atom_property(atom, 'is_operation_running', False)
-                _safe_set_atom_property(atom, 'operation_status', "All jobs failed")
-                # Stop the operation - no fallback
-                return None
-        
-        # Cleanup temporary files
-        temp_dir = tempfile.gettempdir()
-        for job_index in range(total_jobs):
-            try:
-                image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
-                output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
-                if os.path.exists(image_list_json):
-                    os.remove(image_list_json)
-                if os.path.exists(output_json):
-                    os.remove(output_json)
-                if os.path.exists(output_json + '.tmp'):
-                    os.remove(output_json + '.tmp')
-            except Exception as e:
-                config.debug_print(f"[Atomic Debug] Error cleaning up temp files for job {job_index}: {e}")
-        
-        _deep_scan_state['is_running'] = False
-        _safe_set_atom_property(atom, 'operation_progress', 100.0)
-        _safe_set_atom_property(atom, 'operation_status', f"Deep scan complete! Found {len(unused_images)} unused images")
-        
-        # Continue with normal scan flow - move to next category
-        if _scan_state:
-            _scan_state['current_category_index'] += 1
-            _scan_state['status_updated'] = False
-            # Clear image-specific state
-            _scan_state['images_list'] = None
-            _scan_state['images_index'] = 0
-            _scan_state['images_unused'] = []
-            
-            # Restart unified scan timer to continue with next category
-            total_categories = len(_scan_state['categories_to_scan'])
-            progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-            _safe_set_atom_property(atom, 'operation_progress', progress)
-        
-        # Redraw UI
-        for area in bpy.context.screen.areas:
-            area.tag_redraw()
-        
-        # Restart unified scan to continue with next category
-        bpy.app.timers.register(_process_unified_scan_step)
-        return None  # Stop this timer
-    
-    # Continue polling
-    return 0.5  # Check every 0.5 seconds
+# Worker process system removed - now using RNA-based analysis
 
 
 def _check_single_image(image):
@@ -1520,11 +991,6 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
         'current_category_index': 0,
         'results': None,
         'status_updated': False,
-        'images_list': None,
-        'images_index': 0,
-        'images_unused': [],
-        'worlds_list': None,
-        'worlds_index': 0,
         'callback': _on_smart_select_full_scan_complete,
         'callback_data': {}
     }
@@ -1670,7 +1136,7 @@ def _process_unified_scan_step():
         if not hasattr(bpy.context, 'scene') or bpy.context.scene is None:
             config.debug_print("[Atomic Debug] Unified Scanner: Invalid context, returning")
             return None
-        from ..stats import unused, unused_parallel
+        from ..stats import unused, unused_parallel, rna_analysis
         atom = bpy.context.scene.atomic
         global _scan_state, _unused_cache, _cache_valid
         
@@ -1699,18 +1165,7 @@ def _process_unified_scan_step():
             return None
         
         # Check cache first (only for full scans)
-        # BUT: Skip cache if images_deep_scan is enabled (force fresh scan)
-        skip_cache = False
-        config.debug_print(f"[Atomic Debug] Unified Scanner: Checking cache bypass. images in categories: {'images' in _scan_state['categories_to_scan']}, images_deep_scan={atom.images_deep_scan}")
-        if 'images' in _scan_state['categories_to_scan'] and atom.images_deep_scan:
-            skip_cache = True
-            config.debug_print("[Atomic Debug] Unified Scanner: Deep scan enabled for images - bypassing cache")
-            # Invalidate in-memory cache for images when deep scan is enabled
-            if _unused_cache is not None and 'images' in _unused_cache:
-                _unused_cache.pop('images', None)
-                config.debug_print("[Atomic Debug] Unified Scanner: Cleared images from in-memory cache")
-        
-        if not skip_cache and _scan_state['mode'] == 'full' and _cache_valid and _unused_cache is not None:
+        if _scan_state['mode'] == 'full' and _cache_valid and _unused_cache is not None:
             config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
             # Check if cache has all requested categories
             cache_has_all = all(cat in _unused_cache for cat in _scan_state['categories_to_scan'])
@@ -1757,301 +1212,58 @@ def _process_unified_scan_step():
                 return 0.01  # Return to let UI update
             
             config.debug_print(f"[Atomic Debug] Unified Scanner: Status already updated, processing category '{category}' (mode={_scan_state['mode']})")
-            # Handle incremental image scanning (for full scans only)
-            if category == 'images' and _scan_state['mode'] == 'full':
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Entering images block")
-                config.debug_print(f"[Atomic Debug] Unified Scanner: atom object = {atom}, images_deep_scan attribute exists = {hasattr(atom, 'images_deep_scan')}")
-                # Initialize image list if not done
-                if _scan_state['images_list'] is None:
-                    _scan_state['images_list'] = [img for img in bpy.data.images if not compat.is_library_or_override(img)]
-                    _scan_state['images_index'] = 0
-                    _scan_state['images_unused'] = []
-                    if _scan_state['results'] is None:
-                        _scan_state['results'] = {}
-                    # Initialize images result list (will be populated by deep scan or single-threaded scan)
-                    _scan_state['results'][category] = []
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: Initialized images result list, deep_scan={atom.images_deep_scan}")
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: atom.images_deep_scan type={type(atom.images_deep_scan)}, value={atom.images_deep_scan}")
-                    
-                    # Check if deep scan is enabled
-                    if atom.images_deep_scan:
-                        config.debug_print("[Atomic Debug] Unified Scanner: Deep scan IS enabled, entering deep scan block")
-                        # When deep scan is enabled, always run a fresh scan (don't use cache)
-                        # This ensures accurate results since cache might be stale or from a non-deep scan
-                        config.debug_print("[Atomic Debug] Deep scan enabled - forcing fresh scan (ignoring cache)")
-                        # Clear any existing cache to ensure fresh scan
-                        cache_path = _get_cache_filepath()
-                        if cache_path and os.path.exists(cache_path):
-                            try:
-                                os.remove(cache_path)
-                                config.debug_print(f"[Atomic Debug] Removed stale cache file: {cache_path}")
-                            except Exception as e:
-                                config.debug_print(f"[Atomic Debug] Could not remove cache file: {e}")
-                        
-                        # Start deep scan (cache was ignored/removed above)
-                        total_images = len(_scan_state['images_list'])
-                        config.debug_print(f"[Atomic Debug] Starting deep scan for {total_images} images")
-                        if total_images == 0:
-                            # No images to scan
-                            config.debug_print("[Atomic Debug] No images to scan")
-                            _scan_state['results'][category] = []
-                            _scan_state['current_category_index'] += 1
-                            _scan_state['status_updated'] = False
-                            return 0.01
-                        
-                        # Check preference for single-threaded vs multi-process
-                        use_multi_process = False
-                        if not config.single_threaded_image_deep_scan:
-                            # Try multi-process implementation
-                            blend_file_path = bpy.data.filepath
-                            if blend_file_path:
-                                # Calculate job distribution
-                                num_jobs, images_per_job, worker_threads = _calculate_job_distribution(total_images)
-                                config.debug_print(f"[Atomic Debug] Multi-process deep scan: {num_jobs} jobs, {images_per_job} images per job, {worker_threads} worker threads")
-                                
-                                # Split images into batches
-                                image_batches = _split_images_into_batches(_scan_state['images_list'], images_per_job)
-                                
-                                # Initialize deep scan state
-                                global _deep_scan_state
-                                _deep_scan_state['is_running'] = True
-                                _deep_scan_state['total_jobs'] = num_jobs
-                                _deep_scan_state['images_per_job'] = images_per_job
-                                _deep_scan_state['image_batches'] = image_batches
-                                _deep_scan_state['start_time'] = time.time()
-                                _deep_scan_state['completed_jobs'] = set()
-                                _deep_scan_state['worker_processes'] = []
-                                _deep_scan_state['job_outputs'] = {}
-                                
-                                # Launch worker processes
-                                temp_dir = tempfile.gettempdir()
-                                config.debug_print(f"[Atomic Debug] Launching {num_jobs} worker processes...")
-                                if _launch_worker_processes(blend_file_path, image_batches, temp_dir):
-                                    use_multi_process = True
-                                    config.debug_print(f"[Atomic Debug] Successfully launched {num_jobs} worker processes")
-                                    _safe_set_atom_property(atom, 'operation_status', f"Launching {num_jobs} worker processes...")
-                                    # Start monitoring timer
-                                    bpy.app.timers.register(_process_deep_scan_step)
-                                    return 0.1  # Continue monitoring
-                                else:
-                                    config.debug_print("[Atomic Error] Failed to launch worker processes")
-                                    _deep_scan_state['is_running'] = False
-                                    _safe_set_atom_property(atom, 'is_operation_running', False)
-                                    _safe_set_atom_property(atom, 'operation_status', "Failed to launch worker processes")
-                                    return None  # Stop the operation - no fallback
-                            else:
-                                config.debug_print("[Atomic Error] Cannot run multi-process deep scan: blend file not saved")
-                                _safe_set_atom_property(atom, 'is_operation_running', False)
-                                _safe_set_atom_property(atom, 'operation_status', "Cannot run multi-process: blend file not saved")
-                                return None  # Stop the operation - no fallback
-                        
-                        # If we get here and use_multi_process is False, it means we couldn't launch workers
-                        # Don't fall back - just stop
-                        if not use_multi_process:
-                            config.debug_print("[Atomic Error] Multi-process deep scan not available")
-                            _safe_set_atom_property(atom, 'is_operation_running', False)
-                            _safe_set_atom_property(atom, 'operation_status', "Multi-process deep scan not available")
-                            return None  # Stop - no fallback
-                        
-                        # Workers were launched successfully, timer is running
-                        # Don't continue with single-threaded - just return and let timer handle it
-                        return 0.1
-                    else:
-                        # Deep scan disabled, only do shallow checks (fast path only)
-                        config.debug_print("[Atomic Debug] Deep scan checkbox disabled - skipping deep image checks")
-                        _scan_state['results'][category] = []
-                        # Move to next category immediately
-                        _scan_state['current_category_index'] += 1
-                        _scan_state['status_updated'] = False
-                        progress = (_scan_state['current_category_index'] / len(_scan_state['categories_to_scan'])) * 50.0
-                        _safe_set_atom_property(atom, 'operation_progress', progress)
-                        for area in bpy.context.screen.areas:
-                            area.tag_redraw()
-                        return 0.01
-                
-                total_images = len(_scan_state['images_list'])
-                
-                if _scan_state['images_index'] < total_images:
-                    # Check for cancellation before processing each image
-                    if atom.cancel_operation:
-                        _safe_set_atom_property(atom, 'is_operation_running', False)
-                        _safe_set_atom_property(atom, 'operation_progress', 0.0)
-                        _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
-                        _safe_set_atom_property(atom, 'cancel_operation', False)
-                        _scan_state = None
-                        for area in bpy.context.screen.areas:
-                            area.tag_redraw()
-                        return None
-                    
-                    # Process one image at a time (no batching for better cancellation responsiveness)
-                    current_index = _scan_state['images_index'] + 1
-                    current_image = _scan_state['images_list'][_scan_state['images_index']]
-                    
-                    # Update status with current image
-                    _safe_set_atom_property(atom, 'operation_status', f"Checking image {current_index}/{total_images}: {current_image.name[:25]}...")
-                    
-                    # Process single image
-                    if _check_single_image(current_image):
-                        _scan_state['images_unused'].append(current_image.name)
-                    
-                    _scan_state['images_index'] += 1
-                    
-                    # Update progress within images category
-                    category_progress = (_scan_state['images_index'] / total_images) * (1.0 / total_categories)
-                    base_progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                    _safe_set_atom_property(atom, 'operation_progress', base_progress + category_progress * 50.0)
-                    
-                    # Force UI update
-                    for area in bpy.context.screen.areas:
-                        area.tag_redraw()
-                    
-                    return 0.01  # Continue processing images
-                
-                # All images processed, store result and move to next category
-                if 'results' not in _scan_state:
-                    _scan_state['results'] = {}
-                _scan_state['results'][category] = _scan_state['images_unused']
-                config.debug_print(f"[Atomic Debug] Single-threaded scan: Stored {len(_scan_state['images_unused'])} unused images in scan results")
-                
-                # Save cache to disk if deep scan was used
-                if atom.images_deep_scan:
-                    _save_cache_to_disk(_scan_state['results'], _image_scan_cache)
-                
-                _scan_state['images_list'] = None
-                _scan_state['images_index'] = 0
-                _scan_state['images_unused'] = []
-                # Move to next category
-                _scan_state['current_category_index'] += 1
-                _scan_state['status_updated'] = False
-                progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                _safe_set_atom_property(atom, 'operation_progress', progress)
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
-                return 0.01  # Continue to next category
             
-            # Handle incremental world scanning (for full scans only)
-            elif category == 'worlds' and _scan_state['mode'] == 'full':
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Entering worlds block")
-                # Initialize world list if not done
-                if _scan_state['worlds_list'] is None:
-                    _scan_state['worlds_list'] = [
-                        w for w in bpy.data.worlds 
-                        if not compat.is_library_or_override(w)
-                    ]
-                    _scan_state['worlds_index'] = 0
-                    if _scan_state['results'] is None:
-                        _scan_state['results'] = {}
-                    _scan_state['results'][category] = []
-                
-                # Process one world per timer callback
-                worlds_list = _scan_state['worlds_list']
-                if _scan_state['worlds_index'] < len(worlds_list):
-                    world = worlds_list[_scan_state['worlds_index']]
-                    
-                    # Check if world is unused
-                    is_unused = world.users == 0 or (world.users == 1 and
-                                                     world.use_fake_user and
-                                                     config.include_fake_users)
-                    if is_unused:
-                        _scan_state['results'][category].append(world.name)
-                    
-                    _scan_state['worlds_index'] += 1
-                    progress_base = (_scan_state['current_category_index'] / total_categories) * 50.0
-                    world_progress = (_scan_state['worlds_index'] / len(worlds_list)) * (50.0 / total_categories)
-                    _safe_set_atom_property(atom, 'operation_progress', progress_base + world_progress)
-                    
-                    # Force UI update
-                    for area in bpy.context.screen.areas:
-                        area.tag_redraw()
-                    
-                    return 0.01  # Continue processing this category
-                else:
-                    # Finished scanning worlds, move to next category
-                    _scan_state['worlds_list'] = None
-                    _scan_state['worlds_index'] = 0
-                    # Move to next category
-                    _scan_state['current_category_index'] += 1
-                    _scan_state['status_updated'] = False
-                    progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                    _safe_set_atom_property(atom, 'operation_progress', progress)
-                    for area in bpy.context.screen.areas:
-                        area.tag_redraw()
-                    return 0.01  # Continue to next category
+            # Initialize results dict if needed
+            if _scan_state['results'] is None:
+                _scan_state['results'] = {}
             
-            # Handle other categories (quick scan or full scan for non-incremental categories)
-            else:
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Processing category '{category}' in else block (mode={_scan_state['mode']})")
-                # Initialize results dict if needed (for both quick and full scans)
-                if _scan_state['results'] is None:
-                    _scan_state['results'] = {}
+            # Use RNA-based analysis for all categories (unified approach)
+            # Build RNA dependency graph if not already built (shared across all categories)
+            if not hasattr(_process_unified_scan_step, '_rna_graph'):
+                config.debug_print("[Atomic Debug] Unified Scanner: Building RNA dependency graph...")
+                rna_data = rna_analysis.dump_rna_references()
+                _process_unified_scan_step._rna_graph = rna_analysis.build_dependency_graph(rna_data)
+                config.debug_print("[Atomic Debug] Unified Scanner: RNA dependency graph built")
+            
+            if _scan_state['mode'] == 'quick':
+                # Quick scan: check if category has any unused items using RNA analysis
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Quick scan for '{category}' using RNA analysis")
                 
-                if _scan_state['mode'] == 'quick':
-                    # Quick scan: check if category has any unused items
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: Quick scan for '{category}'")
-                    if category == 'collections':
-                        result = unused_parallel._has_any_unused_collections()
-                    elif category == 'images':
-                        result = unused_parallel._has_any_unused_images()
-                    elif category == 'lights':
-                        result = unused_parallel._has_any_unused_lights()
-                    elif category == 'materials':
-                        result = unused_parallel._has_any_unused_materials()
-                    elif category == 'node_groups':
-                        result = unused_parallel._has_any_unused_node_groups()
-                    elif category == 'objects':
-                        result = unused_parallel._has_any_unused_objects()
-                    elif category == 'particles':
-                        result = unused_parallel._has_any_unused_particles()
-                    elif category == 'textures':
-                        result = unused_parallel._has_any_unused_textures()
-                    elif category == 'armatures':
-                        result = unused_parallel._has_any_unused_armatures()
-                    elif category == 'worlds':
-                        result = unused_parallel._has_any_unused_worlds()
-                    else:
-                        result = False
-                    
-                    _scan_state['results'][category] = result
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: Stored result for '{category}': {result}, results now: {_scan_state['results']}")
+                # Check if any unused items exist (short-circuit)
+                unused_list = rna_analysis.analyze_unused_from_graph(
+                    _process_unified_scan_step._rna_graph,
+                    category
+                )
+                result = len(unused_list) > 0
                 
-                else:  # mode == 'full'
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: Full scan for '{category}'")
-                    # Full scan: get complete list of unused items
-                    if category == 'collections':
-                        unused_list = unused.collections_deep()
-                    elif category == 'lights':
-                        unused_list = unused.lights_deep()
-                    elif category == 'materials':
-                        unused_list = unused.materials_deep()
-                    elif category == 'node_groups':
-                        unused_list = unused.node_groups_deep()
-                    elif category == 'objects':
-                        unused_list = unused.objects_deep()
-                    elif category == 'particles':
-                        unused_list = unused.particles_deep()
-                    elif category == 'textures':
-                        unused_list = unused.textures_deep()
-                    elif category == 'armatures':
-                        unused_list = unused.armatures_deep()
-                    else:
-                        unused_list = []
-                    
-                    if _scan_state['results'] is None:
-                        _scan_state['results'] = {}
-                    _scan_state['results'][category] = unused_list
+                _scan_state['results'][category] = result
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Stored result for '{category}': {result}, results now: {_scan_state['results']}")
+            
+            else:  # mode == 'full'
+                # Full scan: get complete list of unused items using RNA analysis
+                config.debug_print(f"[Atomic Debug] Unified Scanner: Full scan for '{category}' using RNA analysis")
                 
-                # Move to next category (for non-images/non-worlds categories)
-                _scan_state['current_category_index'] += 1
-                _scan_state['status_updated'] = False  # Reset for next category
-                progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                _safe_set_atom_property(atom, 'operation_progress', progress)
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index {_scan_state['current_category_index']}/{total_categories}, results: {_scan_state['results']}")
+                # Analyze unused items using RNA graph
+                unused_list = rna_analysis.analyze_unused_from_graph(
+                    _process_unified_scan_step._rna_graph,
+                    category
+                )
                 
-                # Force UI update
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
-                
-                return 0.01  # Continue processing
+                _scan_state['results'][category] = unused_list
+                config.debug_print(f"[Atomic Debug] Unified Scanner: RNA analysis found {len(unused_list)} unused {category}")
+            
+            # Move to next category
+            _scan_state['current_category_index'] += 1
+            _scan_state['status_updated'] = False  # Reset for next category
+            progress = (_scan_state['current_category_index'] / total_categories) * 50.0
+            _safe_set_atom_property(atom, 'operation_progress', progress)
+            config.debug_print(f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index {_scan_state['current_category_index']}/{total_categories}, results: {_scan_state['results']}")
+            
+            # Force UI update
+            for area in bpy.context.screen.areas:
+                area.tag_redraw()
+            
+            return 0.01  # Continue processing
         
         # All categories scanned
         config.debug_print(f"[Atomic Debug] Unified Scanner: All categories scanned! current_index={_scan_state.get('current_category_index')}, total={total_categories}, results={_scan_state.get('results')}")
@@ -2129,7 +1341,7 @@ def _populate_unused_lists(operator_instance, atom, all_unused):
     if atom.images:
         images_result = all_unused.get('images', [])
         operator_instance.unused_images = images_result
-        config.debug_print(f"[Atomic Debug] _populate_unused_lists: images result = {len(images_result) if images_result else 'None'} items, deep_scan={atom.images_deep_scan}")
+        config.debug_print(f"[Atomic Debug] _populate_unused_lists: images result = {len(images_result) if images_result else 'None'} items")
     if atom.lights:
         operator_instance.unused_lights = all_unused.get('lights', [])
     if atom.materials:
@@ -2207,11 +1419,6 @@ def _process_clean_invoke_step():
             'current_category_index': 0,
             'results': None,
             'status_updated': False,
-            'images_list': None,
-            'images_index': 0,
-            'images_unused': [],
-            'worlds_list': None,
-            'worlds_index': 0,
                 'callback': _on_clean_scan_complete,
                 'callback_data': {}
             }
@@ -2328,11 +1535,6 @@ def _process_smart_select_step():
             'current_category_index': 0,
             'results': None,
             'status_updated': False,
-            'images_list': None,
-            'images_index': 0,
-            'images_unused': [],
-            'worlds_list': None,
-            'worlds_index': 0,
                 'callback': _on_smart_select_quick_scan_complete,
                 'callback_data': {}
             }
