@@ -28,6 +28,7 @@ import bpy
 import os
 import json
 import tempfile
+import glob
 import time
 import re
 import subprocess
@@ -133,6 +134,29 @@ _scan_state = {
     'callback': None,  # Function to call when scan completes
     'callback_data': {}  # Data to pass to callback
 }
+
+
+def _cleanup_old_job_files():
+    """Clean up old temporary job files from previous deep scan runs."""
+    temp_dir = tempfile.gettempdir()
+    patterns = [
+        'atomic_job_*_images.json',
+        'atomic_job_*_result.json',
+        'atomic_job_*_result.json.tmp',
+        'atomic_job_*_stdout.log',
+        'atomic_job_*_stderr.log',
+        'atomic_job_*_launcher.bat'
+    ]
+    cleaned_count = 0
+    for pattern in patterns:
+        for file_path in glob.glob(os.path.join(temp_dir, pattern)):
+            try:
+                os.remove(file_path)
+                cleaned_count += 1
+            except Exception as e:
+                config.debug_print(f"[Atomic Debug] Could not remove {file_path}: {e}")
+    if cleaned_count > 0:
+        config.debug_print(f"[Atomic Debug] Cleaned up {cleaned_count} old job files")
 
 
 def _invalidate_cache():
@@ -273,30 +297,20 @@ _deep_scan_state = {
 
 def _calculate_job_distribution(total_images):
     """Calculate how many jobs to create and how to distribute images"""
-    import os as os_module
-    cpu_count = os_module.cpu_count() or 4
-    reserved = config.reserve_threads_for_deep_scan
-    
-    # Cap max workers to 4 - too many simultaneous Blender instances cause resource contention
-    # Each Blender instance is heavy, so fewer workers with more images each is more efficient
-    max_workers = 4
-    worker_threads = min(max_workers, max(1, cpu_count - reserved))
+    # Use config value directly as max workers
+    max_workers = max(1, config.max_deep_scan_workers)
     
     # Calculate images per job (round up)
-    images_per_job = math.ceil(total_images / worker_threads) if worker_threads > 0 else total_images
+    images_per_job = math.ceil(total_images / max_workers) if max_workers > 0 else total_images
 
-    # Ensure at least 1 image per job and enough images to be worth spawning a process
-    min_images_per_job = 10  # Don't spawn a Blender instance for less than 10 images
-    if images_per_job < min_images_per_job:
-        images_per_job = min_images_per_job
+    # Ensure at least 1 image per job
+    if images_per_job < 1:
+        images_per_job = 1
 
-    # Recalculate actual number of jobs needed
-    actual_jobs = math.ceil(total_images / images_per_job) if images_per_job > 0 else 1
-    
-    # Don't spawn more workers than needed
-    actual_jobs = min(actual_jobs, worker_threads)
+    # Recalculate actual number of jobs needed (don't spawn more workers than images)
+    actual_jobs = min(max_workers, math.ceil(total_images / images_per_job) if images_per_job > 0 else 1)
 
-    return actual_jobs, images_per_job, worker_threads
+    return actual_jobs, images_per_job, max_workers
 
 
 def _split_images_into_batches(image_list, images_per_job):
@@ -332,20 +346,30 @@ def _launch_worker_processes(blend_file_path, image_batches, temp_dir):
         # Create temporary JSON file for image list
         image_list_json = os.path.join(temp_dir, f"atomic_job_{job_index}_images.json")
         output_json = os.path.join(temp_dir, f"atomic_job_{job_index}_result.json")
+        stdout_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stdout.log")
+        stderr_log = os.path.join(temp_dir, f"atomic_job_{job_index}_stderr.log")
         
+        # Clean up any existing files from previous runs
+        for old_file in [output_json, output_json + '.tmp', stdout_log, stderr_log]:
+            try:
+                if os.path.exists(old_file):
+                    os.remove(old_file)
+            except Exception:
+                pass
+
         # Write image list to JSON (image_batch contains image objects)
         image_list_data = {
             'images': [img.name for img in image_batch],
             'blend_file': blend_file_path
         }
-        
+
         try:
             with open(image_list_json, 'w', encoding='utf-8') as f:
                 json.dump(image_list_data, f)
         except Exception as e:
             config.debug_print(f"[Atomic Error] Failed to write image list for job {job_index}: {e}")
             continue
-        
+
         job_outputs[job_index] = output_json
         
         # Create log files for stdout/stderr (for independent processes)
@@ -355,6 +379,7 @@ def _launch_worker_processes(blend_file_path, image_batches, temp_dir):
         # Launch headless Blender process as independent external process
         # Format: blender.exe -b blendfile.blend --python worker_script.py -- job_index image_list_json output_json
         # With only 4 workers, addon loading conflicts are minimal
+        # The worker script calls sys.exit(0) at the end, which exits Blender
         cmd = [
             blender_exe,
             '-b',  # Background mode
@@ -379,20 +404,16 @@ def _launch_worker_processes(blend_file_path, image_batches, temp_dir):
                 batch_file = os.path.join(temp_dir, f"atomic_job_{job_index}_launcher.bat")
                 with open(batch_file, 'w', encoding='utf-8') as f:
                     f.write('@echo off\n')
-                    # Build command line - quote each argument that contains spaces
-                    cmd_parts = []
-                    for arg in cmd:
-                        # Quote arguments with spaces or special characters
-                        if ' ' in arg or '"' in arg:
-                            # Escape quotes in the argument
-                            escaped_arg = arg.replace('"', '""')
-                            cmd_parts.append(f'"{escaped_arg}"')
-                        else:
-                            cmd_parts.append(arg)
-                    # Write the full command on one line
+                    # Quote ALL arguments to be safe
+                    cmd_parts = [f'"{arg}"' for arg in cmd]
                     cmd_line = ' '.join(cmd_parts)
-                    # Redirect output
-                    f.write(f'{cmd_line} > "{stdout_log}" 2> "{stderr_log}"\n')
+                    # Add trace to stdout
+                    f.write(f'echo [Batch] Starting job {job_index} >> "{stdout_log}"\n')
+                    f.write(f'echo [Batch] Command: {cmd_line} >> "{stdout_log}"\n')
+                    # Redirect output (append mode)
+                    f.write(f'{cmd_line} >> "{stdout_log}" 2>> "{stderr_log}"\n')
+                    f.write(f'echo [Batch] Exit code: %ERRORLEVEL% >> "{stdout_log}"\n')
+                    f.write('exit /b %ERRORLEVEL%\n')
                 
                 # Use 'start' to launch the batch file in a separate window
                 # This creates a truly independent process
@@ -458,6 +479,7 @@ def _process_deep_scan_step():
     
     # Check for cancellation
     if atom.cancel_operation:
+        config.debug_print("[Atomic Debug] Checking cancel: atom.cancel_operation = True")
         # Kill all worker processes
         # Since we used 'start' command, the process objects are just cmd.exe launchers
         # We need to kill the actual Blender worker processes
@@ -479,42 +501,24 @@ def _process_deep_scan_step():
                 except:
                     pass
         
-        # Kill all worker processes - both cmd.exe launchers and Blender processes
+        # Kill all worker Blender processes
         if os.name == 'nt':  # Windows
             try:
                 import subprocess as sp
-                # Kill processes with window titles matching "Atomic Worker *" (cmd.exe launchers)
-                result = sp.run(['taskkill', '/F', '/FI', 'WINDOWTITLE eq Atomic Worker*', '/T'], 
-                               stdout=sp.PIPE, stderr=sp.PIPE, timeout=5)
-                if result.returncode == 0:
-                    config.debug_print("[Atomic Debug] Killed worker launcher processes via taskkill")
+                # Kill cmd.exe launchers by window title
+                sp.run(['taskkill', '/F', '/FI', 'WINDOWTITLE eq Atomic Worker*', '/T'], 
+                       stdout=sp.PIPE, stderr=sp.PIPE, timeout=5)
                 
-                # Also kill any Blender processes that are running the worker script
-                # Find all blender.exe processes and check their command lines
-                # Use wmic to get process command lines, then kill matching ones
-                try:
-                    # Get all blender.exe processes
-                    result = sp.run(['wmic', 'process', 'where', 'name="blender.exe"', 'get', 'processid,commandline', '/format:csv'],
-                                  stdout=sp.PIPE, stderr=sp.PIPE, timeout=5, text=True)
-                    if result.returncode == 0:
-                        lines = result.stdout.strip().split('\n')
-                        for line in lines[1:]:  # Skip header
-                            if 'image_deep_scan_worker.py' in line:
-                                # Extract process ID and kill it
-                                parts = line.split(',')
-                                if len(parts) >= 2:
-                                    try:
-                                        pid = parts[-1].strip()
-                                        if pid.isdigit():
-                                            sp.run(['taskkill', '/F', '/PID', pid], 
-                                                  stdout=sp.PIPE, stderr=sp.PIPE, timeout=2)
-                                            config.debug_print(f"[Atomic Debug] Killed Blender worker process PID {pid}")
-                                    except:
-                                        pass
-                except Exception as e:
-                    config.debug_print(f"[Atomic Debug] Could not find/kill Blender worker processes: {e}")
-                
-                # taskkill returns 128 if no processes found, which is fine
+                # Use PowerShell to find and kill Blender processes running worker script
+                # This is more reliable than wmic
+                ps_cmd = '''
+                Get-WmiObject Win32_Process -Filter "name='blender.exe'" | 
+                Where-Object { $_.CommandLine -like '*image_deep_scan_worker*' } | 
+                ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+                '''
+                result = sp.run(['powershell', '-Command', ps_cmd], 
+                              stdout=sp.PIPE, stderr=sp.PIPE, timeout=10)
+                config.debug_print(f"[Atomic Debug] PowerShell kill result: {result.returncode}")
             except Exception as e:
                 config.debug_print(f"[Atomic Debug] Could not kill worker processes: {e}")
         
@@ -523,6 +527,10 @@ def _process_deep_scan_step():
         _safe_set_atom_property(atom, 'operation_progress', 0.0)
         _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
         _safe_set_atom_property(atom, 'cancel_operation', False)
+        
+        # Invalidate cache when scan is cancelled
+        _invalidate_cache()
+        config.debug_print("[Atomic Debug] Cache invalidated due to cancellation")
         
         # Cleanup temp files
         temp_dir = tempfile.gettempdir()
@@ -592,6 +600,7 @@ def _process_deep_scan_step():
         
         # If log files exist and have content, process is running
         process_running = False
+        process_stale = False
         if os.path.exists(stdout_log) or os.path.exists(stderr_log):
             # Check if log files are being written to (recent modification)
             current_time = time.time()
@@ -603,6 +612,10 @@ def _process_deep_scan_step():
                         process_running = True
                         running_count += 1
                         break
+                    # If log hasn't been modified in 5 minutes and no output file, process is likely crashed/stuck
+                    elif current_time - mtime > 300 and not (output_json and os.path.exists(output_json)):
+                        process_stale = True
+                        config.debug_print(f"[Atomic Warning] Job {job_index} appears stale (log not updated in {current_time - mtime:.0f} seconds, no output file)")
         
         # Also try to poll the process (works for non-detached processes)
         try:
@@ -640,11 +653,21 @@ def _process_deep_scan_step():
                         except Exception as e:
                             config.debug_print(f"[Atomic Debug] Could not read stderr log: {e}")
                     failed_processes.append(job_index)
+                    # Mark as completed (failed) so we don't wait forever
+                    _deep_scan_state['completed_jobs'].add(job_index)
+                    completed_count += 1
+                    config.debug_print(f"[Atomic Warning] Marking job {job_index} as failed (exited with code {return_code}, no output)")
                     all_complete = False
         except (OSError, ValueError) as e:
             # Process might be detached - can't poll, check output file and logs instead
             # This is expected for processes launched via 'start' command
             if not output_json or not os.path.exists(output_json):
+                # If process is stale (log not updated in 5+ minutes), mark as failed
+                if process_stale:
+                    config.debug_print(f"[Atomic Warning] Marking stale job {job_index} as failed (no output, log not updated)")
+                    _deep_scan_state['completed_jobs'].add(job_index)
+                    completed_count += 1
+                    failed_processes.append(job_index)
                 all_complete = False
                 if process_running:
                     running_count += 1
@@ -888,7 +911,8 @@ class ATOMIC_OT_clear_cache(bpy.types.Operator):
 
     def execute(self, context):
         _invalidate_cache()
-        config.debug_print("[Atomic Debug] Cache cleared manually")
+        _cleanup_old_job_files()
+        config.debug_print("[Atomic Debug] Cache cleared manually, old job files cleaned up")
         return {'FINISHED'}
 
 
@@ -901,7 +925,9 @@ class ATOMIC_OT_cancel_operation(bpy.types.Operator):
 
     def execute(self, context):
         atom = context.scene.atomic
+        config.debug_print("[Atomic Debug] Cancel button pressed, setting cancel_operation = True")
         _safe_set_atom_property(atom, 'cancel_operation', True)
+        config.debug_print(f"[Atomic Debug] After setting: atom.cancel_operation = {atom.cancel_operation}")
         return {'FINISHED'}
 
 
@@ -1665,6 +1691,9 @@ def _process_unified_scan_step():
             _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
             _safe_set_atom_property(atom, 'cancel_operation', False)
             _scan_state = None
+            # Invalidate cache when scan is cancelled
+            _invalidate_cache()
+            config.debug_print("[Atomic Debug] Cache invalidated due to cancellation")
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
             return None
@@ -2136,12 +2165,16 @@ def _process_clean_invoke_step():
         
         # Check for cancellation
         if atom.cancel_operation:
+            config.debug_print("[Atomic Debug] Clean: Operation cancelled")
             _safe_set_atom_property(atom, 'is_operation_running', False)
             _safe_set_atom_property(atom, 'operation_progress', 0.0)
             _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
             _safe_set_atom_property(atom, 'cancel_operation', False)
             _clean_invoke_state = None
             _scan_state = None
+            # Invalidate cache when scan is cancelled
+            _invalidate_cache()
+            config.debug_print("[Atomic Debug] Cache invalidated due to cancellation")
             # Force UI update
             for area in bpy.context.screen.areas:
                 area.tag_redraw()
