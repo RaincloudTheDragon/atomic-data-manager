@@ -31,20 +31,37 @@ from ..utils import compat
 
 
 # Data-block types we care about for dependency analysis
-DATA_BLOCK_TYPES = {
-    'images': bpy.data.images,
-    'materials': bpy.data.materials,
-    'objects': bpy.data.objects,
-    'collections': bpy.data.collections,
-    'node_groups': bpy.data.node_groups,
-    'textures': bpy.data.textures,
-    'lights': bpy.data.lights,
-    'armatures': bpy.data.armatures,
-    'worlds': bpy.data.worlds,
-    'particles': bpy.data.particles,
-    'meshes': bpy.data.meshes,
-    'scenes': bpy.data.scenes,
-}
+# Note: We rebuild this dynamically in get_data_block_types() to avoid stale references
+# after opening a new blend file
+_DATA_BLOCK_TYPE_NAMES = [
+    'images', 'materials', 'objects', 'collections', 'node_groups',
+    'textures', 'lights', 'armatures', 'worlds', 'particles', 'meshes', 'scenes'
+]
+
+
+def _get_data_block_types():
+    """
+    Safely get a dictionary of data-block types with fresh references.
+    This must be called each time to avoid stale references after opening a new blend file.
+    """
+    try:
+        return {
+            'images': bpy.data.images,
+            'materials': bpy.data.materials,
+            'objects': bpy.data.objects,
+            'collections': bpy.data.collections,
+            'node_groups': bpy.data.node_groups,
+            'textures': bpy.data.textures,
+            'lights': bpy.data.lights,
+            'armatures': bpy.data.armatures,
+            'worlds': bpy.data.worlds,
+            'particles': bpy.data.particles,
+            'meshes': bpy.data.meshes,
+            'scenes': bpy.data.scenes,
+        }
+    except Exception:
+        # If accessing bpy.data fails, return empty dict
+        return {}
 
 
 def _safe_snapshot(collection):
@@ -84,10 +101,17 @@ def _is_id_datablock_property(prop):
         if hasattr(rna_type, 'bl_rna'):
             rna_identifier = rna_type.bl_rna.identifier
             # Check if this is a known ID data-block type
-            for data_type, data_collection in DATA_BLOCK_TYPES.items():
-                if hasattr(data_collection, 'bl_rna'):
-                    if data_collection.bl_rna.identifier == rna_identifier:
-                        return True
+            try:
+                data_block_types = _get_data_block_types()
+                for data_type, data_collection in data_block_types.items():
+                    try:
+                        if hasattr(data_collection, 'bl_rna'):
+                            if data_collection.bl_rna.identifier == rna_identifier:
+                                return True
+                    except Exception:
+                        continue
+            except Exception:
+                pass
     return False
 
 
@@ -101,10 +125,17 @@ def _is_id_datablock_collection(prop):
         if hasattr(rna_type, 'bl_rna'):
             rna_identifier = rna_type.bl_rna.identifier
             # Check if collection items are ID data-blocks
-            for data_type, data_collection in DATA_BLOCK_TYPES.items():
-                if hasattr(data_collection, 'bl_rna'):
-                    if data_collection.bl_rna.identifier == rna_identifier:
-                        return True
+            try:
+                data_block_types = _get_data_block_types()
+                for data_type, data_collection in data_block_types.items():
+                    try:
+                        if hasattr(data_collection, 'bl_rna'):
+                            if data_collection.bl_rna.identifier == rna_identifier:
+                                return True
+                    except Exception:
+                        continue
+            except Exception:
+                pass
     return False
 
 
@@ -312,228 +343,245 @@ def dump_rna_references(output_path=None):
     rna_data = {}
     reference_map = {}  # Track reverse references: {target_type: {target_name: [source_info]}}
     
+    # Get fresh references to data-block types (critical after opening a new blend file)
+    try:
+        data_block_types = _get_data_block_types()
+    except Exception:
+        config.debug_print("[Atomic Debug] RNA Analysis: Failed to get data-block types, returning empty data")
+        if output_path:
+            with open(output_path, 'w') as f:
+                json.dump({}, f, indent=2)
+        return {}
+    
     # Initialize structure
-    for data_type in DATA_BLOCK_TYPES.keys():
+    for data_type in data_block_types.keys():
         rna_data[data_type] = {}
     
     # Extract references from all data-blocks
-    for data_type, data_collection in DATA_BLOCK_TYPES.items():
-        config.debug_print(f"[Atomic Debug] RNA Analysis: Processing {data_type}...")
-        
-        # Create a snapshot of the data collection to avoid iteration issues
-        # This is critical when a new blend file is opened - old data-blocks become invalid
-        datablocks = _safe_snapshot(data_collection)
-        
-        for datablock in datablocks:
-            # Skip library-linked and override datablocks
-            try:
-                if compat.is_library_or_override(datablock):
+    # Wrap in try-except to handle crashes when collections become invalid
+    for data_type, data_collection in data_block_types.items():
+        try:
+            config.debug_print(f"[Atomic Debug] RNA Analysis: Processing {data_type}...")
+            
+            # Create a snapshot of the data collection to avoid iteration issues
+            # This is critical when a new blend file is opened - old data-blocks become invalid
+            datablocks = _safe_snapshot(data_collection)
+            
+            for datablock in datablocks:
+                # Skip library-linked and override datablocks
+                try:
+                    if compat.is_library_or_override(datablock):
+                        continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    # Datablock may be invalid
                     continue
-            except (AttributeError, RuntimeError, ReferenceError):
-                # Datablock may be invalid
-                continue
-            
-            try:
-                item_name = datablock.name
-            except (AttributeError, RuntimeError, ReferenceError):
-                # Datablock may have been deleted or is invalid
-                continue
-            
-            references = []
-            
-            # Extract direct references
-            try:
-                direct_refs = _extract_references_from_datablock(datablock)
-                references.extend(direct_refs)
-            except (AttributeError, RuntimeError, ReferenceError):
-                # Datablock may have become invalid during processing
-                direct_refs = []
-            
-            # Special handling for materials (node trees)
-            try:
-                if data_type == 'materials' and hasattr(datablock, 'node_tree') and datablock.node_tree:
-                    node_refs = _extract_node_tree_references(datablock.node_tree)
-                    references.extend(node_refs)
-            except (AttributeError, RuntimeError, ReferenceError):
-                pass
-            
-            # Special handling for node groups
-            try:
-                if data_type == 'node_groups':
-                    node_refs = _extract_node_tree_references(datablock)
-                    references.extend(node_refs)
-            except (AttributeError, RuntimeError, ReferenceError):
-                pass
-            
-            # Special handling for scenes (compositor, rigidbody_world, collection, world, etc.)
-            try:
-                if data_type == 'scenes':
-                    # Compositor node tree reference
-                    node_tree = compat.get_scene_compositor_node_tree(datablock)
-                    if node_tree:
-                        try:
-                            if not compat.is_library_or_override(node_tree):
-                                references.append({
-                                    'property': 'node_tree',
-                                    'type': 'NodeTree',
-                                    'name': node_tree.name
-                                })
-                                # Also extract references from within the node tree
-                                node_refs = _extract_node_tree_references(node_tree)
-                                references.extend(node_refs)
-                        except (AttributeError, RuntimeError, ReferenceError):
-                            pass
-                    
-                    # Scene's root collection
-                    if hasattr(datablock, 'collection') and datablock.collection:
-                        try:
-                            if not compat.is_library_or_override(datablock.collection):
-                                references.append({
-                                    'property': 'collection',
-                                    'type': 'Collection',
-                                    'name': datablock.collection.name
-                                })
-                        except (AttributeError, RuntimeError, ReferenceError):
-                            pass
-                    
-                    # Scene's world reference
-                    if hasattr(datablock, 'world') and datablock.world:
-                        try:
-                            if not compat.is_library_or_override(datablock.world):
-                                references.append({
-                                    'property': 'world',
-                                    'type': 'World',
-                                    'name': datablock.world.name
-                                })
-                        except (AttributeError, RuntimeError, ReferenceError):
-                            pass
-                    
-                    # RigidBodyWorld collection reference
-                    if hasattr(datablock, 'rigidbody_world') and datablock.rigidbody_world:
-                        try:
-                            if hasattr(datablock.rigidbody_world, 'collection') and datablock.rigidbody_world.collection:
-                                if not compat.is_library_or_override(datablock.rigidbody_world.collection):
-                                    references.append({
-                                        'property': 'rigidbody_world.collection',
-                                        'type': 'Collection',
-                                        'name': datablock.rigidbody_world.collection.name
-                                    })
-                        except (AttributeError, RuntimeError, ReferenceError):
-                            pass
-            except (AttributeError, RuntimeError, ReferenceError):
-                pass
-            
-            # Special handling for collections (objects property)
-            try:
-                if data_type == 'collections':
-                    # Collections have an 'objects' property that contains objects
-                    # This is a collection property, so it should be detected by _is_id_datablock_collection
-                    # But let's also explicitly check to ensure it's captured
-                    if hasattr(datablock, 'objects'):
-                        # Create a snapshot to avoid iteration issues
-                        objects = _safe_snapshot(datablock.objects)
-                        
-                        for obj in objects:
-                            if obj is None:
-                                continue
-                            try:
-                                if not compat.is_library_or_override(obj):
-                                    references.append({
-                                        'property': 'objects',
-                                        'type': 'Object',
-                                        'name': obj.name
-                                    })
-                            except (AttributeError, RuntimeError, ReferenceError):
-                                # Object may have been deleted or is invalid
-                                continue
-            except (AttributeError, RuntimeError, ReferenceError):
-                pass
-            
-            # Special handling for objects (modifiers with node groups, material slots)
-            try:
-                if data_type == 'objects':
-                    # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
-                    if hasattr(datablock, 'modifiers'):
-                        # Create a snapshot to avoid iteration issues
-                        modifiers = _safe_snapshot(datablock.modifiers)
-                        
-                        for modifier in modifiers:
-                            if modifier is None:
-                                continue
-                            try:
-                                if compat.is_geometry_nodes_modifier(modifier):
-                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                    if ng and not compat.is_library_or_override(ng):
-                                        references.append({
-                                            'property': 'modifiers.node_group',
-                                            'type': 'NodeTree',
-                                            'name': ng.name
-                                        })
-                            except (AttributeError, RuntimeError, ReferenceError):
-                                # Modifier may be invalid
-                                continue
-                    
-                    # Objects have material slots that reference materials
-                    if hasattr(datablock, 'material_slots'):
-                        # Create a snapshot to avoid iteration issues
-                        material_slots = _safe_snapshot(datablock.material_slots)
-                        
-                        for slot in material_slots:
-                            if slot is None:
-                                continue
-                            try:
-                                if hasattr(slot, 'material') and slot.material:
-                                    if not compat.is_library_or_override(slot.material):
-                                        references.append({
-                                            'property': 'material_slots.material',
-                                            'type': 'Material',
-                                            'name': slot.material.name
-                                        })
-                            except (AttributeError, RuntimeError, ReferenceError):
-                                # Slot or material may be invalid
-                                continue
-            except (AttributeError, RuntimeError, ReferenceError):
-                pass
-            
-            # Store references
-            rna_data[data_type][item_name] = {
-                'references': references,
-                'referenced_by': []  # Will be populated in reverse pass
-            }
-            
-            # Build reverse reference map
-            for ref in references:
-                ref_type = ref.get('type', '').lower()
-                ref_name = ref.get('name', '')
                 
-                # Map type names to our data_type keys
-                type_mapping = {
-                    'image': 'images',
-                    'material': 'materials',
-                    'object': 'objects',
-                    'collection': 'collections',
-                    'nodetree': 'node_groups',
-                    'texture': 'textures',
-                    'light': 'lights',
-                    'armature': 'armatures',
-                    'world': 'worlds',
-                    'particlesettings': 'particles',
-                    'mesh': 'meshes',
-                    'scene': 'scenes',
+                try:
+                    item_name = datablock.name
+                except (AttributeError, RuntimeError, ReferenceError):
+                    # Datablock may have been deleted or is invalid
+                    continue
+                
+                references = []
+                
+                # Extract direct references
+                try:
+                    direct_refs = _extract_references_from_datablock(datablock)
+                    references.extend(direct_refs)
+                except (AttributeError, RuntimeError, ReferenceError):
+                    # Datablock may have become invalid during processing
+                    direct_refs = []
+                
+                # Special handling for materials (node trees)
+                try:
+                    if data_type == 'materials' and hasattr(datablock, 'node_tree') and datablock.node_tree:
+                        node_refs = _extract_node_tree_references(datablock.node_tree)
+                        references.extend(node_refs)
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for node groups
+                try:
+                    if data_type == 'node_groups':
+                        node_refs = _extract_node_tree_references(datablock)
+                        references.extend(node_refs)
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for scenes (compositor, rigidbody_world, collection, world, etc.)
+                try:
+                    if data_type == 'scenes':
+                        # Compositor node tree reference
+                        node_tree = compat.get_scene_compositor_node_tree(datablock)
+                        if node_tree:
+                            try:
+                                if not compat.is_library_or_override(node_tree):
+                                    references.append({
+                                        'property': 'node_tree',
+                                        'type': 'NodeTree',
+                                        'name': node_tree.name
+                                    })
+                                    # Also extract references from within the node tree
+                                    node_refs = _extract_node_tree_references(node_tree)
+                                    references.extend(node_refs)
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                pass
+                        
+                        # Scene's root collection
+                        if hasattr(datablock, 'collection') and datablock.collection:
+                            try:
+                                if not compat.is_library_or_override(datablock.collection):
+                                    references.append({
+                                        'property': 'collection',
+                                        'type': 'Collection',
+                                        'name': datablock.collection.name
+                                    })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                pass
+                        
+                        # Scene's world reference
+                        if hasattr(datablock, 'world') and datablock.world:
+                            try:
+                                if not compat.is_library_or_override(datablock.world):
+                                    references.append({
+                                        'property': 'world',
+                                        'type': 'World',
+                                        'name': datablock.world.name
+                                    })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                pass
+                        
+                        # RigidBodyWorld collection reference
+                        if hasattr(datablock, 'rigidbody_world') and datablock.rigidbody_world:
+                            try:
+                                if hasattr(datablock.rigidbody_world, 'collection') and datablock.rigidbody_world.collection:
+                                    if not compat.is_library_or_override(datablock.rigidbody_world.collection):
+                                        references.append({
+                                            'property': 'rigidbody_world.collection',
+                                            'type': 'Collection',
+                                            'name': datablock.rigidbody_world.collection.name
+                                        })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                pass
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for collections (objects property)
+                try:
+                    if data_type == 'collections':
+                        # Collections have an 'objects' property that contains objects
+                        # This is a collection property, so it should be detected by _is_id_datablock_collection
+                        # But let's also explicitly check to ensure it's captured
+                        if hasattr(datablock, 'objects'):
+                            # Create a snapshot to avoid iteration issues
+                            objects = _safe_snapshot(datablock.objects)
+                            
+                            for obj in objects:
+                                if obj is None:
+                                    continue
+                                try:
+                                    if not compat.is_library_or_override(obj):
+                                        references.append({
+                                            'property': 'objects',
+                                            'type': 'Object',
+                                            'name': obj.name
+                                        })
+                                except (AttributeError, RuntimeError, ReferenceError):
+                                    # Object may have been deleted or is invalid
+                                    continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for objects (modifiers with node groups, material slots)
+                try:
+                    if data_type == 'objects':
+                        # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
+                        if hasattr(datablock, 'modifiers'):
+                            # Create a snapshot to avoid iteration issues
+                            modifiers = _safe_snapshot(datablock.modifiers)
+                            
+                            for modifier in modifiers:
+                                if modifier is None:
+                                    continue
+                                try:
+                                    if compat.is_geometry_nodes_modifier(modifier):
+                                        ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                        if ng and not compat.is_library_or_override(ng):
+                                            references.append({
+                                                'property': 'modifiers.node_group',
+                                                'type': 'NodeTree',
+                                                'name': ng.name
+                                            })
+                                except (AttributeError, RuntimeError, ReferenceError):
+                                    # Modifier may be invalid
+                                    continue
+                        
+                        # Objects have material slots that reference materials
+                        if hasattr(datablock, 'material_slots'):
+                            # Create a snapshot to avoid iteration issues
+                            material_slots = _safe_snapshot(datablock.material_slots)
+                            
+                            for slot in material_slots:
+                                if slot is None:
+                                    continue
+                                try:
+                                    if hasattr(slot, 'material') and slot.material:
+                                        if not compat.is_library_or_override(slot.material):
+                                            references.append({
+                                                'property': 'material_slots.material',
+                                                'type': 'Material',
+                                                'name': slot.material.name
+                                            })
+                                except (AttributeError, RuntimeError, ReferenceError):
+                                    # Slot or material may be invalid
+                                    continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Store references
+                rna_data[data_type][item_name] = {
+                    'references': references,
+                    'referenced_by': []  # Will be populated in reverse pass
                 }
                 
-                mapped_type = type_mapping.get(ref_type, ref_type)
-                if mapped_type in DATA_BLOCK_TYPES:
-                    if mapped_type not in reference_map:
-                        reference_map[mapped_type] = {}
-                    if ref_name not in reference_map[mapped_type]:
-                        reference_map[mapped_type][ref_name] = []
+                # Build reverse reference map
+                for ref in references:
+                    ref_type = ref.get('type', '').lower()
+                    ref_name = ref.get('name', '')
                     
-                    reference_map[mapped_type][ref_name].append({
-                        'type': data_type,
-                        'name': item_name,
-                        'property': ref.get('property', '')
-                    })
+                    # Map type names to our data_type keys
+                    type_mapping = {
+                        'image': 'images',
+                        'material': 'materials',
+                        'object': 'objects',
+                        'collection': 'collections',
+                        'nodetree': 'node_groups',
+                        'texture': 'textures',
+                        'light': 'lights',
+                        'armature': 'armatures',
+                        'world': 'worlds',
+                        'particlesettings': 'particles',
+                        'mesh': 'meshes',
+                        'scene': 'scenes',
+                    }
+                    
+                    mapped_type = type_mapping.get(ref_type, ref_type)
+                    if mapped_type in _DATA_BLOCK_TYPE_NAMES:
+                        if mapped_type not in reference_map:
+                            reference_map[mapped_type] = {}
+                        if ref_name not in reference_map[mapped_type]:
+                            reference_map[mapped_type][ref_name] = []
+                        
+                        reference_map[mapped_type][ref_name].append({
+                            'type': data_type,
+                            'name': item_name,
+                            'property': ref.get('property', '')
+                        })
+        except Exception as e:
+            # If processing this data_type fails (e.g., collection became invalid),
+            # log and continue with next data_type
+            config.debug_print(f"[Atomic Warning] RNA Analysis: Failed to process {data_type}: {e}")
+            continue
     
     # Populate reverse references
     for data_type, items in reference_map.items():
@@ -584,7 +632,7 @@ def build_dependency_graph(rna_data):
     graph = {}
     
     # Initialize graph structure
-    for data_type in DATA_BLOCK_TYPES.keys():
+    for data_type in _DATA_BLOCK_TYPE_NAMES:
         graph[data_type] = {}
     
     # Build forward references (what this references)
@@ -621,7 +669,7 @@ def build_dependency_graph(rna_data):
                 }
                 
                 mapped_type = type_mapping.get(ref_type, ref_type)
-                if mapped_type in DATA_BLOCK_TYPES:
+                if mapped_type in _DATA_BLOCK_TYPE_NAMES:
                     graph[data_type][item_name]['references'].add((mapped_type, ref_name))
     
     # Build reverse references (what references this)
@@ -655,7 +703,7 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
     
     config.debug_print(f"[Atomic Debug] RNA Analysis: Analyzing unused {category}...")
     
-    if category not in DATA_BLOCK_TYPES:
+    if category not in _DATA_BLOCK_TYPE_NAMES:
         config.debug_print(f"[Atomic Warning] RNA Analysis: Unknown category '{category}'")
         return []
     
@@ -846,21 +894,26 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
     
     # Fake users
     if not include_fake_users:
-        for data_type, data_collection in DATA_BLOCK_TYPES.items():
-            # Create a snapshot to avoid iteration issues
-            datablocks = _safe_snapshot(data_collection)
-            
-            for datablock in datablocks:
-                if datablock is None:
-                    continue
-                try:
-                    if compat.is_library_or_override(datablock):
+        try:
+            data_block_types = _get_data_block_types()
+            for data_type, data_collection in data_block_types.items():
+                # Create a snapshot to avoid iteration issues
+                datablocks = _safe_snapshot(data_collection)
+                
+                for datablock in datablocks:
+                    if datablock is None:
                         continue
-                    if hasattr(datablock, 'use_fake_user') and datablock.use_fake_user:
-                        roots.append((data_type, datablock.name))
-                except (AttributeError, RuntimeError, ReferenceError):
-                    # Datablock may be invalid
-                    continue
+                    try:
+                        if compat.is_library_or_override(datablock):
+                            continue
+                        if hasattr(datablock, 'use_fake_user') and datablock.use_fake_user:
+                            roots.append((data_type, datablock.name))
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        # Datablock may be invalid
+                        continue
+        except Exception:
+            # If accessing data-block types fails, skip fake user check
+            pass
     
     # Traverse graph from roots
     visited = set()
@@ -893,10 +946,15 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
     
     # Iterate over all data-blocks in the category
     try:
-        # Create a snapshot to avoid iteration issues
-        category_datablocks = _safe_snapshot(DATA_BLOCK_TYPES[category])
-    except KeyError:
-        # Category doesn't exist in DATA_BLOCK_TYPES
+        # Get fresh reference to avoid stale data after opening new blend file
+        data_block_types = _get_data_block_types()
+        if category not in data_block_types:
+            category_datablocks = []
+        else:
+            # Create a snapshot to avoid iteration issues
+            category_datablocks = _safe_snapshot(data_block_types[category])
+    except Exception:
+        # If accessing data-block types fails, return empty list
         category_datablocks = []
     
     for datablock in category_datablocks:
