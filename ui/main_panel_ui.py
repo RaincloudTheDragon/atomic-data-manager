@@ -291,7 +291,11 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
                 icon='RESTRICT_SELECT_OFF'
             )
 
-
+        # Cache and missing file management
+        row = layout.row(align=True)
+        row.operator("atomic.clear_cache", text="Clear Cache", icon="FILE_REFRESH")
+        row.operator("atomic.detect_missing", text="Detect Missing", icon="LIBRARY_DATA_DIRECT")
+        
 reg_list = [ATOMIC_PT_main_panel]
 
 
