@@ -109,12 +109,16 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
 
             row = layout.separator()  # extra space
 
-            # recovery option selection
+            # recovery option buttons
             row = layout.row()
             row.label(text="What would you like to do?")
 
             row = layout.row()
-            row.prop(self, 'recovery_option', text="")
+            row.scale_y = 1.5
+            op_reload = row.operator("atomic.reload_missing", text="Reload", icon="FILE_REFRESH")
+            op_remove = row.operator("atomic.remove_missing", text="Remove", icon="TRASH")
+            op_search = row.operator("atomic.search_missing", text="Search", icon="VIEWZOOM")
+            op_replace = row.operator("atomic.replace_missing", text="Replace", icon="FILEBROWSER")
 
         # missing files interface if no missing files are found
         else:
@@ -129,25 +133,8 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         row = layout.separator()  # extra space
 
     def execute(self, context):
-
-        # ignore missing files will take no action
-
-        # reload missing files
-        if self.recovery_option == 'RELOAD':
-            bpy.ops.atomic.reload_missing('INVOKE_DEFAULT')
-
-        # remove missing files
-        elif self.recovery_option == 'REMOVE':
-            bpy.ops.atomic.remove_missing('INVOKE_DEFAULT')
-
-            # search for missing files
-        elif self.recovery_option == 'SEARCH':
-            bpy.ops.atomic.search_missing('INVOKE_DEFAULT')
-
-            # replace missing files
-        elif self.recovery_option == 'REPLACE':
-            bpy.ops.atomic.replace_missing('INVOKE_DEFAULT')
-
+        # Buttons now directly invoke operators, so execute just closes the dialog
+        # IGNORE is the default behavior (no action taken)
         return {'FINISHED'}
 
     def invoke(self, context, event):
