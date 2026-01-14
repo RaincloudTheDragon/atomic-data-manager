@@ -1229,17 +1229,22 @@ def _process_unified_scan_step():
             
             # Use RNA-based analysis for all categories (unified approach)
             # Build RNA dependency graph if not already built (shared across all categories)
-            if not hasattr(_process_unified_scan_step, '_rna_graph'):
-                config.debug_print("[Atomic Debug] Unified Scanner: Building RNA dependency graph...")
-                # Optionally dump RNA data to file for debugging
-                if config.enable_debug_prints:
-                    import tempfile
-                    rna_dump_path = os.path.join(tempfile.gettempdir(), f"atomic_rna_dump_{int(time.time())}.json")
-                    rna_data = rna_analysis.dump_rna_references(output_path=rna_dump_path)
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: RNA data dumped to {rna_dump_path}")
+            # Also rebuild if the filepath has changed (new file loaded)
+            current_filepath = bpy.data.filepath
+            cached_filepath = getattr(_process_unified_scan_step, '_rna_graph_filepath', None)
+            
+            if not hasattr(_process_unified_scan_step, '_rna_graph') or current_filepath != cached_filepath:
+                if hasattr(_process_unified_scan_step, '_rna_graph') and current_filepath != cached_filepath:
+                    config.debug_print("[Atomic Debug] Unified Scanner: File changed, rebuilding RNA dependency graph...")
                 else:
-                    rna_data = rna_analysis.dump_rna_references()
+                    config.debug_print("[Atomic Debug] Unified Scanner: Building RNA dependency graph...")
+                # Always dump RNA data to file for debugging/verification
+                rna_dump_path = os.path.join(tempfile.gettempdir(), f"atomic_rna_dump_{int(time.time())}.json")
+                rna_data = rna_analysis.dump_rna_references(output_path=rna_dump_path)
+                if config.enable_debug_prints:
+                    config.debug_print(f"[Atomic Debug] Unified Scanner: RNA data dumped to {rna_dump_path}")
                 _process_unified_scan_step._rna_graph = rna_analysis.build_dependency_graph(rna_data)
+                _process_unified_scan_step._rna_graph_filepath = current_filepath
                 config.debug_print("[Atomic Debug] Unified Scanner: RNA dependency graph built")
             
             if _scan_state['mode'] == 'quick':
