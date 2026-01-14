@@ -225,6 +225,45 @@ def _extract_node_tree_references(node_tree):
                                 'type': 'NodeTree',
                                 'name': ng.name
                             })
+                        # Recursively check nested node tree
+                        nested_refs = _extract_node_tree_references(node.node_tree)
+                        references.extend(nested_refs)
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        pass
+                
+                # Special handling for nodes with image property (Image Texture nodes, etc.)
+                if hasattr(node, 'image') and node.image:
+                    try:
+                        img = node.image
+                        if img and hasattr(img, 'name') and not compat.is_library_or_override(img):
+                            references.append({
+                                'property': 'image',
+                                'type': 'Image',
+                                'name': img.name
+                            })
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        pass
+                
+                # Special handling for nodes with material input sockets (Menu Switch, Set Material, etc.)
+                if hasattr(node, 'inputs'):
+                    try:
+                        for input_socket in node.inputs:
+                            try:
+                                # Check socket type - material sockets are typically 'MATERIAL' type
+                                socket_type = getattr(input_socket, 'type', '')
+                                if socket_type == 'MATERIAL' or 'material' in str(socket_type).lower():
+                                    # Check if this socket has a default_value that is a material
+                                    if hasattr(input_socket, 'default_value') and input_socket.default_value:
+                                        socket_material = input_socket.default_value
+                                        # Check if it's a material datablock
+                                        if socket_material and hasattr(socket_material, 'name') and not compat.is_library_or_override(socket_material):
+                                            references.append({
+                                                'property': 'inputs.material',
+                                                'type': 'Material',
+                                                'name': socket_material.name
+                                            })
+                            except (AttributeError, ReferenceError, RuntimeError, TypeError, KeyError):
+                                continue  # Skip this socket if we can't access it
                     except (AttributeError, RuntimeError, ReferenceError):
                         pass
             except (AttributeError, RuntimeError, ReferenceError):
@@ -284,12 +323,21 @@ def dump_rna_references(output_path=None):
                 node_refs = _extract_node_tree_references(datablock)
                 references.extend(node_refs)
             
-            # Special handling for scenes (compositor, rigidbody_world, etc.)
+            # Special handling for scenes (compositor, rigidbody_world, collection, world, etc.)
             if data_type == 'scenes':
                 node_tree = compat.get_scene_compositor_node_tree(datablock)
                 if node_tree:
                     node_refs = _extract_node_tree_references(node_tree)
                     references.extend(node_refs)
+                
+                # Scene's root collection
+                if hasattr(datablock, 'collection') and datablock.collection:
+                    if not compat.is_library_or_override(datablock.collection):
+                        references.append({
+                            'property': 'collection',
+                            'type': 'Collection',
+                            'name': datablock.collection.name
+                        })
                 
                 # RigidBodyWorld collection reference
                 if hasattr(datablock, 'rigidbody_world') and datablock.rigidbody_world:
@@ -315,7 +363,7 @@ def dump_rna_references(output_path=None):
                                 'name': obj.name
                             })
             
-            # Special handling for objects (modifiers with node groups)
+            # Special handling for objects (modifiers with node groups, material slots)
             if data_type == 'objects':
                 # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
                 if hasattr(datablock, 'modifiers'):
@@ -327,6 +375,17 @@ def dump_rna_references(output_path=None):
                                     'property': 'modifiers.node_group',
                                     'type': 'NodeTree',
                                     'name': ng.name
+                                })
+                
+                # Objects have material slots that reference materials
+                if hasattr(datablock, 'material_slots'):
+                    for slot in datablock.material_slots:
+                        if slot and hasattr(slot, 'material') and slot.material:
+                            if not compat.is_library_or_override(slot.material):
+                                references.append({
+                                    'property': 'material_slots.material',
+                                    'type': 'Material',
+                                    'name': slot.material.name
                                 })
             
             # Store references
