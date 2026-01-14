@@ -46,11 +46,19 @@ class ATOMIC_OT_reload_missing(bpy.types.Operator):
     def execute(self, context):
         # reload images
         for image in bpy.data.images:
-            image.reload()
+            try:
+                image.reload()
+            except (RuntimeError, OSError) as e:
+                config.debug_print(f"[Atomic Debug] Failed to reload image '{image.name}': {e}")
+                continue
 
         # reload libraries
         for library in bpy.data.libraries:
-            library.reload()
+            try:
+                library.reload()
+            except (RuntimeError, OSError) as e:
+                config.debug_print(f"[Atomic Debug] Failed to reload library '{library.name}': {e}")
+                continue
 
         # call reload report
         bpy.ops.atomic.reload_report('INVOKE_DEFAULT')
@@ -79,15 +87,15 @@ class ATOMIC_OT_reload_report(bpy.types.Operator):
                     layout=self.layout,
                     items=missing_images,
                     icon='IMAGE_DATA',
-                    columns=2
+                    columns=4
                 )
 
             if missing_libraries:
                 ui_layouts.box_list(
                     layout=self.layout,
-                    items=missing_images,
+                    items=missing_libraries,
                     icon='LIBRARY_DATA_DIRECT',
-                    columns=2
+                    columns=4
                 )
 
         else:
@@ -101,7 +109,7 @@ class ATOMIC_OT_reload_report(bpy.types.Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self)
+        return wm.invoke_props_dialog(self, width=800)
 
 
 # Atomic Data Manager Remove Missing Files Operator
