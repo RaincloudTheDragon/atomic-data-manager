@@ -26,29 +26,43 @@ Usage:
 
 """
 
-import bpy
 import sys
 import json
 import os
 
+# Print immediately to confirm script is running
+print("[Atomic Worker] Script loaded, importing bpy...")
+sys.stdout.flush()
+
+import bpy
+
 # Parse command-line arguments
 # Format: -- job_index image_list_json output_json
 print("[Atomic Worker] Starting worker script...")
+print(f"[Atomic Worker] sys.argv = {sys.argv}")
+sys.stdout.flush()
 
 if '--' not in sys.argv:
     print("[Atomic Error] Missing '--' separator in arguments")
+    print(f"[Atomic Debug] sys.argv contents: {sys.argv}")
+    sys.stdout.flush()
     sys.exit(1)
 
 arg_index = sys.argv.index('--')
+print(f"[Atomic Worker] Found '--' at index {arg_index}, total args: {len(sys.argv)}")
+sys.stdout.flush()
+
 if len(sys.argv) < arg_index + 4:
     print(f"[Atomic Error] Missing required arguments. Got {len(sys.argv) - arg_index - 1} args after '--', need at least 3")
+    sys.stdout.flush()
     sys.exit(1)
 
 job_index = int(sys.argv[arg_index + 1])
 image_list_json_path = sys.argv[arg_index + 2]
 output_json_path = sys.argv[arg_index + 3]
 
-print(f"[Atomic Worker] Job {job_index}: Processing images...")
+print(f"[Atomic Worker] Job {job_index}: Processing images from {image_list_json_path}")
+sys.stdout.flush()
 
 try:
     # Load image list from JSON

@@ -142,8 +142,8 @@ def copy_prefs_to_config(self, context):
     config.single_threaded_image_deep_scan = \
         atomic_preferences.single_threaded_image_deep_scan
 
-    config.reserve_threads_for_deep_scan = \
-        atomic_preferences.reserve_threads_for_deep_scan
+    config.max_deep_scan_workers = \
+        atomic_preferences.max_deep_scan_workers
 
     # hidden atomic preferences
     config.pie_menu_type = \
@@ -265,11 +265,11 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=False
     )
 
-    reserve_threads_for_deep_scan: bpy.props.IntProperty(
-        description="Number of CPU threads to reserve (worker count = total_threads - reserved)",
-        default=1,
-        min=0,
-        max=max(0, (os.cpu_count() or 4) - 2)  # Dynamic max: machine threads minus 2
+    max_deep_scan_workers: bpy.props.IntProperty(
+        description="Maximum number of parallel Blender worker processes for deep scan",
+        default=4,
+        min=1,
+        max=max(1, os.cpu_count() or 4)  # Dynamic max: all machine threads
     )
 
     # hidden atomic preferences
@@ -344,8 +344,8 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         )
         col.prop(
             self,
-            "reserve_threads_for_deep_scan",
-            text="Reserve Threads"
+            "max_deep_scan_workers",
+            text="Max Worker Processes"
         )
 
         # pie menu settings
