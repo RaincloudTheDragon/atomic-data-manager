@@ -887,7 +887,7 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
     filepath: bpy.props.StringProperty(
         name="File Path",
         description="Path to the replacement library file",
-        subtype='FILE_PATH',
+        subtype='NONE',  # Use NONE instead of FILE_PATH to avoid automatic folder button
         default="",
         update=_update_filepath
     )
@@ -944,12 +944,22 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
                 # Property not accessible yet, use setattr as fallback
                 setattr(self, 'filepath', current_path)
             
-            # Use row.prop() to show inline editable path field with folder icon
-            # The folder icon button is automatically included with subtype='FILE_PATH'
-            row.prop(self, 'filepath')
+            # Path field with browse button (like searcher's row.prop style)
+            path_row = row.row(align=True)
             
-            # Additional browse button for file selection
-            browse_op = row.operator("atomic.replace_missing_browse", text="", icon='FILEBROWSER')
+            # Editable text field using the filepath property
+            # Set filepath for this library
+            self._editing_lib_key = lib_key
+            try:
+                self.filepath = current_path
+            except AttributeError:
+                setattr(self, 'filepath', current_path)
+            
+            # Use row.prop() for editable text field (subtype='NONE' so no automatic folder button)
+            path_row.prop(self, 'filepath', text="")
+            
+            # Our custom browse button (replaces the accept button functionality)
+            browse_op = path_row.operator("atomic.replace_missing_browse", text="", icon='FILEBROWSER')
             browse_op.library_key = lib_key
             browse_op.filename = lib_info['filename']
             
@@ -1035,48 +1045,53 @@ class ATOMIC_OT_replace_missing_browse(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     library_key: bpy.props.StringProperty()
-    filename: bpy.props.StringProperty()
+    filename: bpy.props.StringProperty(
+        name="Filename",
+        description="Filename to pre-fill in file browser",
+        subtype='FILE_NAME',
+        default=""
+    )
     filepath: bpy.props.StringProperty(
         name="File Path",
         description="Path to the replacement library file",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default=""
     )
     filter_glob: bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
     
     def invoke(self, context, event):
         global _replace_missing_state
         
-        # Try to use outliner.lib_operation if library is accessible
-        if self.library_key in bpy.data.libraries:
-            library = bpy.data.libraries[self.library_key]
-            try:
-                # Use Blender's built-in relocate operation which pre-fills filename
-                # This requires the library to be selected in outliner, so we'll use file browser instead
-                pass
-            except Exception:
-                pass
+        # Get the filename to pre-fill in the file browser
+        filename_to_use = None
         
-        # Pre-fill filename if available
         if self.filename:
-            # Try to set initial directory to blend file directory
-            if bpy.data.filepath:
-                initial_dir = os.path.dirname(bpy.path.abspath(bpy.data.filepath))
-            else:
-                initial_dir = os.path.expanduser("~")
-            
-            # Set filepath with filename pre-filled (directory + filename)
-            self.filepath = os.path.join(initial_dir, self.filename)
+            # Use the provided filename
+            filename_to_use = self.filename
+        elif self.library_key in bpy.data.libraries:
+            # Extract filename from the missing library's path
+            library = bpy.data.libraries[self.library_key]
+            if library.filepath:
+                try:
+                    missing_path = bpy.path.abspath(library.filepath)
+                    filename_to_use = os.path.basename(missing_path)
+                except Exception:
+                    pass
+        
+        # Set the filename property (with FILE_NAME subtype) to pre-fill the filename field
+        if filename_to_use:
+            self.filename = filename_to_use
         else:
-            # Use existing path from state if available
-            self.filepath = _replace_missing_state.get(self.library_key, "")
-            # If no path, try to get from library
-            if not self.filepath and self.library_key in bpy.data.libraries:
-                library = bpy.data.libraries[self.library_key]
-                if library.filepath:
-                    # Use the directory from the missing path, with the filename
-                    missing_dir = os.path.dirname(bpy.path.abspath(library.filepath))
-                    if os.path.isdir(missing_dir):
-                        self.filepath = os.path.join(missing_dir, os.path.basename(bpy.path.abspath(library.filepath)))
+            # Check existing path from state and extract filename
+            existing_path = _replace_missing_state.get(self.library_key, "")
+            if existing_path:
+                self.filename = os.path.basename(existing_path) if os.path.dirname(existing_path) else existing_path
+            else:
+                self.filename = ""
+        
+        # Set filepath to empty initially - the file browser will populate it when a file is selected
+        # The filename property will pre-fill the filename field
+        self.filepath = ""
         
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
@@ -1084,13 +1099,29 @@ class ATOMIC_OT_replace_missing_browse(bpy.types.Operator):
     def execute(self, context):
         global _replace_missing_state
         
-        if not self.filepath:
+        # When file browser accepts, filepath will contain the selected file
+        # Combine directory and filename if needed
+        selected_path = self.filepath
+        
+        # If filepath is empty but filename is set, try to construct path
+        if not selected_path and self.filename:
+            # Try to get directory from current blend file
+            if bpy.data.filepath:
+                try:
+                    base_dir = os.path.dirname(bpy.path.abspath(bpy.data.filepath))
+                    selected_path = os.path.join(base_dir, self.filename)
+                except Exception:
+                    selected_path = self.filename
+            else:
+                selected_path = self.filename
+        
+        if not selected_path:
             return {'CANCELLED'}
         
-        # Store in state
-        _replace_missing_state[self.library_key] = self.filepath
+        # Store in state (don't auto-relink - let user click Relink button)
+        _replace_missing_state[self.library_key] = selected_path
         
-        # Redraw
+        # Redraw to update UI and show Relink button
         for area in context.screen.areas:
             area.tag_redraw()
         
