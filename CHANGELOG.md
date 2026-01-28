@@ -1,3 +1,15 @@
+## [v2.5.0] - 2026-01-28
+
+### Features
+- Missing file tools: add “Relink All” and improve replacement workflow.
+
+### Fixes
+- Missing file UI: fix text field paste + layout/truncation issues; center the detect-missing popup; refine replacement path handling (better dir vs file behavior).
+- RNA analysis: expand datablock coverage and refine dependency tracking to reduce false “unused” results.
+
+### Internal
+- Maintenance: remove deprecated recovery option; improve ignore rules for hidden dot-directories.
+
 ## [v2.4.1] - 2026-01-14
 
 ### Fixes
