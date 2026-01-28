@@ -209,6 +209,7 @@ def _extract_references_from_datablock(datablock, depth=0, max_depth=5):
                             if item is None:
                                 continue
                             try:
+                                # Extract references from items that have names (e.g., material slots)
                                 if hasattr(item, 'name'):
                                     name = item.name
                                     type_identifier = 'unknown'
@@ -223,6 +224,22 @@ def _extract_references_from_datablock(datablock, depth=0, max_depth=5):
                                         'type': type_identifier,
                                         'name': name
                                     })
+                                
+                                # IMPORTANT: Also recursively extract from collection items (e.g., modifiers)
+                                # even if they don't have names, to capture nested references like modifier.texture
+                                # This ensures we capture references even if explicit handling fails
+                                if depth < max_depth:
+                                    try:
+                                        nested_refs = _extract_references_from_datablock(item, depth + 1, max_depth)
+                                        # Prepend the collection property name to nested property paths
+                                        for nested_ref in nested_refs:
+                                            nested_prop = nested_ref.get('property', '')
+                                            if nested_prop:
+                                                nested_ref['property'] = f"{prop.identifier}.{nested_prop}"
+                                        references.extend(nested_refs)
+                                    except (AttributeError, TypeError, RecursionError, RuntimeError):
+                                        # Recursive extraction may fail for some items
+                                        pass
                             except (AttributeError, RuntimeError, ReferenceError):
                                 # Item may have been deleted or is invalid
                                 continue
@@ -368,12 +385,16 @@ def dump_rna_references(output_path=None):
             datablocks = _safe_snapshot(data_collection)
             
             for datablock in datablocks:
-                # Skip library-linked and override datablocks
+                # Skip library-linked/override datablocks *except* for certain "reference-only"
+                # roots (not cleanable themselves) that can still reference local data that
+                # should not be flagged as unused (e.g. local materials assigned to linked objects).
+                is_linked_or_override = False
                 try:
-                    if compat.is_library_or_override(datablock):
-                        continue
+                    is_linked_or_override = compat.is_library_or_override(datablock)
                 except (AttributeError, RuntimeError, ReferenceError):
                     # Datablock may be invalid
+                    continue
+                if is_linked_or_override and data_type not in {'objects'}:
                     continue
                 
                 try:
@@ -480,14 +501,14 @@ def dump_rna_references(output_path=None):
                                 if obj is None:
                                     continue
                                 try:
-                                    if not compat.is_library_or_override(obj):
-                                        references.append({
-                                            'property': 'objects',
-                                            'type': 'Object',
-                                            'name': obj.name
-                                        })
+                                    # Even if the object is linked/override, keep the reference:
+                                    # linked scene content can still reference local datablocks.
+                                    references.append({
+                                        'property': 'objects',
+                                        'type': 'Object',
+                                        'name': obj.name
+                                    })
                                 except (AttributeError, RuntimeError, ReferenceError):
-                                    # Object may have been deleted or is invalid
                                     continue
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
@@ -499,6 +520,11 @@ def dump_rna_references(output_path=None):
                         if hasattr(datablock, 'modifiers'):
                             # Create a snapshot to avoid iteration issues
                             modifiers = _safe_snapshot(datablock.modifiers)
+                            
+                            # Debug: Log modifier count for Turf objects
+                            if item_name in ('Turf.001', 'Turf'):
+                                mod_names = [m.name if m else 'None' for m in modifiers]
+                                config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifiers count={len(modifiers)}, names={mod_names}")
                             
                             for modifier in modifiers:
                                 if modifier is None:
@@ -512,16 +538,70 @@ def dump_rna_references(output_path=None):
                                                 'type': 'NodeTree',
                                                 'name': ng.name
                                             })
-                                    # Modifiers with .texture (e.g. Displace) reference Texture datablocks
-                                    if hasattr(modifier, 'texture') and modifier.texture and not compat.is_library_or_override(modifier.texture):
-                                        references.append({
-                                            'property': 'modifiers.texture',
-                                            'type': 'Texture',
-                                            'name': modifier.texture.name
-                                        })
                                 except (AttributeError, RuntimeError, ReferenceError):
-                                    # Modifier may be invalid
-                                    continue
+                                    # Geometry nodes modifier access may fail
+                                    pass
+                                
+                                # Modifiers with .texture (e.g. Displace) reference Texture datablocks
+                                # IMPORTANT: capture references to linked textures too, so we can traverse
+                                # the graph correctly (even though linked textures themselves aren't cleanable)
+                                # Use separate try-except to ensure texture references are captured even if
+                                # geometry nodes modifier access failed above
+                                try:
+                                    has_texture_attr = hasattr(modifier, 'texture')
+                                    texture_value = modifier.texture if has_texture_attr else None
+                                    
+                                    # Debug: Log modifier texture access for Turf objects
+                                    if item_name in ('Turf.001', 'Turf'):
+                                        config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifier '{modifier.name}' has_texture={has_texture_attr}, texture={texture_value}")
+                                    
+                                    if has_texture_attr and texture_value:
+                                        # Access texture.name in try-except in case texture is linked/inaccessible
+                                        try:
+                                            texture_name = modifier.texture.name
+                                            # Get type identifier from texture's bl_rna to ensure correct mapping
+                                            texture_type = 'Texture'
+                                            if hasattr(modifier.texture, 'bl_rna'):
+                                                try:
+                                                    rna_id = modifier.texture.bl_rna.identifier
+                                                    # Map common Blender RNA identifiers to our type names
+                                                    if 'Texture' in rna_id:
+                                                        texture_type = 'Texture'
+                                                except (AttributeError, RuntimeError):
+                                                    pass
+                                            
+                                            # Check if this reference already exists (from recursive extraction)
+                                            # to avoid duplicates, but ensure we capture it explicitly
+                                            ref_exists = any(
+                                                ref.get('property') == 'modifiers.texture' and
+                                                ref.get('name') == texture_name and
+                                                ref.get('type', '').lower() in ('texture', 'texturedatablock', 'bpy.types.texture')
+                                                for ref in references
+                                            )
+                                            
+                                            # Debug: Log texture reference capture for Turf objects
+                                            if item_name in ('Turf.001', 'Turf'):
+                                                config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifier '{modifier.name}' texture_name={texture_name}, ref_exists={ref_exists}")
+                                            
+                                            if not ref_exists:
+                                                references.append({
+                                                    'property': 'modifiers.texture',
+                                                    'type': texture_type,
+                                                    'name': texture_name
+                                                })
+                                                # Debug: Confirm reference was added
+                                                if item_name in ('Turf.001', 'Turf'):
+                                                    config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} ADDED modifiers.texture -> {texture_name}")
+                                        except (AttributeError, RuntimeError, ReferenceError) as e:
+                                            # Texture.name access failed - texture may be linked/inaccessible
+                                            if item_name in ('Turf.001', 'Turf'):
+                                                config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} texture.name access failed: {e}")
+                                            pass
+                                except (AttributeError, RuntimeError, ReferenceError) as e:
+                                    # Modifier.texture may be inaccessible (e.g., linked modifier/texture)
+                                    if item_name in ('Turf.001', 'Turf'):
+                                        config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifier texture access failed: {e}")
+                                    pass
                         
                         # Objects have material slots that reference materials
                         if hasattr(datablock, 'material_slots'):
@@ -544,12 +624,14 @@ def dump_rna_references(output_path=None):
                                     continue
                         
                         # Objects have particle_systems that reference particle settings
+                        # IMPORTANT: capture references to linked particle settings too, so we can traverse
+                        # the graph correctly (even though linked particle settings themselves aren't cleanable)
                         if hasattr(datablock, 'particle_systems'):
                             for ps in _safe_snapshot(datablock.particle_systems):
                                 if ps is None:
                                     continue
                                 try:
-                                    if hasattr(ps, 'settings') and ps.settings and not compat.is_library_or_override(ps.settings):
+                                    if hasattr(ps, 'settings') and ps.settings:
                                         references.append({
                                             'property': 'particle_systems.settings',
                                             'type': 'ParticleSettings',
@@ -597,6 +679,12 @@ def dump_rna_references(output_path=None):
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
+                # Debug: Log references for Turf objects to trace the modifiers.texture issue
+                if item_name in ('Turf.001', 'Turf') and data_type == 'objects':
+                    config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} references BEFORE storing: {references}")
+                    texture_refs = [r for r in references if 'texture' in r.get('property', '').lower()]
+                    config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} texture-related refs: {texture_refs}")
+                
                 # Store references
                 rna_data[data_type][item_name] = {
                     'references': references,
@@ -607,6 +695,34 @@ def dump_rna_references(output_path=None):
                 for ref in references:
                     ref_type = ref.get('type', '').lower()
                     ref_name = ref.get('name', '')
+                    
+                    # Normalize Blender RNA identifiers to our type names
+                    # Handle patterns like 'Texture', 'TextureDatablock', 'bpy.types.Texture', etc.
+                    ref_type_normalized = ref_type
+                    if 'texture' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'texture'
+                    elif 'material' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'material'
+                    elif 'image' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'image'
+                    elif 'object' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'object'
+                    elif 'collection' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'collection'
+                    elif 'nodetree' in ref_type or 'nodegroup' in ref_type or 'node_tree' in ref_type:
+                        ref_type_normalized = 'nodetree'
+                    elif 'light' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'light'
+                    elif 'armature' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'armature'
+                    elif 'world' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'world'
+                    elif 'particlesettings' in ref_type or ('particle' in ref_type and 'settings' in ref_type):
+                        ref_type_normalized = 'particlesettings'
+                    elif 'mesh' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'mesh'
+                    elif 'scene' in ref_type and 'datablock' not in ref_type:
+                        ref_type_normalized = 'scene'
                     
                     # Map type names to our data_type keys
                     type_mapping = {
@@ -624,7 +740,7 @@ def dump_rna_references(output_path=None):
                         'scene': 'scenes',
                     }
                     
-                    mapped_type = type_mapping.get(ref_type, ref_type)
+                    mapped_type = type_mapping.get(ref_type_normalized, ref_type_normalized)
                     if mapped_type in _DATA_BLOCK_TYPE_NAMES:
                         if mapped_type not in reference_map:
                             reference_map[mapped_type] = {}
@@ -711,6 +827,33 @@ def build_dependency_graph(rna_data):
                 ref_type = ref.get('type', '').lower()
                 ref_name = ref.get('name', '')
                 
+                # Normalize Blender RNA identifiers to our type names (same as in dump_rna_references)
+                ref_type_normalized = ref_type
+                if 'texture' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'texture'
+                elif 'material' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'material'
+                elif 'image' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'image'
+                elif 'object' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'object'
+                elif 'collection' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'collection'
+                elif 'nodetree' in ref_type or 'nodegroup' in ref_type or 'node_tree' in ref_type:
+                    ref_type_normalized = 'nodetree'
+                elif 'light' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'light'
+                elif 'armature' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'armature'
+                elif 'world' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'world'
+                elif 'particlesettings' in ref_type or ('particle' in ref_type and 'settings' in ref_type):
+                    ref_type_normalized = 'particlesettings'
+                elif 'mesh' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'mesh'
+                elif 'scene' in ref_type and 'datablock' not in ref_type:
+                    ref_type_normalized = 'scene'
+                
                 # Map type names
                 type_mapping = {
                     'image': 'images',
@@ -727,7 +870,7 @@ def build_dependency_graph(rna_data):
                     'scene': 'scenes',
                 }
                 
-                mapped_type = type_mapping.get(ref_type, ref_type)
+                mapped_type = type_mapping.get(ref_type_normalized, ref_type_normalized)
                 if mapped_type in _DATA_BLOCK_TYPE_NAMES:
                     graph[data_type][item_name]['references'].add((mapped_type, ref_name))
     
@@ -738,8 +881,23 @@ def build_dependency_graph(rna_data):
                 source_type = source.get('type', '')
                 source_name = source.get('name', '')
                 
-                if source_type in graph and source_name in graph[source_type]:
+                if source_type in _DATA_BLOCK_TYPE_NAMES:
+                    if source_type not in graph:
+                        graph[source_type] = {}
+                    if source_name not in graph[source_type]:
+                        graph[source_type][source_name] = {
+                            'references': set(),
+                            'referenced_by': set()
+                        }
+
+                    # Record reverse edge (target <- source)
                     graph[source_type][source_name]['referenced_by'].add((data_type, item_name))
+
+                    # IMPORTANT: also ensure the corresponding forward edge exists.
+                    # Some Blender datablocks show up only in reverse discovery (e.g. certain
+                    # linked/override modifier texture users) which would otherwise break
+                    # reachability traversal from roots.
+                    graph[source_type][source_name]['references'].add((data_type, item_name))
     
     config.debug_print("[Atomic Debug] RNA Analysis: Dependency graph built.")
     return graph
@@ -831,49 +989,49 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
             if obj is None:
                 continue
             try:
-                if not compat.is_library_or_override(obj):
-                    roots.append(('objects', obj.name))
-                    # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
-                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                # IMPORTANT: include linked/override objects as roots so their references
+                # (e.g. local materials assigned to linked objects) are treated as used.
+                roots.append(('objects', obj.name))
+
+                # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
+                if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                    try:
+                        data_type_map = {
+                            'LIGHT': 'lights',
+                            'MESH': 'meshes',
+                            'ARMATURE': 'armatures',
+                            'CURVE': 'curves',
+                            'SURFACE': 'curves',  # Surface objects also use curve data
+                            'FONT': 'curves',  # Font objects also use curve data
+                            'META': 'metaballs',
+                            'LATTICE': 'lattices',
+                            'VOLUME': 'volumes',
+                        }
+                        obj_type = obj.type
+                        if obj_type in data_type_map:
+                            data_type = data_type_map[obj_type]
+                            if not compat.is_library_or_override(obj.data):
+                                roots.append((data_type, obj.data.name))
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        pass
+
+                # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
+                if hasattr(obj, 'modifiers'):
+                    try:
+                        modifiers = list(obj.modifiers)
+                    except (RuntimeError, ReferenceError):
+                        modifiers = []
+
+                    for modifier in modifiers:
+                        if modifier is None:
+                            continue
                         try:
-                            data_type_map = {
-                                'LIGHT': 'lights',
-                                'MESH': 'meshes',
-                                'ARMATURE': 'armatures',
-                                'CURVE': 'curves',
-                                'SURFACE': 'curves',  # Surface objects also use curve data
-                                'FONT': 'curves',  # Font objects also use curve data
-                                'META': 'metaballs',
-                                'LATTICE': 'lattices',
-                                'VOLUME': 'volumes',
-                            }
-                            obj_type = obj.type
-                            if obj_type in data_type_map:
-                                data_type = data_type_map[obj_type]
-                                if not compat.is_library_or_override(obj.data):
-                                    roots.append((data_type, obj.data.name))
+                            if compat.is_geometry_nodes_modifier(modifier):
+                                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                if ng and not compat.is_library_or_override(ng):
+                                    roots.append(('node_groups', ng.name))
                         except (AttributeError, RuntimeError, ReferenceError):
-                            # Object or data may be invalid
-                            pass
-                    
-                    # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
-                    if hasattr(obj, 'modifiers'):
-                        try:
-                            modifiers = list(obj.modifiers)
-                        except (RuntimeError, ReferenceError):
-                            modifiers = []
-                        
-                        for modifier in modifiers:
-                            if modifier is None:
-                                continue
-                            try:
-                                if compat.is_geometry_nodes_modifier(modifier):
-                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                    if ng and not compat.is_library_or_override(ng):
-                                        roots.append(('node_groups', ng.name))
-                            except (AttributeError, RuntimeError, ReferenceError):
-                                # Modifier may be invalid
-                                continue
+                            continue
             except (AttributeError, RuntimeError, ReferenceError):
                 # Object may have been deleted or is invalid
                 continue
@@ -904,49 +1062,49 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
                 if obj is None:
                     continue
                 try:
-                    if not compat.is_library_or_override(obj):
-                        roots.append(('objects', obj.name))
-                        # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
-                        if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
-                            try:
-                                data_type_map = {
-                                    'LIGHT': 'lights',
-                                    'MESH': 'meshes',
-                                    'ARMATURE': 'armatures',
-                                    'CURVE': 'curves',
-                                    'SURFACE': 'curves',  # Surface objects also use curve data
-                                    'FONT': 'curves',  # Font objects also use curve data
-                                    'META': 'metaballs',
-                                    'LATTICE': 'lattices',
-                                    'VOLUME': 'volumes',
-                                }
-                                obj_type = obj.type
-                                if obj_type in data_type_map:
-                                    data_type = data_type_map[obj_type]
-                                    if not compat.is_library_or_override(obj.data):
-                                        roots.append((data_type, obj.data.name))
-                            except (AttributeError, RuntimeError, ReferenceError):
-                                # Object or data may be invalid
-                                pass
+                    # IMPORTANT: include linked/override objects as roots so their references
+                    # (e.g. textures in Displace modifiers, materials, etc.) are traversed.
+                    roots.append(('objects', obj.name))
+                    
+                    # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
+                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                        try:
+                            data_type_map = {
+                                'LIGHT': 'lights',
+                                'MESH': 'meshes',
+                                'ARMATURE': 'armatures',
+                                'CURVE': 'curves',
+                                'SURFACE': 'curves',  # Surface objects also use curve data
+                                'FONT': 'curves',  # Font objects also use curve data
+                                'META': 'metaballs',
+                                'LATTICE': 'lattices',
+                                'VOLUME': 'volumes',
+                            }
+                            obj_type = obj.type
+                            if obj_type in data_type_map:
+                                data_type = data_type_map[obj_type]
+                                if not compat.is_library_or_override(obj.data):
+                                    roots.append((data_type, obj.data.name))
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+                    
+                    # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
+                    if hasattr(obj, 'modifiers'):
+                        try:
+                            modifiers = list(obj.modifiers)
+                        except (RuntimeError, ReferenceError):
+                            modifiers = []
                         
-                        # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
-                        if hasattr(obj, 'modifiers'):
+                        for modifier in modifiers:
+                            if modifier is None:
+                                continue
                             try:
-                                modifiers = list(obj.modifiers)
-                            except (RuntimeError, ReferenceError):
-                                modifiers = []
-                            
-                            for modifier in modifiers:
-                                if modifier is None:
-                                    continue
-                                try:
-                                    if compat.is_geometry_nodes_modifier(modifier):
-                                        ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                        if ng and not compat.is_library_or_override(ng):
-                                            roots.append(('node_groups', ng.name))
-                                except (AttributeError, RuntimeError, ReferenceError):
-                                    # Modifier may be invalid
-                                    continue
+                                if compat.is_geometry_nodes_modifier(modifier):
+                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                    if ng and not compat.is_library_or_override(ng):
+                                        roots.append(('node_groups', ng.name))
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                continue
                 except (AttributeError, RuntimeError, ReferenceError):
                     # Object may have been deleted or is invalid
                     continue
