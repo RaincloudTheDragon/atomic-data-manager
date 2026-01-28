@@ -512,6 +512,13 @@ def dump_rna_references(output_path=None):
                                                 'type': 'NodeTree',
                                                 'name': ng.name
                                             })
+                                    # Modifiers with .texture (e.g. Displace) reference Texture datablocks
+                                    if hasattr(modifier, 'texture') and modifier.texture and not compat.is_library_or_override(modifier.texture):
+                                        references.append({
+                                            'property': 'modifiers.texture',
+                                            'type': 'Texture',
+                                            'name': modifier.texture.name
+                                        })
                                 except (AttributeError, RuntimeError, ReferenceError):
                                     # Modifier may be invalid
                                     continue
@@ -535,6 +542,58 @@ def dump_rna_references(output_path=None):
                                 except (AttributeError, RuntimeError, ReferenceError):
                                     # Slot or material may be invalid
                                     continue
+                        
+                        # Objects have particle_systems that reference particle settings
+                        if hasattr(datablock, 'particle_systems'):
+                            for ps in _safe_snapshot(datablock.particle_systems):
+                                if ps is None:
+                                    continue
+                                try:
+                                    if hasattr(ps, 'settings') and ps.settings and not compat.is_library_or_override(ps.settings):
+                                        references.append({
+                                            'property': 'particle_systems.settings',
+                                            'type': 'ParticleSettings',
+                                            'name': ps.settings.name
+                                        })
+                                except (AttributeError, RuntimeError, ReferenceError):
+                                    continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for worlds (node tree → images/textures)
+                try:
+                    if data_type == 'worlds' and hasattr(datablock, 'node_tree') and datablock.node_tree:
+                        node_refs = _extract_node_tree_references(datablock.node_tree)
+                        references.extend(node_refs)
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for particles (texture_slots → Texture; used by objects in scene)
+                try:
+                    if data_type == 'particles' and hasattr(datablock, 'texture_slots'):
+                        for slot in _safe_snapshot(datablock.texture_slots):
+                            if slot is None:
+                                continue
+                            try:
+                                if hasattr(slot, 'texture') and slot.texture and not compat.is_library_or_override(slot.texture):
+                                    references.append({
+                                        'property': 'texture_slots.texture',
+                                        'type': 'Texture',
+                                        'name': slot.texture.name
+                                    })
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
+                
+                # Special handling for textures (legacy .image → Image; e.g. rippleblur.png via Texture used by Turf)
+                try:
+                    if data_type == 'textures' and hasattr(datablock, 'image') and datablock.image and not compat.is_library_or_override(datablock.image):
+                        references.append({
+                            'property': 'image',
+                            'type': 'Image',
+                            'name': datablock.image.name
+                        })
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
