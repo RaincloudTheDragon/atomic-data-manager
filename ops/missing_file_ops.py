@@ -638,6 +638,17 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                         op.filepath = selected_match
                         op.ignore_warnings = False
                         op.use_relative_path = self.relative_path
+            
+            # Relink All: show when at least one library has a relinkable match
+            relinkable = [
+                lib_key for lib_key in missing_libs
+                if (matches.get(lib_key) or {}).get('selected_match') or (matches.get(lib_key) or {}).get('exact')
+            ]
+            if relinkable:
+                layout.separator()
+                row = layout.row()
+                op = row.operator("atomic.search_missing_relink_all", text="Relink All", icon='LINKED')
+                op.use_relative_path = self.relative_path
         
         # Error display
         if state.get('search_error'):
@@ -863,6 +874,48 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# Operator to relink all found libraries in the search dialog
+class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
+    """Relink all missing libraries that have a match selected"""
+    bl_idname = "atomic.search_missing_relink_all"
+    bl_label = "Relink All"
+    bl_options = {'INTERNAL'}
+    
+    use_relative_path: bpy.props.BoolProperty(default=True)
+    
+    def execute(self, context):
+        global _library_search_state
+        matches = _library_search_state.get('matches', {})
+        to_relink = []
+        for lib_key, match_info in matches.items():
+            path = match_info.get('selected_match') or match_info.get('exact')
+            if path and path.strip():
+                to_relink.append((lib_key, path))
+        if not to_relink:
+            self.report({'WARNING'}, "No matches to relink")
+            return {'CANCELLED'}
+        ok, fail = 0, 0
+        for lib_key, filepath in to_relink:
+            success, _ = _relink_library(lib_key, filepath, self.use_relative_path)
+            if success:
+                ok += 1
+                del _library_search_state['matches'][lib_key]
+            else:
+                fail += 1
+        if ok:
+            self.report({'INFO'}, f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}" + (f", {fail} failed" if fail else ""))
+        if fail:
+            self.report({'ERROR'}, f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink")
+        atom = context.scene.atomic
+        if atom.is_operation_running:
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', "")
+        for area in context.screen.areas:
+            area.tag_redraw()
+        return {'FINISHED'}
+
+
 # Module-level state for replace missing
 _replace_missing_state = {}
 
@@ -970,6 +1023,12 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
                 relink_op = row.operator("atomic.replace_missing_relink", text="Relink Library", icon='LINKED')
                 relink_op.library_key = lib_key
                 relink_op.filepath = current_path
+        
+        # Relink All: only if at least one library has a path set
+        if any(_replace_missing_state.get(k) for k in missing_libs):
+            layout.separator()
+            row = layout.row()
+            row.operator("atomic.replace_missing_relink_all", text="Relink All", icon='LINKED')
     
     def execute(self, context):
         return {'FINISHED'}
@@ -1162,6 +1221,40 @@ class ATOMIC_OT_replace_missing_relink(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# Operator to relink all libraries that have a path set
+class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
+    """Relink all missing libraries that have a replacement path set"""
+    bl_idname = "atomic.replace_missing_relink_all"
+    bl_label = "Relink All"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        global _replace_missing_state
+        
+        to_relink = [(k, v) for k, v in _replace_missing_state.items() if v and v.strip()]
+        if not to_relink:
+            self.report({'WARNING'}, "No replacement paths set")
+            return {'CANCELLED'}
+        
+        ok, fail = 0, 0
+        for lib_key, filepath in to_relink:
+            success, _ = _relink_library(lib_key, filepath, use_relative_path=True)
+            if success:
+                ok += 1
+                del _replace_missing_state[lib_key]
+            else:
+                fail += 1
+        
+        if ok:
+            self.report({'INFO'}, f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}" + (f", {fail} failed" if fail else ""))
+        if fail:
+            self.report({'ERROR'}, f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink")
+        
+        for area in context.screen.areas:
+            area.tag_redraw()
+        return {'FINISHED'}
+
+
 reg_list = [
     ATOMIC_OT_reload_missing,
     ATOMIC_OT_reload_report,
@@ -1170,10 +1263,12 @@ reg_list = [
     ATOMIC_OT_search_missing_cancel,
     ATOMIC_OT_search_missing_select,
     ATOMIC_OT_search_missing_relink,
+    ATOMIC_OT_search_missing_relink_all,
     ATOMIC_OT_replace_missing,
     ATOMIC_OT_replace_missing_browse,
     ATOMIC_OT_replace_missing_set_path,
     ATOMIC_OT_replace_missing_relink,
+    ATOMIC_OT_replace_missing_relink_all,
     ATOMIC_OT_remove_missing
 ]
 
