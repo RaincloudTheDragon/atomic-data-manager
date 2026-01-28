@@ -1,18 +1,24 @@
 ## [v2.5.0] - 2026-01-28
 
 ### Features
-- Missing file tools: add “Relink All” and improve replacement workflow.
+
+- Missing file tools:
+  - Finalized Relinker and Linked Library Replacer features.
+    - Add “Relink All” button to Relinker
 
 ### Fixes
+
 - Missing file UI: fix text field paste + layout/truncation issues; center the detect-missing popup; refine replacement path handling (better dir vs file behavior).
 - RNA analysis: expand datablock coverage and refine dependency tracking to reduce false “unused” results.
 
 ### Internal
+
 - Maintenance: remove deprecated recovery option; improve ignore rules for hidden dot-directories.
 
 ## [v2.4.1] - 2026-01-14
 
 ### Fixes
+
 - Fixed RNA analysis crashes when opening new blend files by rebuilding data-block type references dynamically
 - Fixed indentation errors that prevented RNA dump from processing most data-blocks
 - Fixed compositing nodetree detection by adding scenes as root nodes in dependency graph
@@ -22,6 +28,7 @@
 ## [v2.4.0] - 2026-01-13
 
 ### Features
+
 - **Major Architecture Change: RNA-Based Analysis System**
   - Replaced multi-process worker system with faster, more robust RNA-based dependency analysis
   - All data types now use unified RNA introspection for dependency tracking
@@ -32,6 +39,7 @@
   - Items now display in 4-column grid layout to reduce vertical scrolling
 
 ### Fixes
+
 - Fixed node groups used by objects via Geometry Nodes modifiers not being detected as used
 - Fixed RigidBodyWorld and other scene-linked data-blocks incorrectly flagged as cleanable
 - Fixed area lights and other object data-blocks in scene collections not being marked as used
@@ -39,22 +47,26 @@
 - Fixed RNA extraction handling for objects' modifier node groups
 
 ### Performance
+
 - Significantly faster scanning across all categories using RNA analysis
 - Single-pass dependency graph building shared across all category scans
 
 ## [v2.3.1] - 2026-01-13
 
 ### Fixes
+
 - Integrate proper UDIM detection
 
 ## [v2.3.0] - 2026-01-06
 
 ### Features
+
 - Added "Enable Debug Prints" preference to control debug console output
   - Debug messages now only print when this preference is enabled (default: off)
   - All debug print statements use centralized `config.debug_print()` helper
 
 ### Fixes
+
 - Fixed preferences not displaying in Blender 5.0 extensions
   - Preferences now correctly match the full module path (`bl_ext.vscode_development.atomic_data_manager`)
   - Added safe property setter to handle read-only context errors during file loading
@@ -69,6 +81,7 @@
 ## [v2.2.0] - 2026-01-05
 
 ### Features
+
 - Add loading bars; non-blocking timer-based UI (#10)
   - Operations no longer freeze the UI during scanning
   - Real-time progress updates with cancel support at any time
@@ -80,6 +93,7 @@
 - Added manual cache clear operator for testing and debugging
 
 ### Performance
+
 - Optimized deep scan functions with caching and fast-path checks
   - Image scanning now uses cached results to avoid redundant scene scans
   - Early exit for clearly unused images using Blender's built-in user count
@@ -88,24 +102,28 @@
   - Worlds processed one at a time incrementally
 
 ### Fixes
+
 - Fixed images used only by unused objects being incorrectly flagged as unused (#5)
 - Fixed material detection in brushes and node groups (#6, #7)
 - Fixed Clean operator not showing dialog when invoked programmatically (#8)
 - Improved material detection in inspection tools (brushes, node groups)
 
 ### Internal
+
 - Refactored scanning architecture for maintainability
 - Added comprehensive debug output for troubleshooting
 
 ## [v2.1.0] - 2025-12-18
 
 ### Features
+
 - Added support for detecting unused objects and armatures (#1)
   - Objects not present in any scene collections are now detected as unused
   - Armatures not used by any objects in scenes (including direct use, modifiers, and constraints like "Child Of") are detected as unused
   - Smart Select and Clean operations now support objects and armatures
 
 ### Fixes
+
 - Fixed material detection in Geometry Nodes Set Material nodes
   - Materials used in Geometry Nodes' "Set Material" nodes are now correctly detected as used
   - Fixed legacy issue where materials in node groups (e.g., "outline-highlight" in "box-highlight" node group) were incorrectly flagged as unused
@@ -117,38 +135,45 @@
   - Note: Further performance improvements are limited by Blender's Python API being single-threaded and requiring sequential access to `bpy.data` collections, making true parallelization impossible without risking data corruption
 
 ### Internal
+
 - Removed incorrect "Remington Creative" copyright notices from newly created files
 - Updated repository configuration in manifest
 
 ## [v2.0.3] - 2025-12-17
 
 ### Fixes
+
 - Fixed missing import error in missing file detection
 
 ## [v2.0.2] - 2025-12-17
 
 ### Fixes
+
 - Atomic now completely ignores all library-linked and override datablocks across all operations, as originally intended.
 
 ## [v2.0.1] - 2025-12-16
 
 ### Fixes
+
 - Blender 5.0 compatibility: Fixed `AttributeError` when detecting missing library files (Library objects use `packed_file` singular, Image objects use `packed_files` plural in 5.0)
 - Fixed unregistration errors in Blender 4.5 by using safe unregister functions throughout the codebase
 
 ## [v2.0.0] - Raincloud's first re-release
 
 ### Feature
+
 - Multi-version Blender support (4.2 LTS, 4.5 LTS, and 5.0)
-    - Version detection utilities in `utils/version.py`
-    - API compatibility layer in `utils/compat.py` for handling version differences
+  - Version detection utilities in `utils/version.py`
+  - API compatibility layer in `utils/compat.py` for handling version differences
 
 ### Fixes
+
 - Blender 5.0 compatibility: Fixed `AttributeError` when accessing scene compositor node tree (changed from `scene.node_tree` to `scene.compositing_node_tree`)
 - Collections assigned to `rigidbody_world.collection` are now correctly detected as used
 
 ### Internal
+
 - GitHub Actions release workflow
 - Integrated `rainys_repo_bootstrap` into `__init__.py` so the Rainy's Extensions repository is registered on add-on enable and the bootstrap guard resets on disable.
 - Removed "Support Remington Creative" popup and all related functionality
-    - Removed Support popup preferences
+  - Removed Support popup preferences
