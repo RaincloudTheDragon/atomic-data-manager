@@ -919,31 +919,57 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
 # Module-level state for replace missing
 _replace_missing_state = {}
 
+
+def _replace_path_item_update(self, context):
+    """Sync path to global state so browse/relink ops and redraws see it."""
+    global _replace_missing_state
+    # Blender's FILE_PATH widget treats the last path segment as a filename
+    # unless the path ends with a separator. If the user typed an existing
+    # directory, normalize it by appending a trailing separator so the file
+    # browser opens *in* that folder instead of treating it as a filename.
+    if getattr(self, "_atomic_normalizing_path", False):
+        # Prevent recursion if we assign to self.path below.
+        pass
+    else:
+        raw = (self.path or "").strip()
+        if raw:
+            try:
+                abs_path = bpy.path.abspath(raw)
+                if os.path.isdir(abs_path) and not raw.endswith(("/", "\\")):
+                    self._atomic_normalizing_path = True
+                    self.path = raw + os.sep
+            except Exception:
+                # If abspath/exists checks fail, don't interfere with typing.
+                pass
+            finally:
+                if hasattr(self, "_atomic_normalizing_path"):
+                    self._atomic_normalizing_path = False
+
+    if self.lib_key:
+        _replace_missing_state[self.lib_key] = self.path
+    for area in context.screen.areas:
+        area.tag_redraw()
+
+
+class ATOMIC_PG_replace_path_item(bpy.types.PropertyGroup):
+    """One replacement path per missing library so each text field is stable (paste works)."""
+    lib_key: bpy.props.StringProperty()
+    path: bpy.props.StringProperty(
+        name="Path",
+        description="Path to the replacement library file",
+        subtype='FILE_PATH',
+        default="",
+        update=_replace_path_item_update
+    )
+
+
 # Atomic Data Manager Replace Missing Files Operator
 class ATOMIC_OT_replace_missing(bpy.types.Operator):
     """Replace each missing file with a new file"""
     bl_idname = "atomic.replace_missing"
     bl_label = "Replace Missing Files"
-    
-    # Property for inline path editing (shared, but updated per library in draw)
-    def _update_filepath(self, context):
-        """Update state when filepath property changes"""
-        global _replace_missing_state
-        # Use getattr to safely access the attribute
-        lib_key = getattr(self, '_editing_lib_key', None)
-        if lib_key:
-            _replace_missing_state[lib_key] = self.filepath
-            # Redraw to update UI
-            for area in context.screen.areas:
-                area.tag_redraw()
-    
-    filepath: bpy.props.StringProperty(
-        name="File Path",
-        description="Path to the replacement library file",
-        subtype='NONE',  # Use NONE instead of FILE_PATH to avoid automatic folder button
-        default="",
-        update=_update_filepath
-    )
+
+    replace_paths: bpy.props.CollectionProperty(type=ATOMIC_PG_replace_path_item)
 
     def draw(self, context):
         layout = self.layout
@@ -967,62 +993,34 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
             lib_info = missing.get_missing_library_info(lib_key)
             if not lib_info:
                 continue
-            
+
+            item = next((i for i in self.replace_paths if i.lib_key == lib_key), None)
+            if item is None:
+                continue
+
             # Box for each library
             box = layout.box()
-            
+
             # First row: icon and missing path
             row = box.row()
             row.label(text="", icon='LIBRARY_DATA_BROKEN')
-            
-            # Path display (show full path, no truncation)
+
             path_display = lib_info['filepath']
             row.label(text=path_display)
-            
-            # Second row: replacement path field with folder button (like searcher)
+
+            # Second row: replacement path (one property per row so paste isn't overwritten on redraw)
             row = box.row()
             row.separator()
-            
-            current_path = _replace_missing_state.get(lib_key, "")
-            
-            # Path field with folder icon button - like searcher's row.prop(self, 'search_directory')
-            # Use the main operator's filepath property, updating it for each library
-            # Set the library key first so update callback knows which library to update
-            self._editing_lib_key = lib_key
-            # Update filepath property for this library
-            # Assign directly - this will trigger the update callback if property exists
-            try:
-                self.filepath = current_path
-            except AttributeError:
-                # Property not accessible yet, use setattr as fallback
-                setattr(self, 'filepath', current_path)
-            
-            # Path field with browse button (like searcher's row.prop style)
             path_row = row.row(align=True)
-            
-            # Editable text field using the filepath property
-            # Set filepath for this library
-            self._editing_lib_key = lib_key
-            try:
-                self.filepath = current_path
-            except AttributeError:
-                setattr(self, 'filepath', current_path)
-            
-            # Use row.prop() for editable text field (subtype='NONE' so no automatic folder button)
-            path_row.prop(self, 'filepath', text="")
-            
-            # Our custom browse button (replaces the accept button functionality)
-            browse_op = path_row.operator("atomic.replace_missing_browse", text="", icon='FILEBROWSER')
-            browse_op.library_key = lib_key
-            browse_op.filename = lib_info['filename']
+            path_row.prop(item, 'path', text="")
             
             # Third row: Relink button if path is set
-            if current_path:
+            if item.path:
                 row = box.row()
                 row.separator()
                 relink_op = row.operator("atomic.replace_missing_relink", text="Relink Library", icon='LINKED')
                 relink_op.library_key = lib_key
-                relink_op.filepath = current_path
+                relink_op.filepath = item.path
         
         # Relink All: only if at least one library has a path set
         if any(_replace_missing_state.get(k) for k in missing_libs):
@@ -1034,21 +1032,24 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        # Refresh missing libraries list and clean state
         global _replace_missing_state
         missing_libs = missing.libraries()
-        
-        # Clean up state for libraries that are no longer missing
+
         _replace_missing_state = {k: v for k, v in _replace_missing_state.items() if k in missing_libs}
-        
-        # Initialize editing lib key attribute
-        if not hasattr(self, '_editing_lib_key'):
-            self._editing_lib_key = ""
-        
+
         if not missing_libs:
             self.report({'INFO'}, "No missing libraries found")
             return {'CANCELLED'}
-        
+
+        self.replace_paths.clear()
+        for lib_key in missing_libs:
+            lib_info = missing.get_missing_library_info(lib_key)
+            path_item = self.replace_paths.add()
+            path_item.lib_key = lib_key
+            existing = _replace_missing_state.get(lib_key, "")
+            # Prefill the file browser with the missing filename when possible.
+            path_item.path = existing or (lib_info.get('filename', "") if lib_info else "")
+
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=800)
 
@@ -1264,6 +1265,7 @@ reg_list = [
     ATOMIC_OT_search_missing_select,
     ATOMIC_OT_search_missing_relink,
     ATOMIC_OT_search_missing_relink_all,
+    ATOMIC_PG_replace_path_item,
     ATOMIC_OT_replace_missing,
     ATOMIC_OT_replace_missing_browse,
     ATOMIC_OT_replace_missing_set_path,
