@@ -35,6 +35,38 @@ from .utils import ui_layouts
 _detect_missing_operator_instance = None
 
 
+def _warp_cursor_to_area_center(context, prefer_area_type="VIEW_3D") -> None:
+    """Best-effort: move cursor to area center so popups appear centered.
+
+    Blender's popup placement is often tied to the last event mouse position.
+    Warping is a hack, but it's the only reliable way to 'center' popups in some contexts.
+    """
+    win = getattr(context, "window", None)
+    screen = getattr(context, "screen", None)
+    if win is None or screen is None:
+        return
+
+    area = None
+    for a in screen.areas:
+        if a.type == prefer_area_type:
+            area = a
+            break
+    if area is None and screen.areas:
+        area = screen.areas[0]
+    if area is None:
+        return
+
+    try:
+        # cursor_warp expects WINDOW-relative coordinates (0,0 at window bottom-left),
+        # not OS desktop coordinates. Warping to the window center is the most
+        # reliable option across layouts.
+        x = int(win.width / 2)
+        y = int(win.height / 2)
+        win.cursor_warp(x, y)
+    except Exception:
+        pass
+
+
 # Atomic Data Manager Detect Missing Files Popup
 class ATOMIC_OT_detect_missing(bpy.types.Operator):
     """Detect missing files in this project"""
@@ -124,13 +156,16 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
 
         wm = context.window_manager
 
+        # Force popup placement to screen center (see BlenderArtists reference).
+        _warp_cursor_to_area_center(context)
+
         # invoke large dialog if there are missing files
         if self.missing_images or self.missing_libraries:
             return wm.invoke_props_dialog(self, width=500)
 
         # invoke small dialog if there are no missing files
         else:
-            return wm.invoke_popup(self, width=300)
+            return wm.invoke_props_dialog(self, width=300)
 
 
 @persistent
