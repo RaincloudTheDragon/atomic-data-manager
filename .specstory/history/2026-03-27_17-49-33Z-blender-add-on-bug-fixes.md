@@ -16893,3 +16893,1280 @@ Update applied: the note is now three stacked labels so each line stays short in
 1. `Packed = bytes embedded here.`
 2. `Weights rank other data.`
 3. `Compressed .blend is smaller.`
+
+---
+
+_**User**_
+
+I don't really want weights to be calculated, I want x datablock type is taking up 2.93mb, y datablock is taking up 1.84mb, etc. Largest local datablocks isn't readable; it should list the name of said datablock with the datablock logo, and its size. Those should be sorted by size.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Redefining blend storage UI**
+
+I'm updating the blend storage UI to show actual sizes instead of weight percentages and adding datablock icons for better readability. 
+
+**Updating blend storage UI**
+
+I'm reading `utils/compat.py` and `stats_panel_ui.py` to understand how the current storage system calculates and displays sizes. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Reviewing the storage report implementation and UI so we can switch from weights to byte estimates and improve the largest-datablocks list (names, icons, sizes).
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Refactoring storage logic**
+
+I'm switching to a single `bytes` field per row to estimate footprint instead of separate weight and embedded logic. 
+
+**Calculating storage sizes**
+
+I'm implementing per-type storage calculations using `_estimated_bytes_*` functions to compute real-size totals for datablock types. I'm computing estimated bytes for each datablock using geometric formulas and capping values at 64 bytes. 
+
+**Sorting and formatting data**
+
+I'm sorting rows by bytes descending and formatting type totals as 'Mesh: 2.93 MiB'. 
+
+**Formatting data**
+
+I'm mapping data types to uppercase constants and formatting rows with icons and labels. I'm using Blender's UI pattern with row layouts and labels to display icon + text + size information. I'm adding a helper function to map Blender type strings to their corresponding icons for consistent UI display. 
+
+**Updating report formatting**
+
+I'm refactoring build_report to use bytes instead of weight and adding total_estimated_bytes for optional display. I'm updating mesh and image size calculations to use bytes with embedded size for packed images and external placeholders. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "format_row_label|total_weight|by_type"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "format_row_label|total_weight|by_type",
+  "topFiles": [
+    {
+      "matchCount": 9,
+      "uri": "utils\\compat.py"
+    },
+    {
+      "matchCount": 3,
+      "uri": "ui\\stats_panel_ui.py"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 12
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Updating compat module**
+
+I'm renaming the internal `weight` key to `size_bytes` in compat.py to avoid shadowing Python's builtin and improve clarity. I'm replacing `sh_weight` with `_mesh_size_bytes` and updating related logic to use int byte estimates. 
+
+I'm adding `datablock_type_icon` function to compat.py and unifying size reporting across all rows to use `size_bytes` consistently. I'm adding datablock_type_icon function to compat.py and implementing size display logic for packed vs external images. I'm exporting `format_bytes` as public alias to `_fmt_bytes` for UI use. I'm updating the build_report row aggregation to use size_bytes instead of weight for consistent sizing. I'm implementing storage_type_icon function in compat.py with type icon mapping. I'm adding fallback handling for unknown storage types in the compat module. 
+
+I'm implementing compat.py changes by replacing weight with size_bytes throughout build_report. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Refactoring storage metrics to use per-block `size_bytes` (estimated footprint), aggregating by type in real units, and updating the UI to show icon + name + formatted size per row.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "e:\\atomic-data-manager",
+  "pattern": "total_weight|format_row_label"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "total_weight|format_row_label",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "ui\\stats_panel_ui.py"
+    },
+    {
+      "matchCount": 4,
+      "uri": ".specstory\\history\\2026-03-27_17-49-33Z-blender-add-on-bug-fixes.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 6
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Updating stats panel**
+
+I'm replacing old import names and updating the STORAGE section UI with new formatting functions. I'm adjusting the storage section layout to accommodate longer names and verifying BLANK1 exists in Blender 4.x. I'm changing storage_type_icon default to 'DOT' or 'MATERIAL' and updating the layout split logic. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: python -m py_compile "e:\atomic-data-manager\utils\compat.py" "e:\atomic-data-manager\ui\stats_panel_ui.py"</summary>
+
+```bash
+python -m py_compile "e:\atomic-data-manager\utils\compat.py" "e:\atomic-data-manager\ui\stats_panel_ui.py"
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "e:\\atomic-data-manager\\utils\\compat.py",
+    "e:\\atomic-data-manager\\ui\\stats_panel_ui.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "e:\\atomic-data-manager\\utils\\compat.py"
+    },
+    {
+      "relativeWorkspacePath": "e:\\atomic-data-manager\\ui\\stats_panel_ui.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints"><details>
+<summary>Tool use: **read_lints**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "total_weight|total_estimated"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "total_weight|total_estimated",
+  "topFiles": [
+    {
+      "matchCount": 3,
+      "uri": "utils\\compat.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 3
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what changed:
+
+### `utils/compat.py`
+- Replaced abstract **weights** with **`size_bytes`** per datablock: same formulas as before, but treated and shown as **estimated bytes** in the file (overrides still scaled by the override factor).
+- **Packed** images/sounds/fonts: size is based on **embedded byte length** (scaled for overrides).
+- **Sorting**: rows are ordered by **`size_bytes`** only (largest first).
+- **`by_type`**: list of `(type_name, total_bytes)` sorted by total descending — no percentages.
+- **`total_weight`** removed; report now includes **`total_estimated_bytes`** (sum of estimates) if you want it elsewhere later.
+- Added **`format_bytes(n)`**, **`storage_type_icon(type_name)`**, and removed **`format_row_label`**.
+
+### `ui/stats_panel_ui.py`
+- **By type**: lines like `Mesh: 2.93 MiB` using **`format_bytes`**.
+- **Largest**: each row uses **`split`**: left = **icon + datablock name**, right = **size**; icons come from **`storage_type_icon`** (`MESH_DATA`, `IMAGE_DATA`, `ARMATURE_DATA`, etc.).
+- Help text updated so it’s clear **packed = exact** and **other = estimates**.
+
+**Note:** Blender doesn’t expose true on-disk size per ID inside the `.blend`, so non-packed data is still **estimated** from geometry/node counts; packed pixel/audio/font data uses **real embedded sizes**.
+
+---
+
+_**User**_
+
+Excellent!
+It's recognizing Paul_Rigify.001 as a local datablock, when that armature is an override armature. Actually, it'll be great for the storage of lib overrides to be listed, but the override icon should appear next to the datablock icon. Given this, can we also measure and enumerate override collections, too?
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+Reviewing how we classify overrides and build storage rows so we can plan fixes and collection support.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "override|collection"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "override|collection",
+  "topFiles": [
+    {
+      "matchCount": 100,
+      "uri": "stats\\rna_analysis.py"
+    },
+    {
+      "matchCount": 8,
+      "uri": "ops\\utils\\clean.py"
+    },
+    {
+      "matchCount": 100,
+      "uri": "stats/users.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "__init__.py"
+    },
+    {
+      "matchCount": 6,
+      "uri": "stats/missing.py"
+    },
+    {
+      "matchCount": 20,
+      "uri": "stats/unused_parallel.py"
+    },
+    {
+      "matchCount": 7,
+      "uri": "ops/utils/duplicate.py"
+    },
+    {
+      "matchCount": 34,
+      "uri": "utils\\compat.py"
+    },
+    {
+      "matchCount": 34,
+      "uri": "utils/compat.py"
+    },
+    {
+      "matchCount": 100,
+      "uri": "stats/rna_analysis.py"
+    },
+    {
+      "matchCount": 4,
+      "uri": "ui/utils/ui_layouts.py"
+    },
+    {
+      "matchCount": 6,
+      "uri": "ui\\stats_panel_ui.py"
+    },
+    {
+      "matchCount": 5,
+      "uri": "ui/pie_menu_ui.py"
+    },
+    {
+      "matchCount": 13,
+      "uri": "ui/inspect_ui.py"
+    },
+    {
+      "matchCount": 22,
+      "uri": "ops/direct_use_ops.py"
+    },
+    {
+      "matchCount": 38,
+      "uri": "ops\\main_ops.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "rainys_repo_bootstrap.py"
+    },
+    {
+      "matchCount": 4,
+      "uri": "ui/main_panel_ui.py"
+    },
+    {
+      "matchCount": 36,
+      "uri": "stats/unused.py"
+    },
+    {
+      "matchCount": 57,
+      "uri": "ops/inspect_ops.py"
+    }
+  ],
+  "totalFiles": 28,
+  "totalMatches": 722
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking armature row building**
+
+The `kind` field shows as 'local' for Paul_Rigify.001, but the code suggests it should be 'override' if `override_library` is truthy, indicating the UI might not display `kind` anymore. The bug might be that `override_library` isn't set correctly for some override types, or the user is referring to visual 'local' state instead of the `kind` string. 
+
+I need to verify if `override_library` is properly set for library overrides and check for override hierarchies using `getattr(a, "override_library", None)`. I found that Armature objects reference their override library through the object's data, not directly on the Armature datablock itself. 
+
+Override armatures have library=None and override_library set, while linked armatures have library set and override_library=None. I'm investigating how override_library references work in Blender's Python API, particularly for library overrides. 
+
+I'm searching for `is_library_override` usage in Blender's codebase to understand how library overrides are detected. 
+
+**Analyzing override detection**
+
+I hypothesize the root cause is that `g` is incorrectly treating library overrides as local due to size miscalculation. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search">
+<details>
+<summary>Tool use: **web_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "searchTerm": "Blender Python ID is_library_override override_library armature datablock"
+}
+```
+Result:
+
+```json
+{
+  "isFinal": true,
+  "references": [
+    {
+      "chunk": "Links:\n1. [IDOverrideLibrary(bpy_struct) - Blender Python API](https://docs.blender.org/api/current/bpy.types.IDOverrideLibrary.html)\n2. [Create Library Override of Data Block](https://blender.stackexchange.com/questions/177650/create-library-override-of-data-block/177657)\n3. [Library Overrides - Blender Developer Documentation](https://wiki.blender.org/features/core/overrides/library/)\n4. [Library Overrides - Blender Developer Documentation](https://developer.blender.org/docs/release_notes/2.81/library_overrides/)\n5. [Library Overrides — Blender Manual](https://www.blender.org/manual/ar/3.6/files/linked_libraries/library_overrides.html)\n\n# Blender Python Library Override Information\n\n## Checking if a Datablock is a Library Override\n\nTo check if a datablock (including an armature) is a library override in Blender Python, you can access the &#96;override_library&#96; property on any ID datablock. If it exists and is not None, the datablock is a library override.[1]\n\n## IDOverrideLibrary Structure\n\nThe &#96;IDOverrideLibrary&#96; class contains the following key properties:[1]\n\n- **&#96;reference&#96;** (readonly): The linked ID used as the source reference for this override\n- **&#96;hierarchy_root&#96;** (readonly): The root ID of the override hierarchy this datablock belongs to\n- **&#96;is_in_hierarchy&#96;** (bool): Whether this is part of a hierarchy (default True)\n- **&#96;is_system_override&#96;** (bool): Whether it's system-generated or user-editable (default False)\n- **&#96;properties&#96;** (readonly): List of overridden properties with their operations\n\n## Creating Library Overrides\n\nTo create a library override of a datablock (such as an armature), use the &#96;override_create()&#96; method:[2]\n\n&#96;&#96;&#96;python\nobj = bpy.context.view_layer.objects.active\nobj.data.override_create(remap_local_usages=True)\n&#96;&#96;&#96;\n\n## Key Concepts\n\nLibrary overrides are local, editable copies of linked datablocks that maintain a reference to their source and track which properties have been modified.[3] They support hierarchies where multiple independent overrides of the same linked data can coexist, such as multiple instances of a rigged character.[1][5]",
+      "title": "Web search results for query: Blender Python ID is_library_override override_library armature datablock"
+    }
+  ],
+  "rejected": false
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search"><details>
+<summary>Tool use: **web_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search">
+<details>
+<summary>Tool use: **web_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "searchTerm": "Blender bpy.types.ID is_library_override property"
+}
+```
+Result:
+
+```json
+{
+  "isFinal": true,
+  "references": [
+    {
+      "chunk": "Links:\n1. [IDOverrideLibrary(bpy_struct) - Blender Python API](https://docs.blender.org/api/current/bpy.types.IDOverrideLibrary.html)\n2. [IDOverrideLibraryProperty(bpy_struct) - Blender Python API](https://docs.blender.org/api/4.2/bpy.types.IDOverrideLibraryProperty.html)\n3. [ID(bpy_struct) - Blender Python API](https://www.blender.org/api/current/bpy.types.ID.html)\n4. [Library Overrides - Blender Developer Documentation](https://developer.blender.org/docs/features/core/overrides/library)\n5. [BlendImportContextItem(bpy_struct) - Blender Python API](https://docs.blender.org/api/latest/bpy.types.BlendImportContextItem.html)\n\n# Blender bpy.types.ID is_library_override Property\n\nThe search results do not contain information about a specific &#96;is_library_override&#96; property on the &#96;bpy.types.ID&#96; class.\n\nHowever, the results do provide related information about library overrides in Blender:\n\n- Library overrides are stored at the ID level in a sub-structure called &#96;IDOverrideLibrary&#96;[1][4]\n- An ID that has been overridden will have an &#96;override_library&#96; property (not &#96;is_library_override&#96;) that contains the override data[1]\n- The &#96;IDOverrideLibrary&#96; structure contains properties like &#96;is_in_hierarchy&#96; and &#96;is_system_override&#96; to describe the override state[1]\n- To check if an ID is a library override, you would access &#96;id.override_library&#96; and check if it exists[1]\n\nTo definitively confirm whether &#96;is_library_override&#96; is a property on &#96;bpy.types.ID&#96;, you would need to consult the complete Blender Python API documentation for the ID class or test it directly in Blender.",
+      "title": "Web search results for query: Blender bpy.types.ID is_library_override property"
+    }
+  ],
+  "rejected": false
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search"><details>
+<summary>Tool use: **web_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://docs.blender.org/api/current/bpy.types.ID.html"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "ID(bpy_struct) - Blender Python API\n\n# ID(bpy_struct)¶\n\nbase class — [bpy_struct](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct)\n\nsubclasses — [Action](https://docs.blender.org/api/current/bpy.types.Action.html#bpy.types.Action), [Annotation](https://docs.blender.org/api/current/bpy.types.Annotation.html#bpy.types.Annotation), [Armature](https://docs.blender.org/api/current/bpy.types.Armature.html#bpy.types.Armature), [Brush](https://docs.blender.org/api/current/bpy.types.Brush.html#bpy.types.Brush), [CacheFile](https://docs.blender.org/api/current/bpy.types.CacheFile.html#bpy.types.CacheFile), [Camera](https://docs.blender.org/api/current/bpy.types.Camera.html#bpy.types.Camera), [Collection](https://docs.blender.org/api/current/bpy.types.Collection.html#bpy.types.Collection), [Curve](https://docs.blender.org/api/current/bpy.types.Curve.html#bpy.types.Curve), [Curves](https://docs.blender.org/api/current/bpy.types.Curves.html#bpy.types.Curves), [FreestyleLineStyle](https://docs.blender.org/api/current/bpy.types.FreestyleLineStyle.html#bpy.types.FreestyleLineStyle), [GreasePencil](https://docs.blender.org/api/current/bpy.types.GreasePencil.html#bpy.types.GreasePencil), [Image](https://docs.blender.org/api/current/bpy.types.Image.html#bpy.types.Image), [Key](https://docs.blender.org/api/current/bpy.types.Key.html#bpy.types.Key), [Lattice](https://docs.blender.org/api/current/bpy.types.Lattice.html#bpy.types.Lattice), [Library](https://docs.blender.org/api/current/bpy.types.Library.html#bpy.types.Library), [Light](https://docs.blender.org/api/current/bpy.types.Light.html#bpy.types.Light), [LightProbe](https://docs.blender.org/api/current/bpy.types.LightProbe.html#bpy.types.LightProbe), [Mask](https://docs.blender.org/api/current/bpy.types.Mask.html#bpy.types.Mask), [Material](https://docs.blender.org/api/current/bpy.types.Material.html#bpy.types.Material), [Mesh](https://docs.blender.org/api/current/bpy.types.Mesh.html#bpy.types.Mesh), [MetaBall](https://docs.blender.org/api/current/bpy.types.MetaBall.html#bpy.types.MetaBall), [MovieClip](https://docs.blender.org/api/current/bpy.types.MovieClip.html#bpy.types.MovieClip), [NodeTree](https://docs.blender.org/api/current/bpy.types.NodeTree.html#bpy.types.NodeTree), [Object](https://docs.blender.org/api/current/bpy.types.Object.html#bpy.types.Object), [PaintCurve](https://docs.blender.org/api/current/bpy.types.PaintCurve.html#bpy.types.PaintCurve), [Palette](https://docs.blender.org/api/current/bpy.types.Palette.html#bpy.types.Palette), [ParticleSettings](https://docs.blender.org/api/current/bpy.types.ParticleSettings.html#bpy.types.ParticleSettings), [PointCloud](https://docs.blender.org/api/current/bpy.types.PointCloud.html#bpy.types.PointCloud), [Scene](https://docs.blender.org/api/current/bpy.types.Scene.html#bpy.types.Scene), [Screen](https://docs.blender.org/api/current/bpy.types.Screen.html#bpy.types.Screen), [Sound](https://docs.blender.org/api/current/bpy.types.Sound.html#bpy.types.Sound), [Speaker](https://docs.blender.org/api/current/bpy.types.Speaker.html#bpy.types.Speaker), [Text](https://docs.blender.org/api/current/bpy.types.Text.html#bpy.types.Text), [Texture](https://docs.blender.org/api/current/bpy.types.Texture.html#bpy.types.Texture), [VectorFont](https://docs.blender.org/api/current/bpy.types.VectorFont.html#bpy.types.VectorFont), [Volume](https://docs.blender.org/api/current/bpy.types.Volume.html#bpy.types.Volume), [WindowManager](https://docs.blender.org/api/current/bpy.types.WindowManager.html#bpy.types.WindowManager), [WorkSpace](https://docs.blender.org/api/current/bpy.types.WorkSpace.html#bpy.types.WorkSpace), [World](https://docs.blender.org/api/current/bpy.types.World.html#bpy.types.World)\n\nclass bpy.types.ID(bpy_struct)¶\n\nBase type for data-blocks, defining a unique name, linking from other libraries and garbage collection\n\nasset_data¶\n\nAdditional data for an asset data-block\n\nType:\n\n[AssetMetaData](https://docs.blender.org/api/current/bpy.types.AssetMetaData.html#bpy.types.AssetMetaData)\n\nid_type¶\n\nType identifier of this data-block (default&#96;'ACTION'&#96;, readonly)\n\nType:\n\nLiteral[[Id Type Items](https://docs.blender.org/api/current/bpy_types_enum_items/id_type_items.html#rna-enum-id-type-items)]\n\nis_editable¶\n\nThis data-block is editable in the user interface. Linked data-blocks are not editable, except if they were loaded as editable assets. (default False, readonly)\n\nType:\n\nbool\n\nis_embedded_data¶\n\nThis data-block is not an independent one, but is actually a sub-data of another ID (typical example: root node trees or master collections) (default False, readonly)\n\nType:\n\nbool\n\nis_evaluated¶\n\nWhether this ID is runtime-only, evaluated data-block, or actual data from .blend file (default False, readonly)\n\nType:\n\nbool\n\nis_library_indirect¶\n\nIs this ID block linked indirectly (default False, readonly)\n\nType:\n\nbool\n\nis_linked_packed¶\n\nThis data-block is linked and packed into the .blend file (default False, readonly)\n\nType:\n\nbool\n\nis_missing¶\n\nThis data-block is a place-holder for missing linked data (i.e. it is [an override of] a linked data that could not be found anymore) (default False, readonly)\n\nType:\n\nbool\n\nis_runtime_data¶\n\nThis data-block is runtime data, i.e. it won’t be saved in .blend file. Note that e.g. evaluated IDs are always runtime, so this value is only editable for data-blocks in Main data-base. (default False)\n\nType:\n\nbool\n\nlibrary¶\n\nLibrary file the data-block is linked from (readonly)\n\nType:\n\n[Library](https://docs.blender.org/api/current/bpy.types.Library.html#bpy.types.Library)\n\nlibrary_weak_reference¶\n\nWeak reference to a data-block in another library .blend file (used to re-use already appended data instead of appending new copies) (readonly)\n\nType:\n\n[LibraryWeakReference](https://docs.blender.org/api/current/bpy.types.LibraryWeakReference.html#bpy.types.LibraryWeakReference)\n\nname¶\n\nUnique data-block ID name (within a same type and library) (default “”, never None)\n\nType:\n\nstr\n\nname_full¶\n\nUnique data-block ID name, including library one if any (default “”, readonly, never None)\n\nType:\n\nstr\n\noriginal¶\n\nActual data-block from .blend file (Main database) that generated that evaluated one (readonly)\n\nType:\n\n&#96;ID&#96;\n\noverride_library¶\n\nLibrary override data (readonly)\n\nType:\n\n[IDOverrideLibrary](https://docs.blender.org/api/current/bpy.types.IDOverrideLibrary.html#bpy.types.IDOverrideLibrary)\n\npreview¶\n\nPreview image and icon of this data-block (always None if not supported for this type of data) (readonly)\n\nType:\n\n[ImagePreview](https://docs.blender.org/api/current/bpy.types.ImagePreview.html#bpy.types.ImagePreview)\n\nsession_uid¶\n\nA session-wide unique identifier for the data block that remains the same across renames and internal reallocations, unchanged when reloading the file (in [-inf, inf], default 0, readonly)\n\nType:\n\nint\n\ntag¶\n\nTools can use this to tag data for their own purposes (initial state is undefined) (default False)\n\nType:\n\nbool\n\nuse_extra_user¶\n\nIndicates whether an extra user is set or not (mainly for internal/debug usages) (default False)\n\nType:\n\nbool\n\nuse_fake_user¶\n\nSave this data-block even if it has no users (default False)\n\nType:\n\nbool\n\nusers¶\n\nNumber of times this data-block is referenced (in [0, inf], default 0, readonly)\n\nType:\n\nint\n\nbl_system_properties_get(*, do_create=False)¶\n\nDEBUG ONLY. Internal access to runtime-defined RNA data storage, intended solely for testing and debugging purposes. Do not access it in regular scripting work, and in particular, do not assume that it contains writable data\n\nParameters:\n\ndo_create (bool) – Ensure that system properties are created if they do not exist yet (optional)\n\nReturns:\n\nThe system properties root container, or None if there are no system properties stored in this data yet, and its creation was not requested\n\nReturn type:\n\n[PropertyGroup](https://docs.blender.org/api/current/bpy.types.PropertyGroup.html#bpy.types.PropertyGroup)\n\nrename(name, *, mode='NEVER')¶\n\nMore refined handling in case the new name collides with another ID’s name\n\nParameters:\n\nname (str) – New name to rename the ID to, if empty will re-use the current ID name (never None)\n\nmode (Literal['NEVER', 'ALWAYS', 'SAME_ROOT']) –\n\nHow to handle name collision, in case the requested new name is already used by another ID of the same type (optional)\n\n&#96;NEVER&#96; Never Rename – Never rename an existing ID whose name would conflict, the currently renamed ID will get a numeric suffix appended to its new name.\n\n&#96;ALWAYS&#96; Always Rename – Always rename an existing ID whose name would conflict, ensuring that the currently renamed ID will get requested name.\n\n&#96;SAME_ROOT&#96; Rename If Same Root – Only rename an existing ID whose name would conflict if its name root (everything besides the numerical suffix) is the same as the existing name of the currently renamed ID.\n\nReturns:\n\nHow did the renaming of the data-block went on\n\n&#96;UNCHANGED&#96; Unchanged – The ID was not renamed, e.g. because it is already named as requested.\n\n&#96;UNCHANGED_COLLISION&#96; Unchanged Due to Collision – The ID was not renamed, because requested name would have collided with another existing ID’s name, and the automatically adjusted name was the same as the current ID’s name.\n\n&#96;RENAMED_NO_COLLISION&#96; Renamed Without Collision – The ID was renamed as requested, without creating any name collision.\n\n&#96;RENAMED_COLLISION_ADJUSTED&#96; Renamed With Collision – The ID was renamed with adjustment of the requested name, to avoid a name collision.\n\n&#96;RENAMED_COLLISION_FORCED&#96; Renamed Enforced With Collision – The ID was renamed as requested, also renaming another ID to avoid a name collision.\n\nReturn type:\n\nLiteral[‘UNCHANGED’, ‘UNCHANGED_COLLISION’, ‘RENAMED_NO_COLLISION’, ‘RENAMED_COLLISION_ADJUSTED’, ‘RENAMED_COLLISION_FORCED’]\n\nevaluated_get(depsgraph)¶\n\nGet corresponding evaluated ID from the given dependency graph. Note that this does not ensure the dependency graph is fully evaluated, it just returns the result of the last evaluation.\n\nParameters:\n\ndepsgraph ([Depsgraph](https://docs.blender.org/api/current/bpy.types.Depsgraph.html#bpy.types.Depsgraph)) – Dependency graph to perform lookup in (never None)\n\nReturns:\n\nNew copy of the ID\n\nReturn type:\n\n&#96;ID&#96;\n\ncopy()¶\n\nCreate a copy of this data-block (not supported for all data-blocks). The result is added to the Blend-File Data (Main database), with all references to other data-blocks ensured to be from within the same Blend-File Data.\n\nReturns:\n\nNew copy of the ID\n\nReturn type:\n\n&#96;ID&#96;\n\nasset_mark()¶\n\nEnable easier reuse of the data-block through the Asset Browser, with the help of customizable metadata (like previews, descriptions and tags)\n\nasset_clear()¶\n\nDelete all asset metadata and turn the asset data-block back into a normal data-block\n\nasset_generate_preview()¶\n\nGenerate preview image (might be scheduled in a background thread)\n\noverride_create(*, remap_local_usages=False)¶\n\nCreate an overridden local copy of this linked data-block (not supported for all data-blocks)\n\nParameters:\n\nremap_local_usages (bool) – Whether local usages of the linked ID should be remapped to the new library override of it (optional)\n\nReturns:\n\nNew overridden local copy of the ID\n\nReturn type:\n\n&#96;ID&#96;\n\noverride_hierarchy_create(scene, view_layer, *, reference=None, do_fully_editable=False)¶\n\nCreate an overridden local copy of this linked data-block, and most of its dependencies when it is a Collection or and Object\n\nParameters:\n\nscene ([Scene](https://docs.blender.org/api/current/bpy.types.Scene.html#bpy.types.Scene)) – In which scene the new overrides should be instantiated (never None)\n\nview_layer ([ViewLayer](https://docs.blender.org/api/current/bpy.types.ViewLayer.html#bpy.types.ViewLayer)) – In which view layer the new overrides should be instantiated (never None)\n\nreference (&#96;ID&#96;) – Another ID (usually an Object or Collection) used as a hint to decide where to instantiate the new overrides (optional)\n\ndo_fully_editable (bool) – Make all library overrides generated by this call fully editable by the user (none will be ‘system overrides’) (optional)\n\nReturns:\n\nNew overridden local copy of the root ID\n\nReturn type:\n\n&#96;ID&#96;\n\nuser_clear()¶\n\nClear the user count of a data-block so its not saved, on reload the data will be removed\n\nThis function is for advanced use only, misuse can crash Blender since the user count is used to prevent data being removed when it is used.\n\n&#96;&#96;&#96;\n# This example shows what _not_ to do, and will crash Blender.\nimport bpy\n\n# Object which is in the scene.\nobj = bpy.data.objects[\"Cube\"]\n\n# Without this, removal would raise an error.\nobj.user_clear()\n\n# Runs without an exception but will crash on redraw.\nbpy.data.objects.remove(obj)\n\n&#96;&#96;&#96;\n\nuser_remap(new_id)¶\n\nReplace all usage in the .blend file of this ID by new given one\n\nParameters:\n\nnew_id (&#96;ID&#96;) – New ID to use (never None)\n\nmake_local(*, clear_proxy=True, clear_liboverride=False, clear_asset_data=True)¶\n\nMake this data-block local, return local one (may be a copy of the original, in case it is also indirectly used)\n\nParameters:\n\nclear_proxy (bool) – Deprecated, has no effect (optional)\n\nclear_liboverride (bool) – Remove potential library override data from the newly made local data (optional)\n\nclear_asset_data (bool) – Remove potential asset metadata so the newly local data-block is not treated as asset data-block and won’t show up in asset libraries (optional)\n\nReturns:\n\nThis ID, or the new ID if it was copied\n\nReturn type:\n\n&#96;ID&#96;\n\nuser_of_id(id)¶\n\nCount the number of times that ID uses/references given one\n\nParameters:\n\nid (&#96;ID&#96;) – ID to count usages (never None)\n\nReturns:\n\nNumber of usages/references of given id by current data-block (in [0, inf])\n\nReturn type:\n\nint\n\nanimation_data_create()¶\n\nCreate animation data to this ID, note that not all ID types support this\n\nReturns:\n\nNew animation data or None\n\nReturn type:\n\n[AnimData](https://docs.blender.org/api/current/bpy.types.AnimData.html#bpy.types.AnimData)\n\nanimation_data_clear()¶\n\nClear animation on this ID\n\nupdate_tag(*, refresh=set())¶\n\nTag the ID to update its display data, e.g. when calling&#96;bpy.types.Scene.update&#96;\n\nParameters:\n\nrefresh (set[Literal['OBJECT', 'DATA', 'TIME']]) – Type of updates to perform (optional)\n\npreview_ensure()¶\n\nEnsure that this ID has preview data (if ID type supports it)\n\nReturns:\n\nThe existing or created preview\n\nReturn type:\n\n[ImagePreview](https://docs.blender.org/api/current/bpy.types.ImagePreview.html#bpy.types.ImagePreview)\n\nclassmethod bl_rna_get_subclass(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault ([bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)| None) – The value to return when not found.\n\nReturns:\n\nThe RNA type or default when not found.\n\nReturn type:\n\n[bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)\n\nclassmethod bl_rna_get_subclass_py(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault (type | None) – The value to return when not found.\n\nReturns:\n\nThe class or default when not found.\n\nReturn type:\n\ntype\n\n## Inherited Properties¶\n\n[bpy_struct.id_data](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_data)\n\n## Inherited Functions¶\n\n[bpy_struct.as_pointer](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.as_pointer)\n\n[bpy_struct.driver_add](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_add)\n\n[bpy_struct.driver_remove](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_remove)\n\n[bpy_struct.get](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.get)\n\n[bpy_struct.id_properties_clear](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_clear)\n\n[bpy_struct.id_properties_ensure](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ensure)\n\n[bpy_struct.id_properties_ui](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ui)\n\n[bpy_struct.is_property_hidden](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_hidden)\n\n[bpy_struct.is_property_overridable_library](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_overridable_library)\n\n[bpy_struct.is_property_readonly](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_readonly)\n\n[bpy_struct.is_property_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_set)\n\n[bpy_struct.items](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.items)\n\n[bpy_struct.keyframe_delete](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_delete)\n\n[bpy_struct.keyframe_insert](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert)\n\n[bpy_struct.keys](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keys)\n\n[bpy_struct.path_from_id](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_id)\n\n[bpy_struct.path_from_module](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_module)\n\n[bpy_struct.path_resolve](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_resolve)\n\n[bpy_struct.pop](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.pop)\n\n[bpy_struct.property_overridable_library_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_overridable_library_set)\n\n[bpy_struct.property_unset](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_unset)\n\n[bpy_struct.rna_ancestors](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.rna_ancestors)\n\n[bpy_struct.type_recast](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.type_recast)\n\n[bpy_struct.values](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.values)\n\n## References¶\n\n&#96;bpy.context.annotation_data_owner&#96;\n\n&#96;bpy.context.id&#96;\n\n&#96;bpy.context.selected_ids&#96;\n\n&#96;bpy.context.texture_user&#96;\n\n[Action.fcurve_ensure_for_datablock](https://docs.blender.org/api/current/bpy.types.Action.html#bpy.types.Action.fcurve_ensure_for_datablock)\n\n[ActionSlot.users](https://docs.blender.org/api/current/bpy.types.ActionSlot.html#bpy.types.ActionSlot.users)\n\n[AssetRepresentation.local_id](https://docs.blender.org/api/current/bpy.types.AssetRepresentation.html#bpy.types.AssetRepresentation.local_id)\n\n[BlendData.pack_linked_ids_hierarchy](https://docs.blender.org/api/current/bpy.types.BlendData.html#bpy.types.BlendData.pack_linked_ids_hierarchy)\n\n[BlendData.pack_linked_ids_hierarchy](https://docs.blender.org/api/current/bpy.types.BlendData.html#bpy.types.BlendData.pack_linked_ids_hierarchy)\n\n[BlendDataObjects.new](https://docs.blender.org/api/current/bpy.types.BlendDataObjects.html#bpy.types.BlendDataObjects.new)\n\n[BlendImportContextItem.id](https://docs.blender.org/api/current/bpy.types.BlendImportContextItem.html#bpy.types.BlendImportContextItem.id)\n\n[BlendImportContextItem.library_override_id](https://docs.blender.org/api/current/bpy.types.BlendImportContextItem.html#bpy.types.BlendImportContextItem.library_override_id)\n\n[BlendImportContextItem.reusable_local_id](https://docs.blender.org/api/current/bpy.types.BlendImportContextItem.html#bpy.types.BlendImportContextItem.reusable_local_id)\n\n[Depsgraph.id_eval_get](https://docs.blender.org/api/current/bpy.types.Depsgraph.html#bpy.types.Depsgraph.id_eval_get)\n\n[Depsgraph.id_eval_get](https://docs.blender.org/api/current/bpy.types.Depsgraph.html#bpy.types.Depsgraph.id_eval_get)\n\n[Depsgraph.ids](https://docs.blender.org/api/current/bpy.types.Depsgraph.html#bpy.types.Depsgraph.ids)\n\n[DepsgraphUpdate.id](https://docs.blender.org/api/current/bpy.types.DepsgraphUpdate.html#bpy.types.DepsgraphUpdate.id)\n\n[DopeSheet.source](https://docs.blender.org/api/current/bpy.types.DopeSheet.html#bpy.types.DopeSheet.source)\n\n[DriverTarget.id](https://docs.blender.org/api/current/bpy.types.DriverTarget.html#bpy.types.DriverTarget.id)\n\n&#96;ID.copy&#96;\n\n&#96;ID.evaluated_get&#96;\n\n&#96;ID.make_local&#96;\n\n&#96;ID.original&#96;\n\n&#96;ID.override_create&#96;\n\n&#96;ID.override_hierarchy_create&#96;\n\n&#96;ID.override_hierarchy_create&#96;\n\n&#96;ID.user_of_id&#96;\n\n&#96;ID.user_remap&#96;\n\n[IDOverrideLibrary.hierarchy_root](https://docs.blender.org/api/current/bpy.types.IDOverrideLibrary.html#bpy.types.IDOverrideLibrary.hierarchy_root)\n\n[IDOverrideLibrary.reference](https://docs.blender.org/api/current/bpy.types.IDOverrideLibrary.html#bpy.types.IDOverrideLibrary.reference)\n\n[IDOverrideLibraryPropertyOperation.subitem_local_id](https://docs.blender.org/api/current/bpy.types.IDOverrideLibraryPropertyOperation.html#bpy.types.IDOverrideLibraryPropertyOperation.subitem_local_id)\n\n[IDOverrideLibraryPropertyOperation.subitem_reference_id](https://docs.blender.org/api/current/bpy.types.IDOverrideLibraryPropertyOperation.html#bpy.types.IDOverrideLibraryPropertyOperation.subitem_reference_id)\n\n[IDOverrideLibraryPropertyOperations.add](https://docs.blender.org/api/current/bpy.types.IDOverrideLibraryPropertyOperations.html#bpy.types.IDOverrideLibraryPropertyOperations.add)\n\n[IDOverrideLibraryPropertyOperations.add](https://docs.blender.org/api/current/bpy.types.IDOverrideLibraryPropertyOperations.html#bpy.types.IDOverrideLibraryPropertyOperations.add)\n\n[IDViewerPathElem.id](https://docs.blender.org/api/current/bpy.types.IDViewerPathElem.html#bpy.types.IDViewerPathElem.id)\n\n[Key.user](https://docs.blender.org/api/current/bpy.types.Key.html#bpy.types.Key.user)\n\n[KeyingSetPath.id](https://docs.blender.org/api/current/bpy.types.KeyingSetPath.html#bpy.types.KeyingSetPath.id)\n\n[KeyingSetPaths.add](https://docs.blender.org/api/current/bpy.types.KeyingSetPaths.html#bpy.types.KeyingSetPaths.add)\n\n[MaskParent.id](https://docs.blender.org/api/current/bpy.types.MaskParent.html#bpy.types.MaskParent.id)\n\n[NodeTree.get_from_context](https://docs.blender.org/api/current/bpy.types.NodeTree.html#bpy.types.NodeTree.get_from_context)\n\n[NodeTree.get_from_context](https://docs.blender.org/api/current/bpy.types.NodeTree.html#bpy.types.NodeTree.get_from_context)\n\n[NodesModifierDataBlock.id](https://docs.blender.org/api/current/bpy.types.NodesModifierDataBlock.html#bpy.types.NodesModifierDataBlock.id)\n\n[Object.data](https://docs.blender.org/api/current/bpy.types.Object.html#bpy.types.Object.data)\n\n[PropertyGroupItem.id](https://docs.blender.org/api/current/bpy.types.PropertyGroupItem.html#bpy.types.PropertyGroupItem.id)\n\n[SpaceFileBrowser.activate_asset_by_id](https://docs.blender.org/api/current/bpy.types.SpaceFileBrowser.html#bpy.types.SpaceFileBrowser.activate_asset_by_id)\n\n[SpaceNodeEditor.id](https://docs.blender.org/api/current/bpy.types.SpaceNodeEditor.html#bpy.types.SpaceNodeEditor.id)\n\n[SpaceNodeEditor.id_from](https://docs.blender.org/api/current/bpy.types.SpaceNodeEditor.html#bpy.types.SpaceNodeEditor.id_from)\n\n[SpaceProperties.pin_id](https://docs.blender.org/api/current/bpy.types.SpaceProperties.html#bpy.types.SpaceProperties.pin_id)\n\n[UILayout.template_action](https://docs.blender.org/api/current/bpy.types.UILayout.html#bpy.types.UILayout.template_action)\n\n[UILayout.template_path_builder](https://docs.blender.org/api/current/bpy.types.UILayout.html#bpy.types.UILayout.template_path_builder)\n\n[UILayout.template_preview](https://docs.blender.org/api/current/bpy.types.UILayout.html#bpy.types.UILayout.template_preview)\n\n[UILayout.template_preview](https://docs.blender.org/api/current/bpy.types.UILayout.html#bpy.types.UILayout.template_preview)",
+  "url": "https://docs.blender.org/api/current/bpy.types.ID.html"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "C:\\Users\\Nathan\\.cursor\\projects\\e-atomic-data-manager\\agent-tools\\f01a10ed-4433-4e98-9156-845a8aa3b57a.txt",
+  "pattern": "override"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "C:\\Users\\Nathan\\.cursor\\projects\\e-atomic-data-manager\\agent-tools\\f01a10ed-4433-4e98-9156-845a8aa3b57a.txt",
+  "pattern": "override",
+  "topFiles": [
+    {
+      "matchCount": 16,
+      "uri": "C:\\Users\\Nathan\\.cursor\\projects\\e-atomic-data-manager\\agent-tools\\f01a10ed-4433-4e98-9156-845a8aa3b57a.txt"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 16
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Investigating overrides**
+
+The override_library is on the Object, not the Armature, which may cause hierarchical override issues. 
+
+**Checking override behavior**
+
+I'm investigating how override_library behaves in hierarchies and whether armature objects can have None override_library while still being part of a hierarchy. I found that armature objects are fully local after override but still appear as overrides in the outliner, and each overridden ID should have `override_library` set according to the Blender wiki. I'm implementing a more robust check for armature override status by examining `override_library` and `library` attributes rather than relying on using objects. I'm using `id.override_library` and `bpy.types.LibraryOverride.static_cast` to detect override status instead of checking `override_library.reference`. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\agent-tools\f01a10ed-4433-4e98-9156-845a8aa3b57a.txt</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking override logic**
+
+I need to verify how `override_library` is being read for armature datablocks and whether `is_in_hierarchy` is properly checked. I'm investigating whether `override_library` on Armature datablocks can return an empty struct and if `bool(id_block.override_library)` correctly identifies this case. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "LIBRARY|OVERRIDE|OUTLINER"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "LIBRARY|OVERRIDE|OUTLINER",
+  "topFiles": [
+    {
+      "matchCount": 8,
+      "uri": "ops\\direct_use_ops.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "ui/missing_file_ui.py"
+    },
+    {
+      "matchCount": 13,
+      "uri": "ui/utils/ui_layouts.py"
+    },
+    {
+      "matchCount": 5,
+      "uri": "ops/missing_file_ops.py"
+    },
+    {
+      "matchCount": 4,
+      "uri": "ops/main_ops.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "ui/main_panel_ui.py"
+    },
+    {
+      "matchCount": 6,
+      "uri": "ui/inspect_ui.py"
+    },
+    {
+      "matchCount": 4,
+      "uri": "ops\\main_ops.py"
+    },
+    {
+      "matchCount": 8,
+      "uri": "ops/direct_use_ops.py"
+    }
+  ],
+  "totalFiles": 9,
+  "totalMatches": 50
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking override icon**
+
+I'm verifying LIBRARY_DATA_OVERRIDE exists in Blender 5.0 and will use compat.is_library_override_id for robust detection. I'm researching fallback methods for hierarchy checking using `id_block.override_library` or `getattr(id_block, 'original', None)`. I'm implementing fallback strategy to detect override armatures by checking object overrides and propagating to data. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search">
+<details>
+<summary>Tool use: **web_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "searchTerm": "Blender library override armature data override_library object only"
+}
+```
+Result:
+
+```json
+{
+  "isFinal": true,
+  "references": [
+    {
+      "chunk": "Links:\n1. [Library Overrides — Blender Manual](https://docs.blender.org/manual/sl/3.6/files/linked_libraries/library_overrides.html)\n2. [Library Overrides — Blender Manual](https://www.blender.org/manual/ar/3.6/files/linked_libraries/library_overrides.html)\n3. [IDOverrideLibrary(bpy_struct) - Blender Python API](https://docs.blender.org/api/current/bpy.types.IDOverrideLibrary.html)\n4. [Library Overrides - Blender Developer Documentation](https://developer.blender.org/docs/release_notes/2.81/library_overrides/)\n5. [Library Overrides - Blender Developer Documentation](https://wiki.blender.org/features/core/overrides/library/)\n\n# Blender Library Override: Armature Data Override for Object Only\n\nBased on the search results, here's what you need to know about overriding only the armature object without overriding the armature data:\n\n## Key Issue with Armature Object-Only Overrides\n\nThere is a **known limitation** when overriding an armature object without also overriding its Armature object data (obdata). Specifically:[1][2]\n\n\"The main one is probably posed (but not animated) armature objects, when their Armature obdata itself is not overridden. The Pose bones of an armature object are fully linked to the bones of its Armature obdata, if the later goes missing, the pose bones are definitively lost.\"\n\nThis means if you override only the armature object but not its armature data, and the linked library becomes unavailable or is relocated, **the pose bones will be permanently lost**.\n\n## Recommendation\n\nFor proper library override functionality with armatures, it's best practice to ensure that **both the armature object and its armature data are properly overridden together** as part of a coherent override hierarchy. This prevents data loss and ensures stable override behavior.[1][2]\n\nThe override system is designed to work with hierarchies where dependencies are clearly defined, which is especially important for complex rigged characters.[1]",
+      "title": "Web search results for query: Blender library override armature data override_library object only"
+    }
+  ],
+  "rejected": false
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search"><details>
+<summary>Tool use: **web_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Fixing override detection**
+
+I'm implementing a fix for `is_storage_lib_override` to handle object-only overrides by checking object-level override_library references. I'm refining the override detection logic to mark data as override-related if any user object has `override_library`. 
+
+**Calculating collection sizes**
+
+I'm implementing the collection size calculation using the formula 512 + len(coll.objects) * 96 + len(coll.children) * 256 to account for override factors. 
+
+**Processing collections**
+
+I'm filtering collections to skip linked ones and handle overrides properly for the size calculation. 
+
+**Adjusting icon layout**
+
+I'm adjusting the icon layout to show both datablock and override icons in a row for better visual distinction. I'm adding `is_lib_override` flag to rows and consolidating kind flags for images. I'm unifying the storage kind handling for images and adding a helper function to check library overrides. I'm implementing override detection for object data by checking users and override_library attributes. I'm optimizing override detection by caching data-to-override mappings to avoid O(n*m) iteration per armature/mesh. I'm adding Collection icon mapping and updating override detection to use cached data sets. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Checking how `_skip_linked` interacts with overrides and reviewing the stats panel row layout.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking override library**
+
+I'm adding compatibility checks for library overrides in the armature data. I'm implementing compatibility checks for library overrides using id_block.override_library and object data sets. 
+
+**Updating override logic**
+
+I'm adding `is_lib_override` boolean field and updating row builders to support UI changes. I'm implementing nested split layout for override row labels with icon and name alignment. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Identifying the issue: armature datablocks can lack `override_library` when the Object is overridden but obdata isn’t (or hierarchy quirks), so we only checked `armature.override_library`. Planning a centralized override check plus collection rows and dual-icon UI.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan">
+<details>
+<summary>Tool use: **create_plan**</summary>
+
+
+Parameters:
+
+```json
+{
+  "name": "Storage overrides and collections",
+  "overview": "Fix library-override detection for storage rows (especially armature/object-data) using a robust helper plus object-user fallback, show a second UI icon for overrides, and extend the storage report to measure and list local/override collections.",
+  "plan": "# Storage: override detection, dual icons, collections\n\n## Root cause (Paul_Rigify.001)\n\n[&#96;utils/compat.py&#96;](e:/atomic-data-manager/utils/compat.py) classifies overrides only via &#96;getattr(id_block, \"override_library\", None)&#96; on each ID. Blender can leave **object data** (e.g. **Armature**) without &#96;override_library&#96; while the **Object** that uses it **does** have &#96;override_library&#96; (object-only / hierarchy cases). Size scaling and &#96;kind&#96; then behave like “full local” data.\n\n## 1. Centralize override detection\n\nAdd a small API in [&#96;utils/compat.py&#96;](e:/atomic-data-manager/utils/compat.py):\n\n- **&#96;_object_data_override_ids()&#96;** (internal): single pass over &#96;bpy.data.objects&#96; — for each &#96;ob&#96; with truthy &#96;ob.override_library&#96; and &#96;ob.data&#96;, add &#96;ob.data&#96; to a &#96;set&#96; of IDs.\n- **&#96;is_library_override_storage(id_block)&#96;** (public): returns True if:\n  - &#96;getattr(id_block, \"override_library\", None)&#96; is truthy, **or**\n  - &#96;id_block&#96; is in the set from &#96;_object_data_override_ids()&#96; (covers armature/mesh/light data, etc.).\n\nUse this everywhere &#96;_override_weight_factor&#96; currently inspects &#96;override_library&#96; on **the same ID** — either by passing the set into helpers or by calling &#96;is_library_override_storage&#96; inside &#96;_override_weight_factor&#96;.\n\n- Update row dicts to include **&#96;is_lib_override: bool&#96;** (derived from the helper) for UI; keep existing **&#96;kind&#96;** where it still matters (e.g. image &#96;packed&#96; / &#96;external&#96;).\n\n## 2. Collections in the report\n\nStill in &#96;build_report()&#96; in [&#96;utils/compat.py&#96;](e:/atomic-data-manager/utils/compat.py):\n\n- Iterate **&#96;bpy.data.collections&#96;**, skip **&#96;_skip_linked&#96;** (pure linked IDs only — same rule as other types).\n- **&#96;_collection_size_bytes(coll)&#96;**: lightweight estimate (e.g. base + terms for &#96;len(collection.objects)&#96;, &#96;len(collection.children)&#96;, optional flags) scaled by &#96;_override_weight_factor&#96; / override detection (collections use **&#96;coll.override_library&#96;** only; no object-data fallback unless we later find a rare case).\n- Append rows with **&#96;type&#96;: &#96;\"Collection\"&#96;**, **&#96;name&#96;**, **&#96;size_bytes&#96;**, **&#96;is_lib_override&#96;**, **&#96;kind&#96;**: e.g. &#96;\"local\"&#96; / &#96;\"override\"&#96; or mirror other rows.\n\nExtend **&#96;_STORAGE_TYPE_ICONS&#96;** with **&#96;\"Collection\": \"OUTLINER_COLLECTION\"&#96;** (or **&#96;GROUP&#96;** if you prefer parity with Outliner; pick one consistent with Blender 5).\n\nExtend **&#96;_light_fingerprint()&#96;** to include **&#96;len(bpy.data.collections)&#96;** so the cache invalidates when collections are added/removed.\n\n## 3. UI: type icon + override icon\n\nIn [&#96;ui/stats_panel_ui.py&#96;](e:/atomic-data-manager/ui/stats_panel_ui.py) (STORAGE → “Largest local datablocks” loop):\n\n- Import a small helper from compat, e.g. **&#96;storage_override_icon(is_lib_override)&#96;** returning **&#96;LIBRARY_DATA_OVERRIDE&#96;** when True and **&#96;BLANK1&#96;** when False (empty placeholder so columns align). Verify the icon string exists in Blender 5; if not, fallback to **&#96;LINKED&#96;** or **&#96;LIBRARY_DATA_DIRECT&#96;**.\n- Replace the single icon+name label with a **row(align=True)** on the left side of the split:\n  - &#96;label(icon=storage_type_icon(...), text=\"\")&#96;\n  - &#96;label(icon=storage_override_icon(r[\"is_lib_override\"]), text=\"\")&#96;\n  - &#96;label(text=r[\"name\"])&#96;\n- Right side unchanged: formatted **&#96;size_bytes&#96;**.\n\n## 4. Optional copy tweak\n\nOne line in the STORAGE help text can note that **override** rows show the library-override icon (keeps expectations clear).\n\n## Files touched\n\n| File | Changes |\n|------|--------|\n| [&#96;utils/compat.py&#96;](e:/atomic-data-manager/utils/compat.py) | Override helper + set; wire into size helpers and &#96;build_report&#96;; collection loop + icon map + fingerprint |\n| [&#96;ui/stats_panel_ui.py&#96;](e:/atomic-data-manager/ui/stats_panel_ui.py) | Dual-icon row layout + new import(s) |\n\nNo changes required to [&#96;__init__.py&#96;](e:/atomic-data-manager/__init__.py) unless you re-export helpers (prefer importing from &#96;compat&#96; only).\n",
+  "todos": [
+    {
+      "content": "Add is_library_override_storage + object-data set; use in _override_weight_factor and rows",
+      "id": "override-helper",
+      "status": "pending"
+    },
+    {
+      "content": "Add _collection_size_bytes + bpy.data.collections loop; fingerprint + GROUP icon",
+      "id": "collections-report",
+      "status": "pending"
+    },
+    {
+      "content": "stats_panel_ui STORAGE: row with type icon, override icon, name; size on split",
+      "id": "dual-icon-ui",
+      "status": "pending"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "hasOpenedEditor": true,
+  "planUri": "file:///c%3A/Users/Nathan/.cursor/plans/storage_overrides_and_collections_89cc32b0.plan.md",
+  "reviewData": {
+    "isShowingInput": false,
+    "selectedOption": "none",
+    "status": "Requested"
+  }
+}
+```
+Result:
+
+```json
+{
+  "rejected": {}
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan"><details>
+<summary>Tool use: **create_plan**</summary>
+
+</details></tool-use>
+
+---
+
+_**User**_
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+Implementing the plan: starting with override detection helpers and wiring them through `compat.py`.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="todo_write">
+<details>
+<summary>Tool use: **todo_write**</summary>
+
+
+Parameters:
+
+```json
+{
+  "merge": true
+}
+```
+Result:
+
+```json
+{
+  "finalTodos": [
+    {
+      "content": "Add is_library_override_storage + object-data set; use in _override_weight_factor and rows",
+      "id": "override-helper",
+      "status": "in_progress"
+    },
+    {
+      "content": "Add _collection_size_bytes + bpy.data.collections loop; fingerprint + GROUP icon",
+      "id": "collections-report",
+      "status": "pending"
+    },
+    {
+      "content": "stats_panel_ui STORAGE: row with type icon, override icon, name; size on split",
+      "id": "dual-icon-ui",
+      "status": "pending"
+    }
+  ],
+  "initialTodos": [
+    {
+      "content": "Add is_library_override_storage + object-data set; use in _override_weight_factor and rows",
+      "id": "override-helper",
+      "status": "pending"
+    },
+    {
+      "content": "Add _collection_size_bytes + bpy.data.collections loop; fingerprint + GROUP icon",
+      "id": "collections-report",
+      "status": "pending"
+    },
+    {
+      "content": "stats_panel_ui STORAGE: row with type icon, override icon, name; size on split",
+      "id": "dual-icon-ui",
+      "status": "pending"
+    }
+  ],
+  "success": true,
+  "wasMerge": true
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="todo_write"><details>
+<summary>Tool use: **todo_write**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Adding override methods**
+
+I'm adding `_object_data_override_ids()` after `_skip_linked` and implementing `is_library_override_storage()` with optional precomputed set. I'm computing `data_override_ids` once at start of `build_report` and passing it as optional parameter to `_override_weight_factor` for backward compatibility. I'm checking if `id_block` has override library and returning `True` if so, otherwise checking `data_override_ids`. 
+
+**Updating weight factor**
+
+I'm updating override weight factor to accept data_od_ids parameter. I'm refactoring the data_od_ids handling to use a module-level global instead of passing it through many function signatures. I'm refactoring data_od_ids handling to use a module-level global instead of passing it through many function signatures. 
+
+I'm implementing module-level globals for data_od_ids handling. I'm ensuring thread-safe access to `_storage_override_data_ids` by resetting it during cache invalidation. 
+
+**Implementing override checks**
+
+I'm implementing `is_library_override_storage` function to check storage overrides. 
+
+**Setting up override data**
+
+I'm initializing `_storage_override_data_ids` as a frozenset at module level and setting it during `build_report`. I'm adding `is_lib_override` to each row using `is_library_override_storage` helper for images. 
+
+**Adding override flags**
+
+I'm adding `is_lib_override` flags to image, sound, font, and material rows using `is_library_override_storage`. I'm resetting `_storage_override_data_ids` to empty after `build_report` to avoid stale data in subsequent builds. 
+
+**Implementing collections**
+
+I'm adding collection size calculation logic to build_report with override weight factors. 
+
+**Updating collection logic**
+
+I'm adjusting the collection override logic to use coll.override_library instead of object data. I'm implementing library override checks using `is_library_override_storage` with `id_block` references. I'm fixing material block overrides to avoid redundant `_override_weight_factor(mat)` calls. 
+
+**Fixing size calculation**
+
+I'm correcting the node tree size calculation to ensure material overrides are applied correctly. I'm implementing override data IDs and updating mesh size calculations to apply material factors correctly. 
+
+I'm updating mesh size calculations to use global override data IDs and adding `is_lib_override` checks to each row dict. I'm implementing library override storage checks with `is_library_override_storage` function. I'm ensuring _storage_override_data_ids is properly populated for is_library_override_storage checks. I'm setting default _storage_override_data_ids to frozenset() to prevent risk of is_library_override_storage being called before build_report. 
+
+**Setting default values**
+
+I'm initializing `_storage_override_data_ids = frozenset()` at module level to prevent early calls to `is_library_override_storage`. I'm adding `embedded: 0` default for collection rows. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Implementing helper functions, updating `_override_weight_factor`, setting override IDs at the start of `build_report`, adding `is_lib_override` to rows, adding collections + fingerprint, then updating the UI.

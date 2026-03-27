@@ -32,9 +32,11 @@ from ..utils import compat
 from ..stats import count
 from ..stats import misc
 from ..utils.compat import (
+    format_bytes,
     format_embedded_total,
-    format_row_label,
     get_report,
+    storage_override_icon,
+    storage_type_icon,
 )
 from .utils import ui_layouts
 
@@ -141,8 +143,9 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 text="IDs linked from another .blend (library) are excluded.",
                 icon='INFO',
             )
-            col.label(text="Packed = bytes embedded here.")
-            col.label(text="Weights rank other data; compressed .blend is smaller.")
+            col.label(text="Packed = exact bytes stored inside this .blend.")
+            col.label(text="Other sizes are estimates; disk file may compress.")
+            col.label(text="Second icon = library override (when applicable).")
 
             row = col.row()
             row.label(
@@ -151,16 +154,24 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             )
 
             col.separator()
-            col.label(text="By datablock type (weight share)")
+            col.label(text="By datablock type (estimated total)")
 
-            for t, _w, pct in rep["by_type"][:12]:
-                col.label(text="  %s: %.1f%%" % (t, pct))
+            for t, nbytes in rep["by_type"][:12]:
+                col.label(text="  %s: %s" % (t, format_bytes(nbytes)))
 
             col.separator()
             col.label(text="Largest local datablocks (top 40)")
 
             for r in rep["rows"][:40]:
-                col.label(text="  " + format_row_label(r))
+                split = col.split(factor=0.68)
+                left = split.row(align=True)
+                left.label(icon=storage_type_icon(r["type"]), text="")
+                left.label(
+                    icon=storage_override_icon(r.get("is_lib_override", False)),
+                    text="",
+                )
+                left.label(text=r["name"])
+                split.label(text=format_bytes(r["size_bytes"]))
 
             if len(rep["rows"]) > 40:
                 col.label(text="  ...")
