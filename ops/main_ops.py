@@ -739,6 +739,14 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             bpy.ops.atomic.deselect_all()
             return {'FINISHED'}
 
+        # Keep in-scene objects that are parented to / deformed by objects we delete
+        if atom.objects and self.unused_objects:
+            from .utils import clean as clean_utils
+            for msg in clean_utils.detach_scene_objects_from_removal_targets(
+                set(self.unused_objects)
+            ):
+                self.report({'INFO'}, msg)
+
         # Delete all items synchronously
         deleted_count = 0
         for category, unused_list in categories_to_clean:
