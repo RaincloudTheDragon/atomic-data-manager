@@ -145,6 +145,13 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
                 0            # number / id
             ),
             (
+                'STORAGE',
+                'Storage',
+                'Local datablocks vs linked libraries',
+                'DISK_DRIVE',
+                11
+            ),
+            (
                 'COLLECTIONS',
                 'Collections',
                 'Collections',
@@ -239,7 +246,14 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
 def _on_undo_pre(scene):
     """Handler called before undo - invalidate cache."""
     from .ops import main_ops
+    from .utils.compat import invalidate_cache
     main_ops._invalidate_cache()
+    invalidate_cache()
+
+
+def _load_post_invalidate_storage(_dummy):
+    from .utils.compat import invalidate_cache
+    invalidate_cache()
 
 
 def register():
@@ -252,6 +266,7 @@ def register():
     
     # Register undo handler to invalidate cache
     bpy.app.handlers.undo_pre.append(_on_undo_pre)
+    bpy.app.handlers.load_post.append(_load_post_invalidate_storage)
     
     # bootstrap Rainy's Extensions repository
     rainys_repo_bootstrap.register()
@@ -264,6 +279,8 @@ def unregister():
     # Remove undo handler
     if _on_undo_pre in bpy.app.handlers.undo_pre:
         bpy.app.handlers.undo_pre.remove(_on_undo_pre)
+    if _load_post_invalidate_storage in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(_load_post_invalidate_storage)
     
     # atomic package unregistration
     ui.unregister()
