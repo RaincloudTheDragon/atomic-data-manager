@@ -24,6 +24,52 @@ This file contains functions for cleaning out specific data categories.
 
 import bpy
 from ...stats import unused
+from ...utils import compat
+
+
+def detach_scene_objects_from_removal_targets(object_names_to_remove):
+    """
+    Unparent (world transform preserved) and remove Armature modifiers pointing at
+    objects that are about to be deleted, for objects that are NOT in the removal
+    set. Prevents in-scene props (e.g. parented to a rig) from being lost when the
+    rig object is removed.
+
+    Returns:
+        list[str]: Messages suitable for operator.report (one string per change).
+    """
+    if not object_names_to_remove:
+        return []
+    remove = set(object_names_to_remove)
+    reports = []
+
+    for obj in bpy.data.objects:
+        if obj.name in remove:
+            continue
+        if compat.is_library_or_override(obj):
+            continue
+
+        parts = []
+
+        if obj.parent is not None and obj.parent.name in remove:
+            mw = obj.matrix_world.copy()
+            obj.parent = None
+            obj.matrix_world = mw
+            parts.append("unparented (kept world transform)")
+
+        for mod in list(obj.modifiers):
+            if mod.type != 'ARMATURE':
+                continue
+            target = getattr(mod, "object", None)
+            if target is not None and target.name in remove:
+                obj.modifiers.remove(mod)
+                parts.append("removed Armature modifier targeting deleted object")
+
+        if parts:
+            reports.append(
+                "Atomic: “%s”: %s" % (obj.name, "; ".join(parts))
+            )
+
+    return reports
 
 
 def collections(cached_list=None):
@@ -137,7 +183,7 @@ def objects(cached_list=None):
         object_keys = cached_list
     else:
         object_keys = unused.objects_deep()
-    
+
     for object_key in object_keys:
         if object_key in bpy.data.objects:
             bpy.data.objects.remove(bpy.data.objects[object_key])

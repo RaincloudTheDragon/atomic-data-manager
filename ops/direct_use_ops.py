@@ -250,7 +250,9 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
         clean.lights()
         clean.materials()
         clean.node_groups()
-        clean.objects()
+        for msg in clean.detach_scene_objects_from_removal_targets(set(self.unused_objects)):
+            self.report({'INFO'}, msg)
+        clean.objects(cached_list=self.unused_objects)
         clean.particles()
         clean.textures()
         clean.armatures()

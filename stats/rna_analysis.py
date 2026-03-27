@@ -915,6 +915,8 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
     Returns:
         List of unused item names for the specified category
     """
+    from . import users
+
     if include_fake_users is None:
         include_fake_users = config.include_fake_users
     
@@ -1184,6 +1186,14 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
             item_name = datablock.name
             if (category, item_name) not in used:
                 if item_name not in category_do_not_flag:
+                    # Objects that appear in a scene collection must stay (traceable to a scene), even
+                    # if the RNA graph missed them (e.g. mesh parented to an out-of-scene armature).
+                    if category == 'objects':
+                        try:
+                            if users.object_all(item_name):
+                                continue
+                        except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                            pass
                     unused.append(item_name)
         except (AttributeError, RuntimeError, ReferenceError):
             # Datablock may be invalid
