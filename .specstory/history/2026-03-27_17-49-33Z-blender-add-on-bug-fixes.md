@@ -18038,7 +18038,6 @@ To-do's from the plan have already been created. Do not create them again. Mark 
 
 _**Agent (composer-2-fast)**_
 
-
 Implementing the plan: starting with override detection helpers and wiring them through `compat.py`.
 
 
@@ -18168,7 +18167,6 @@ I'm initializing `_storage_override_data_ids = frozenset()` at module level to p
 
 _**Agent (composer-2-fast)**_
 
-
 Implementing helper functions, updating `_override_weight_factor`, setting override IDs at the start of `build_report`, adding `is_lib_override` to rows, adding collections + fingerprint, then updating the UI.
 
 
@@ -18201,13 +18199,6 @@ I'm adding global storage override data IDs and updating rows with library overr
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
 <details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
@@ -18235,13 +18226,6 @@ _**Agent (composer-2-fast)**_
 <summary>Tool use: **edit_file_v2**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -18265,13 +18249,6 @@ I'm adding backward compatibility for cached rows without `is_lib_override` and 
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
 
@@ -18285,13 +18262,6 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
 <details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
@@ -18334,13 +18304,6 @@ _**Agent (composer-2-fast)**_
 <summary>Tool use: **edit_file_v2**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -18469,7 +18432,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
 Here’s what was implemented:
 
 ### [`utils/compat.py`](e:/atomic-data-manager/utils/compat.py)
@@ -18499,13 +18461,6 @@ _**User**_
 bump 2.6.0 and concisely update the changelog with the changes in the last 4 commits.
 
 ---
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -18668,13 +18623,6 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: git -C "e:\atomic-data-manager" log -4 --format="%h %s%n%b---"</summary>
 
@@ -18756,13 +18704,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
 <summary>Tool use: **ripgrep_raw_search**</summary>
@@ -18820,13 +18761,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: git -C "e:\atomic-data-manager" log -1 --format=%ci 8871efb</summary>
 
@@ -18854,7 +18788,6 @@ _**Agent (composer-2-fast)**_
 I'm setting the changelog date to 2026-03-27. I'm updating the changelog under v2.6.0 with features, fixes, and internal changes. </details></think>
 
 _**Agent (composer-2-fast)**_
-
 
 Bumping the manifest version and adding a concise v2.6.0 changelog entry summarizing the last four commits.
 
@@ -18892,7 +18825,6 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
-
 Here’s what was updated:
 
 ### Version
@@ -18903,3 +18835,3739 @@ Here’s what was updated:
   - **73d461c** — GN material/image usage on library overrides (#15) + `is_object_linked_without_override`
   - **9e08468** — Clean: unparent + strip armature modifiers before rig removal
   - **90a94fe** / **8871efb** — Storage tab, byte estimates, compat placement, overrides/collections/dual-icon UI
+
+---
+
+_**User**_
+
+use blender mcp again. why is mesh CC_Base_Body.012 not being detected as cleanable?
+
+---
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Investigating cleanable**
+
+I'm checking the MCP tools to understand how 'cleanable' objects are detected in Blender. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Tracing how Atomic marks meshes as cleanable and inspecting the mesh in Blender via MCP.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="semantic_search_full">
+<details>
+<summary>Tool use: **semantic_search_full**</summary>
+
+
+Parameters:
+
+```json
+{
+  "explanation": "",
+  "includePattern": "E:/atomic-data-manager",
+  "query": "Where is mesh marked unused or cleanable for clean operation?",
+  "topK": 10
+}
+```
+Result:
+
+```json
+{
+  "codeResults": [
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 75,
+            "text": "# Cache for unused data-blocks to avoid recalculation"
+          },
+          {
+            "lineNumber": 76,
+            "text": "# This is invalidated when undo steps occur or after cleaning"
+          },
+          {
+            "lineNumber": 77,
+            "text": "_unused_cache = None"
+          },
+          {
+            "lineNumber": 78,
+            "text": "_cache_valid = False"
+          },
+          {
+            "lineNumber": 79
+          },
+          {
+            "lineNumber": 80,
+            "text": "# Store reference to clean operator instance for dialog invocation"
+          },
+          {
+            "lineNumber": 81,
+            "text": "_clean_operator_instance = None"
+          },
+          {
+            "lineNumber": 82
+          },
+          {
+            "lineNumber": 83,
+            "text": "# Store scan results for dialog invocation (when operator instance is invalidated)"
+          },
+          {
+            "lineNumber": 84,
+            "text": "_clean_pending_results = None"
+          },
+          {
+            "lineNumber": 85,
+            "text": "_clean_pending_categories = None"
+          },
+          {
+            "lineNumber": 86
+          },
+          {
+            "lineNumber": 87,
+            "text": "# Module-level state for timer-based operations"
+          },
+          {
+            "lineNumber": 88,
+            "text": "_smart_select_state = {"
+          },
+          {
+            "lineNumber": 89,
+            "text": "    'current_category_index': 0,"
+          },
+          {
+            "lineNumber": 90,
+            "text": "    'unused_flags': {},"
+          },
+          {
+            "lineNumber": 91,
+            "text": "    'all_unused': None,"
+          },
+          {
+            "lineNumber": 92,
+            "text": "    'detected_categories': [],"
+          },
+          {
+            "lineNumber": 93,
+            "text": "    'counting_category_index': 0,  # For incremental counting in Step 2"
+          },
+          {
+            "lineNumber": 94,
+            "text": "    'counting_all_unused': {},  # For incremental counting results"
+          },
+          {
+            "lineNumber": 95,
+            "text": "    'counting_status_updated': False,  # Track if status was updated for current category"
+          },
+          {
+            "lineNumber": 96,
+            "text": "    'counting_images_list': None,  # List of images to check incrementally"
+          },
+          {
+            "lineNumber": 97,
+            "text": "    'counting_images_index': 0,  # Current image index"
+          },
+          {
+            "lineNumber": 98,
+            "text": "    'counting_images_unused': [],  # Unused images found so far"
+          },
+          {
+            "lineNumber": 99,
+            "text": "    'counting_images_executor': None,  # ThreadPoolExecutor for parallel processing"
+          },
+          {
+            "lineNumber": 100,
+            "text": "    'counting_images_futures': []  # List of futures for tracking parallel work"
+          },
+          {
+            "lineNumber": 101,
+            "text": "}"
+          },
+          {
+            "lineNumber": 102
+          },
+          {
+            "lineNumber": 103,
+            "text": "_clean_invoke_state = {"
+          },
+          {
+            "lineNumber": 104,
+            "text": "    'current_category_index': 0,"
+          },
+          {
+            "lineNumber": 105,
+            "text": "    'all_unused': None,"
+          },
+          {
+            "lineNumber": 106,
+            "text": "    'selected_categories': [],"
+          },
+          {
+            "lineNumber": 107,
+            "text": "    'found_items': {},"
+          },
+          {
+            "lineNumber": 108,
+            "text": "    'current_world_index': 0,  # For incremental world scanning"
+          },
+          {
+            "lineNumber": 109,
+            "text": "    'worlds_list': None,  # Cache of worlds to scan"
+          },
+          {
+            "lineNumber": 110,
+            "text": "    'status_updated': False  # Track if status was updated for current category"
+          },
+          {
+            "lineNumber": 111,
+            "text": "}"
+          },
+          {
+            "lineNumber": 112
+          },
+          {
+            "lineNumber": 113,
+            "text": "_clean_execute_state = {"
+          },
+          {
+            "lineNumber": 114,
+            "text": "    'categories_to_clean': [],"
+          },
+          {
+            "lineNumber": 115,
+            "text": "    'total_items': 0,"
+          },
+          {
+            "lineNumber": 116,
+            "text": "    'current_category_index': 0,"
+          },
+          {
+            "lineNumber": 117,
+            "text": "    'current_item_index': 0,"
+          },
+          {
+            "lineNumber": 118,
+            "text": "    'deleted_count': 0"
+          },
+          {
+            "lineNumber": 119,
+            "text": "}"
+          },
+          {
+            "lineNumber": 120
+          },
+          {
+            "lineNumber": 121,
+            "text": "# Unified scanning state for both Smart Select and Clean"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "column": 56,
+            "line": 120
+          },
+          "startPosition": {
+            "column": 20,
+            "line": 71
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.3791585862636566
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 810,
+            "text": "def invoke(self, context, event):"
+          },
+          {
+            "lineNumber": 850
+          },
+          {
+            "lineNumber": 851,
+            "text": "        if _cache_valid and _unused_cache is not None:"
+          },
+          {
+            "lineNumber": 852,
+            "text": "            # Check if cache has all selected categories"
+          },
+          {
+            "lineNumber": 853,
+            "text": "            cache_has_all = all(cat in _unused_cache for cat in selected_categories)"
+          },
+          {
+            "lineNumber": 854,
+            "text": "            if cache_has_all:"
+          },
+          {
+            "lineNumber": 855,
+            "text": "                # Use cached results immediately"
+          },
+          {
+            "lineNumber": 856,
+            "text": "                _populate_unused_lists(self, atom, _unused_cache)"
+          },
+          {
+            "lineNumber": 857,
+            "text": "                return context.window_manager.invoke_props_dialog(self, width=1000)"
+          },
+          {
+            "lineNumber": 858,
+            "text": "        "
+          },
+          {
+            "lineNumber": 859,
+            "text": "        # Need to scan - initialize progress tracking"
+          },
+          {
+            "lineNumber": 860,
+            "text": "        _safe_set_atom_property(atom, 'is_operation_running', True)"
+          },
+          {
+            "lineNumber": 861,
+            "text": "        _safe_set_atom_property(atom, 'operation_progress', 0.0)"
+          },
+          {
+            "lineNumber": 862,
+            "text": "        _safe_set_atom_property(atom, 'operation_status', \"Initializing Clean scan...\")"
+          },
+          {
+            "lineNumber": 863,
+            "text": "        _safe_set_atom_property(atom, 'cancel_operation', False)"
+          },
+          {
+            "lineNumber": 864,
+            "text": "        "
+          },
+          {
+            "lineNumber": 865,
+            "text": "        # Initialize module-level state for timer processing"
+          },
+          {
+            "lineNumber": 866,
+            "text": "        global _clean_invoke_state"
+          },
+          {
+            "lineNumber": 867,
+            "text": "        _clean_invoke_state = {"
+          },
+          {
+            "lineNumber": 868,
+            "text": "            'selected_categories': selected_categories,"
+          },
+          {
+            "lineNumber": 869,
+            "text": "            'operator_instance': self,"
+          },
+          {
+            "lineNumber": 870,
+            "text": "            'scan_started': False"
+          },
+          {
+            "lineNumber": 871,
+            "text": "        }"
+          },
+          {
+            "lineNumber": 872,
+            "text": "        "
+          },
+          {
+            "lineNumber": 873,
+            "text": "        # Start timer for processing"
+          },
+          {
+            "lineNumber": 874,
+            "text": "        bpy.app.timers.register(_process_clean_invoke_step)"
+          },
+          {
+            "lineNumber": 875
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 876,
+            "text": "        return {'FINISHED'}"
+          },
+          {
+            "lineNumber": 877
+          },
+          {
+            "lineNumber": 878
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 879,
+            "text": "def _process_clean_execute_step():"
+          },
+          {
+            "lineNumber": 880,
+            "text": "    \"\"\"Process Clean execute (deletion) in steps to avoid blocking the UI\"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 974
+          },
+          "startPosition": {
+            "line": 561
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 563
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 562
+              }
+            },
+            {
+              "endPosition": {
+                "column": 9,
+                "line": 811
+              },
+              "startPosition": {
+                "column": 5,
+                "line": 810
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.36998236179351807
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 699,
+            "text": "def execute(self, context):"
+          },
+          {
+            "lineNumber": 806
+          },
+          {
+            "lineNumber": 807,
+            "text": "        "
+          },
+          {
+            "lineNumber": 808,
+            "text": "        return {'FINISHED'}"
+          },
+          {
+            "lineNumber": 809
+          },
+          {
+            "lineNumber": 810,
+            "text": "    def invoke(self, context, event):"
+          },
+          {
+            "lineNumber": 811,
+            "text": "        atom = context.scene.atomic"
+          },
+          {
+            "lineNumber": 812,
+            "text": "        "
+          },
+          {
+            "lineNumber": 813,
+            "text": "        # Store operator instance for dialog invocation"
+          },
+          {
+            "lineNumber": 814,
+            "text": "        global _clean_operator_instance, _clean_pending_results, _clean_pending_categories"
+          },
+          {
+            "lineNumber": 815,
+            "text": "        _clean_operator_instance = self"
+          },
+          {
+            "lineNumber": 816,
+            "text": "        "
+          },
+          {
+            "lineNumber": 817,
+            "text": "        # Check if there are pending results from a completed scan"
+          },
+          {
+            "lineNumber": 818,
+            "text": "        if _clean_pending_results is not None:"
+          },
+          {
+            "lineNumber": 819,
+            "text": "            # Populate from pending results and show dialog"
+          },
+          {
+            "lineNumber": 820,
+            "text": "            _populate_unused_lists(self, atom, _clean_pending_results)"
+          },
+          {
+            "lineNumber": 821,
+            "text": "            # Clear pending results"
+          },
+          {
+            "lineNumber": 822,
+            "text": "            _clean_pending_results = None"
+          },
+          {
+            "lineNumber": 823,
+            "text": "            _clean_pending_categories = None"
+          },
+          {
+            "lineNumber": 824,
+            "text": "            return context.window_manager.invoke_props_dialog(self, width=1000)"
+          },
+          {
+            "lineNumber": 825,
+            "text": "        "
+          },
+          {
+            "lineNumber": 826,
+            "text": "        # Determine which categories are selected"
+          },
+          {
+            "lineNumber": 827,
+            "text": "        selected_categories = []"
+          },
+          {
+            "lineNumber": 828,
+            "text": "        if atom.collections:"
+          },
+          {
+            "lineNumber": 829,
+            "text": "            selected_categories.append('collections')"
+          },
+          {
+            "lineNumber": 830,
+            "text": "        if atom.images:"
+          },
+          {
+            "lineNumber": 831,
+            "text": "            selected_categories.append('images')"
+          },
+          {
+            "lineNumber": 832,
+            "text": "        if atom.lights:"
+          },
+          {
+            "lineNumber": 833,
+            "text": "            selected_categories.append('lights')"
+          },
+          {
+            "lineNumber": 834,
+            "text": "        if atom.materials:"
+          },
+          {
+            "lineNumber": 835,
+            "text": "            selected_categories.append('materials')"
+          },
+          {
+            "lineNumber": 836,
+            "text": "        if atom.node_groups:"
+          },
+          {
+            "lineNumber": 837,
+            "text": "            selected_categories.append('node_groups')"
+          },
+          {
+            "lineNumber": 838,
+            "text": "        if atom.objects:"
+          },
+          {
+            "lineNumber": 839,
+            "text": "            selected_categories.append('objects')"
+          },
+          {
+            "lineNumber": 840,
+            "text": "        if atom.particles:"
+          },
+          {
+            "lineNumber": 841,
+            "text": "            selected_categories.append('particles')"
+          },
+          {
+            "lineNumber": 842,
+            "text": "        if atom.textures:"
+          },
+          {
+            "lineNumber": 843,
+            "text": "            selected_categories.append('textures')"
+          },
+          {
+            "lineNumber": 844,
+            "text": "        if atom.armatures:"
+          },
+          {
+            "lineNumber": 845,
+            "text": "            selected_categories.append('armatures')"
+          },
+          {
+            "lineNumber": 846,
+            "text": "        if atom.worlds:"
+          },
+          {
+            "lineNumber": 847,
+            "text": "            selected_categories.append('worlds')"
+          },
+          {
+            "lineNumber": 848,
+            "text": "        "
+          },
+          {
+            "lineNumber": 849,
+            "text": "        # Check if cache is valid and contains all selected categories"
+          },
+          {
+            "lineNumber": 850,
+            "text": "        global _unused_cache, _cache_valid"
+          },
+          {
+            "lineNumber": 851,
+            "text": "        if _cache_valid and _unused_cache is not None:"
+          },
+          {
+            "lineNumber": 852,
+            "text": "            # Check if cache has all selected categories"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 875
+          },
+          "startPosition": {
+            "line": 561
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 563
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 562
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.357798308134079
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 561,
+            "text": "# Atomic Data Manager Clean Operator"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 563,
+            "text": "    \"\"\"Remove all unused data-blocks from the selected categories\"\"\""
+          },
+          {
+            "lineNumber": 564,
+            "text": "    bl_idname = \"atomic.clean\""
+          },
+          {
+            "lineNumber": 565,
+            "text": "    bl_label = \"Clean\""
+          },
+          {
+            "lineNumber": 566
+          },
+          {
+            "lineNumber": 567,
+            "text": "    # Use None as sentinel to indicate \"not yet calculated\""
+          },
+          {
+            "lineNumber": 568,
+            "text": "    # Empty lists [] indicate \"calculated and found nothing\""
+          },
+          {
+            "lineNumber": 569,
+            "text": "    unused_collections = None"
+          },
+          {
+            "lineNumber": 570,
+            "text": "    unused_images = None"
+          },
+          {
+            "lineNumber": 571,
+            "text": "    unused_lights = None"
+          },
+          {
+            "lineNumber": 572,
+            "text": "    unused_materials = None"
+          },
+          {
+            "lineNumber": 573,
+            "text": "    unused_node_groups = None"
+          },
+          {
+            "lineNumber": 574,
+            "text": "    unused_objects = None"
+          },
+          {
+            "lineNumber": 575,
+            "text": "    unused_particles = None"
+          },
+          {
+            "lineNumber": 576,
+            "text": "    unused_textures = None"
+          },
+          {
+            "lineNumber": 577,
+            "text": "    unused_armatures = None"
+          },
+          {
+            "lineNumber": 578,
+            "text": "    unused_worlds = None"
+          },
+          {
+            "lineNumber": 579
+          },
+          {
+            "lineNumber": 580,
+            "text": "    def draw(self, context):"
+          },
+          {
+            "lineNumber": 581,
+            "text": "        atom = bpy.context.scene.atomic"
+          },
+          {
+            "lineNumber": 582,
+            "text": "        layout = self.layout"
+          },
+          {
+            "lineNumber": 583
+          },
+          {
+            "lineNumber": 584,
+            "text": "        col = layout.column()"
+          },
+          {
+            "lineNumber": 585,
+            "text": "        col.label(text=\"Remove the following data-blocks?\")"
+          },
+          {
+            "lineNumber": 586
+          },
+          {
+            "lineNumber": 587,
+            "text": "        # display if no main panel properties are toggled"
+          },
+          {
+            "lineNumber": 588,
+            "text": "        if not (atom.collections or atom.images or atom.lights or"
+          },
+          {
+            "lineNumber": 589,
+            "text": "                atom.materials or atom.node_groups or atom.objects or"
+          },
+          {
+            "lineNumber": 590,
+            "text": "                atom.particles or atom.textures or atom.armatures or"
+          },
+          {
+            "lineNumber": 591,
+            "text": "                atom.worlds):"
+          },
+          {
+            "lineNumber": 592
+          },
+          {
+            "lineNumber": 593,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 594,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 595,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 596
+          },
+          {
+            "lineNumber": 597,
+            "text": "        # display when the main panel collections property is toggled"
+          },
+          {
+            "lineNumber": 598,
+            "text": "        if atom.collections:"
+          },
+          {
+            "lineNumber": 599,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 600,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 601,
+            "text": "                title=\"Collections\","
+          },
+          {
+            "lineNumber": 602,
+            "text": "                items=self.unused_collections,"
+          },
+          {
+            "lineNumber": 603,
+            "text": "                icon=\"OUTLINER_OB_GROUP_INSTANCE\","
+          },
+          {
+            "lineNumber": 604,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 605,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 606
+          },
+          {
+            "lineNumber": 607,
+            "text": "        # display when the main panel images property is toggled"
+          },
+          {
+            "lineNumber": 608,
+            "text": "        if atom.images:"
+          },
+          {
+            "lineNumber": 609,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 610,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 611,
+            "text": "                title=\"Images\","
+          },
+          {
+            "lineNumber": 612,
+            "text": "                items=self.unused_images,"
+          },
+          {
+            "lineNumber": 613,
+            "text": "                icon=\"IMAGE_DATA\","
+          },
+          {
+            "lineNumber": 614,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 615,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 616
+          },
+          {
+            "lineNumber": 617,
+            "text": "        # display when the main panel lights property is toggled"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 875
+          },
+          "startPosition": {
+            "column": 55,
+            "line": 557
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.35401856899261475
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 879,
+            "text": "def _process_clean_execute_step():"
+          },
+          {
+            "lineNumber": 929
+          },
+          {
+            "lineNumber": 930,
+            "text": "                elif category == 'armatures':"
+          },
+          {
+            "lineNumber": 931,
+            "text": "                    if item_key in bpy.data.armatures:"
+          },
+          {
+            "lineNumber": 932,
+            "text": "                        bpy.data.armatures.remove(bpy.data.armatures[item_key])"
+          },
+          {
+            "lineNumber": 933,
+            "text": "                elif category == 'worlds':"
+          },
+          {
+            "lineNumber": 934,
+            "text": "                    if item_key in bpy.data.worlds:"
+          },
+          {
+            "lineNumber": 935,
+            "text": "                        bpy.data.worlds.remove(bpy.data.worlds[item_key])"
+          },
+          {
+            "lineNumber": 936,
+            "text": "                "
+          },
+          {
+            "lineNumber": 937,
+            "text": "                _clean_execute_state['deleted_count'] += 1"
+          },
+          {
+            "lineNumber": 938,
+            "text": "            except:"
+          },
+          {
+            "lineNumber": 939,
+            "text": "                pass  # Item may have been deleted already or doesn't exist"
+          },
+          {
+            "lineNumber": 940,
+            "text": "            "
+          },
+          {
+            "lineNumber": 941,
+            "text": "            _clean_execute_state['current_item_index'] += 1"
+          },
+          {
+            "lineNumber": 942,
+            "text": "            progress = (_clean_execute_state['deleted_count'] / _clean_execute_state['total_items']) * 100.0"
+          },
+          {
+            "lineNumber": 943,
+            "text": "            _safe_set_atom_property(atom, 'operation_progress', progress)"
+          },
+          {
+            "lineNumber": 944,
+            "text": "            "
+          },
+          {
+            "lineNumber": 945,
+            "text": "            # Force UI update"
+          },
+          {
+            "lineNumber": 946,
+            "text": "            for area in bpy.context.screen.areas:"
+          },
+          {
+            "lineNumber": 947,
+            "text": "                area.tag_redraw()"
+          },
+          {
+            "lineNumber": 948,
+            "text": "            "
+          },
+          {
+            "lineNumber": 949,
+            "text": "            return 0.01  # Continue processing"
+          },
+          {
+            "lineNumber": 950,
+            "text": "        else:"
+          },
+          {
+            "lineNumber": 951,
+            "text": "            # Move to next category"
+          },
+          {
+            "lineNumber": 952,
+            "text": "            _clean_execute_state['current_category_index'] += 1"
+          },
+          {
+            "lineNumber": 953,
+            "text": "            _clean_execute_state['current_item_index'] = 0"
+          },
+          {
+            "lineNumber": 954,
+            "text": "            return 0.01  # Continue to next category"
+          },
+          {
+            "lineNumber": 955,
+            "text": "    "
+          },
+          {
+            "lineNumber": 956,
+            "text": "    # All items deleted"
+          },
+          {
+            "lineNumber": 957,
+            "text": "    deleted_count = _clean_execute_state['deleted_count']"
+          },
+          {
+            "lineNumber": 958,
+            "text": "    _safe_set_atom_property(atom, 'is_operation_running', False)"
+          },
+          {
+            "lineNumber": 959,
+            "text": "    _safe_set_atom_property(atom, 'operation_progress', 100.0)"
+          },
+          {
+            "lineNumber": 960,
+            "text": "    _safe_set_atom_property(atom, 'operation_status', f\"Complete! Removed {deleted_count} unused data-blocks\")"
+          },
+          {
+            "lineNumber": 961,
+            "text": "    "
+          },
+          {
+            "lineNumber": 962,
+            "text": "    # Clear state"
+          },
+          {
+            "lineNumber": 963,
+            "text": "    _clean_execute_state = None"
+          },
+          {
+            "lineNumber": 964,
+            "text": "    "
+          },
+          {
+            "lineNumber": 965,
+            "text": "    # Invalidate cache after cleaning (data has changed)"
+          },
+          {
+            "lineNumber": 966,
+            "text": "    _invalidate_cache()"
+          },
+          {
+            "lineNumber": 967,
+            "text": "    "
+          },
+          {
+            "lineNumber": 968,
+            "text": "    # Deselect all"
+          },
+          {
+            "lineNumber": 969,
+            "text": "    bpy.ops.atomic.deselect_all()"
+          },
+          {
+            "lineNumber": 970,
+            "text": "    "
+          },
+          {
+            "lineNumber": 971,
+            "text": "    # Force UI update"
+          },
+          {
+            "lineNumber": 972,
+            "text": "    for area in bpy.context.screen.areas:"
+          },
+          {
+            "lineNumber": 973,
+            "text": "        area.tag_redraw()"
+          },
+          {
+            "lineNumber": 974,
+            "text": "    "
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 975,
+            "text": "    return None  # Stop timer"
+          },
+          {
+            "lineNumber": 976
+          },
+          {
+            "lineNumber": 977
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 978,
+            "text": "def _on_smart_select_quick_scan_complete(results, **kwargs):"
+          },
+          {
+            "lineNumber": 979,
+            "text": "    \"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 1016
+          },
+          "startPosition": {
+            "line": 878
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 880
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 879
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.3532848060131073
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 699,
+            "text": "def execute(self, context):"
+          },
+          {
+            "lineNumber": 723
+          },
+          {
+            "lineNumber": 724,
+            "text": "        if atom.particles and self.unused_particles:"
+          },
+          {
+            "lineNumber": 725,
+            "text": "            total_items += len(self.unused_particles)"
+          },
+          {
+            "lineNumber": 726,
+            "text": "            categories_to_clean.append(('particles', self.unused_particles))"
+          },
+          {
+            "lineNumber": 727,
+            "text": "        if atom.textures and self.unused_textures:"
+          },
+          {
+            "lineNumber": 728,
+            "text": "            total_items += len(self.unused_textures)"
+          },
+          {
+            "lineNumber": 729,
+            "text": "            categories_to_clean.append(('textures', self.unused_textures))"
+          },
+          {
+            "lineNumber": 730,
+            "text": "        if atom.armatures and self.unused_armatures:"
+          },
+          {
+            "lineNumber": 731,
+            "text": "            total_items += len(self.unused_armatures)"
+          },
+          {
+            "lineNumber": 732,
+            "text": "            categories_to_clean.append(('armatures', self.unused_armatures))"
+          },
+          {
+            "lineNumber": 733,
+            "text": "        if atom.worlds and self.unused_worlds:"
+          },
+          {
+            "lineNumber": 734,
+            "text": "            total_items += len(self.unused_worlds)"
+          },
+          {
+            "lineNumber": 735,
+            "text": "            categories_to_clean.append(('worlds', self.unused_worlds))"
+          },
+          {
+            "lineNumber": 736
+          },
+          {
+            "lineNumber": 737,
+            "text": "        if total_items == 0:"
+          },
+          {
+            "lineNumber": 738,
+            "text": "            # Nothing to delete"
+          },
+          {
+            "lineNumber": 739,
+            "text": "            bpy.ops.atomic.deselect_all()"
+          },
+          {
+            "lineNumber": 740,
+            "text": "            return {'FINISHED'}"
+          },
+          {
+            "lineNumber": 741
+          },
+          {
+            "lineNumber": 742,
+            "text": "        # Keep in-scene objects that are parented to / deformed by objects we delete"
+          },
+          {
+            "lineNumber": 743,
+            "text": "        if atom.objects and self.unused_objects:"
+          },
+          {
+            "lineNumber": 744,
+            "text": "            from .utils import clean as clean_utils"
+          },
+          {
+            "lineNumber": 745,
+            "text": "            for msg in clean_utils.detach_scene_objects_from_removal_targets("
+          },
+          {
+            "lineNumber": 746,
+            "text": "                set(self.unused_objects)"
+          },
+          {
+            "lineNumber": 747,
+            "text": "            ):"
+          },
+          {
+            "lineNumber": 748,
+            "text": "                self.report({'INFO'}, msg)"
+          },
+          {
+            "lineNumber": 749
+          },
+          {
+            "lineNumber": 750,
+            "text": "        # Delete all items synchronously"
+          },
+          {
+            "lineNumber": 751,
+            "text": "        deleted_count = 0"
+          },
+          {
+            "lineNumber": 752,
+            "text": "        for category, unused_list in categories_to_clean:"
+          },
+          {
+            "lineNumber": 753,
+            "text": "            if not unused_list:"
+          },
+          {
+            "lineNumber": 754,
+            "text": "                continue"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 875
+          },
+          "startPosition": {
+            "line": 561
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 563
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 562
+              }
+            },
+            {
+              "endPosition": {
+                "column": 9,
+                "line": 581
+              },
+              "startPosition": {
+                "column": 5,
+                "line": 580
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.346050500869751
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 151,
+            "text": "class ATOMIC_OT_clean_all(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 167,
+            "text": "def draw(self, context):"
+          },
+          {
+            "lineNumber": 213
+          },
+          {
+            "lineNumber": 214,
+            "text": "        )"
+          },
+          {
+            "lineNumber": 215
+          },
+          {
+            "lineNumber": 216,
+            "text": "        ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 217,
+            "text": "            layout=layout,"
+          },
+          {
+            "lineNumber": 218,
+            "text": "            title=\"Particle Systems\","
+          },
+          {
+            "lineNumber": 219,
+            "text": "            items=sorted(self.unused_particles),"
+          },
+          {
+            "lineNumber": 220,
+            "text": "            icon=\"PARTICLES\""
+          },
+          {
+            "lineNumber": 221,
+            "text": "        )"
+          },
+          {
+            "lineNumber": 222
+          },
+          {
+            "lineNumber": 223,
+            "text": "        ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 224,
+            "text": "            layout=layout,"
+          },
+          {
+            "lineNumber": 225,
+            "text": "            title=\"Textures\","
+          },
+          {
+            "lineNumber": 226,
+            "text": "            items=sorted(self.unused_textures),"
+          },
+          {
+            "lineNumber": 227,
+            "text": "            icon=\"TEXTURE\""
+          },
+          {
+            "lineNumber": 228,
+            "text": "        )"
+          },
+          {
+            "lineNumber": 229
+          },
+          {
+            "lineNumber": 230,
+            "text": "        ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 231,
+            "text": "            layout=layout,"
+          },
+          {
+            "lineNumber": 232,
+            "text": "            title=\"Armatures\","
+          },
+          {
+            "lineNumber": 233,
+            "text": "            items=sorted(self.unused_armatures),"
+          },
+          {
+            "lineNumber": 234,
+            "text": "            icon=\"ARMATURE_DATA\""
+          },
+          {
+            "lineNumber": 235,
+            "text": "        )"
+          },
+          {
+            "lineNumber": 236
+          },
+          {
+            "lineNumber": 237,
+            "text": "        ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 238,
+            "text": "            layout=layout,"
+          },
+          {
+            "lineNumber": 239,
+            "text": "            title=\"Worlds\","
+          },
+          {
+            "lineNumber": 240,
+            "text": "            items=sorted(self.unused_worlds),"
+          },
+          {
+            "lineNumber": 241,
+            "text": "            icon=\"WORLD\""
+          },
+          {
+            "lineNumber": 242,
+            "text": "        )"
+          },
+          {
+            "lineNumber": 243
+          },
+          {
+            "lineNumber": 244,
+            "text": "        row = layout.row()  # extra spacing"
+          },
+          {
+            "lineNumber": 245
+          },
+          {
+            "lineNumber": 246,
+            "text": "    def execute(self, context):"
+          },
+          {
+            "lineNumber": 247
+          },
+          {
+            "lineNumber": 248,
+            "text": "        clean.collections()"
+          },
+          {
+            "lineNumber": 249,
+            "text": "        clean.images()"
+          },
+          {
+            "lineNumber": 250,
+            "text": "        clean.lights()"
+          },
+          {
+            "lineNumber": 251,
+            "text": "        clean.materials()"
+          },
+          {
+            "lineNumber": 252,
+            "text": "        clean.node_groups()"
+          },
+          {
+            "lineNumber": 253,
+            "text": "        for msg in clean.detach_scene_objects_from_removal_targets(set(self.unused_objects)):"
+          },
+          {
+            "lineNumber": 254,
+            "text": "            self.report({'INFO'}, msg)"
+          },
+          {
+            "lineNumber": 255,
+            "text": "        clean.objects(cached_list=self.unused_objects)"
+          },
+          {
+            "lineNumber": 256,
+            "text": "        clean.particles()"
+          },
+          {
+            "lineNumber": 257,
+            "text": "        clean.textures()"
+          },
+          {
+            "lineNumber": 258,
+            "text": "        clean.armatures()"
+          },
+          {
+            "lineNumber": 259,
+            "text": "        clean.worlds()"
+          },
+          {
+            "lineNumber": 260
+          },
+          {
+            "lineNumber": 261,
+            "text": "        return {'FINISHED'}"
+          },
+          {
+            "lineNumber": 262
+          },
+          {
+            "lineNumber": 263,
+            "text": "    def invoke(self, context, event):"
+          },
+          {
+            "lineNumber": 264,
+            "text": "        wm = context.window_manager"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 279
+          },
+          "startPosition": {
+            "line": 150
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\direct_use_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 152
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 151
+              }
+            },
+            {
+              "endPosition": {
+                "column": 9,
+                "line": 168
+              },
+              "startPosition": {
+                "column": 5,
+                "line": 167
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.34593358635902405
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 281,
+            "text": "# Worker process system removed - now using RNA-based analysis"
+          },
+          {
+            "lineNumber": 282
+          },
+          {
+            "lineNumber": 283
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 284,
+            "text": "def _check_single_image(image):"
+          },
+          {
+            "lineNumber": 285,
+            "text": "    \"\"\"Check if a single image is unused. Returns True if unused, False otherwise."
+          },
+          {
+            "lineNumber": 286,
+            "text": "    Uses caching to avoid redundant expensive scans.\"\"\""
+          },
+          {
+            "lineNumber": 287,
+            "text": "    from ..stats import users"
+          },
+          {
+            "lineNumber": 288,
+            "text": "    "
+          },
+          {
+            "lineNumber": 289,
+            "text": "    do_not_flag = [\"Render Result\", \"Viewer Node\", \"D-NOISE Export\"]"
+          },
+          {
+            "lineNumber": 290,
+            "text": "    "
+          },
+          {
+            "lineNumber": 291,
+            "text": "    # Skip library-linked and override datablocks"
+          },
+          {
+            "lineNumber": 292,
+            "text": "    if compat.is_library_or_override(image):"
+          },
+          {
+            "lineNumber": 293,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 294,
+            "text": "    "
+          },
+          {
+            "lineNumber": 295,
+            "text": "    # Fast early check: Use Blender's built-in users count"
+          },
+          {
+            "lineNumber": 296,
+            "text": "    # This is much faster than scanning the entire scene"
+          },
+          {
+            "lineNumber": 297,
+            "text": "    image_users = image.users"
+          },
+          {
+            "lineNumber": 298,
+            "text": "    has_fake_user = image.use_fake_user"
+          },
+          {
+            "lineNumber": 299,
+            "text": "    "
+          },
+          {
+            "lineNumber": 300,
+            "text": "    # Fast path 1: Image has no users at all → definitely unused"
+          },
+          {
+            "lineNumber": 301,
+            "text": "    if image_users == 0:"
+          },
+          {
+            "lineNumber": 302,
+            "text": "        if image.name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 303,
+            "text": "            return True"
+          },
+          {
+            "lineNumber": 304,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 305,
+            "text": "    "
+          },
+          {
+            "lineNumber": 306,
+            "text": "    # Fast path 2: Only fake user and we're ignoring fake users → unused"
+          },
+          {
+            "lineNumber": 307,
+            "text": "    if image_users == 1 and has_fake_user and config.include_fake_users:"
+          },
+          {
+            "lineNumber": 308,
+            "text": "        if image.name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 309,
+            "text": "            return True"
+          },
+          {
+            "lineNumber": 310,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 311,
+            "text": "    "
+          },
+          {
+            "lineNumber": 312,
+            "text": "    # Fast path 3: Only fake user and we're NOT ignoring fake users → used (skip deep check)"
+          },
+          {
+            "lineNumber": 313,
+            "text": "    if image_users == 1 and has_fake_user and not config.include_fake_users:"
+          },
+          {
+            "lineNumber": 314,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 315,
+            "text": "    "
+          },
+          {
+            "lineNumber": 316,
+            "text": "    image_name = image.name"
+          },
+          {
+            "lineNumber": 317,
+            "text": "    "
+          },
+          {
+            "lineNumber": 318,
+            "text": "    # Deep check: standard unused detection (use cache)"
+          },
+          {
+            "lineNumber": 319,
+            "text": "    if image_name not in _image_scan_cache['image_all_results']:"
+          },
+          {
+            "lineNumber": 320,
+            "text": "        # Cache the result of image_all() - this is expensive"
+          },
+          {
+            "lineNumber": 321,
+            "text": "        _image_scan_cache['image_all_results'][image_name] = bool(users.image_all(image_name))"
+          },
+          {
+            "lineNumber": 322,
+            "text": "    "
+          },
+          {
+            "lineNumber": 323,
+            "text": "    if not _image_scan_cache['image_all_results'][image_name]:"
+          },
+          {
+            "lineNumber": 324,
+            "text": "        # check if image has a fake user or if ignore fake users is enabled"
+          },
+          {
+            "lineNumber": 325,
+            "text": "        if not has_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 326,
+            "text": "            # if image is not in our do not flag list"
+          },
+          {
+            "lineNumber": 327,
+            "text": "            if image_name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 328,
+            "text": "                return True"
+          },
+          {
+            "lineNumber": 329,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 330,
+            "text": "    "
+          },
+          {
+            "lineNumber": 331,
+            "text": "    # Second check: image is used, but check if it's ONLY used by unused objects"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 372
+          },
+          "startPosition": {
+            "column": 20,
+            "line": 277
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.34322139620780945
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 1020,
+            "text": "def _on_smart_select_full_scan_complete(results, **kwargs):"
+          },
+          {
+            "lineNumber": 1021,
+            "text": "    \"\"\"Callback for Smart Select full scan completion."
+          },
+          {
+            "lineNumber": 1022,
+            "text": "    Processes full scan results, caches them, and updates UI toggles.\"\"\""
+          },
+          {
+            "lineNumber": 1023,
+            "text": "    global _smart_select_state, _unused_cache, _cache_valid"
+          },
+          {
+            "lineNumber": 1024,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1025,
+            "text": "    # Store results"
+          },
+          {
+            "lineNumber": 1026,
+            "text": "    _smart_select_state['all_unused'] = results"
+          },
+          {
+            "lineNumber": 1027,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1028,
+            "text": "    # Cache the results"
+          },
+          {
+            "lineNumber": 1029,
+            "text": "    _unused_cache = results"
+          },
+          {
+            "lineNumber": 1030,
+            "text": "    _cache_valid = True"
+          },
+          {
+            "lineNumber": 1031,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1032,
+            "text": "    atom = bpy.context.scene.atomic"
+          },
+          {
+            "lineNumber": 1033,
+            "text": "    _safe_set_atom_property(atom, 'operation_progress', 75.0)"
+          },
+          {
+            "lineNumber": 1034,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1035,
+            "text": "    # Update UI toggles"
+          },
+          {
+            "lineNumber": 1036,
+            "text": "    _safe_set_atom_property(atom, 'operation_status', \"Updating selection...\")"
+          },
+          {
+            "lineNumber": 1037,
+            "text": "    atom.collections = _smart_select_state['unused_flags'].get('collections', False)"
+          },
+          {
+            "lineNumber": 1038,
+            "text": "    atom.images = _smart_select_state['unused_flags'].get('images', False)"
+          },
+          {
+            "lineNumber": 1039,
+            "text": "    atom.lights = _smart_select_state['unused_flags'].get('lights', False)"
+          },
+          {
+            "lineNumber": 1040,
+            "text": "    atom.materials = _smart_select_state['unused_flags'].get('materials', False)"
+          },
+          {
+            "lineNumber": 1041,
+            "text": "    atom.node_groups = _smart_select_state['unused_flags'].get('node_groups', False)"
+          },
+          {
+            "lineNumber": 1042,
+            "text": "    atom.objects = _smart_select_state['unused_flags'].get('objects', False)"
+          },
+          {
+            "lineNumber": 1043,
+            "text": "    atom.particles = _smart_select_state['unused_flags'].get('particles', False)"
+          },
+          {
+            "lineNumber": 1044,
+            "text": "    atom.textures = _smart_select_state['unused_flags'].get('textures', False)"
+          },
+          {
+            "lineNumber": 1045,
+            "text": "    atom.armatures = _smart_select_state['unused_flags'].get('armatures', False)"
+          },
+          {
+            "lineNumber": 1046,
+            "text": "    atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)"
+          },
+          {
+            "lineNumber": 1047,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1048,
+            "text": "    # Operation complete"
+          },
+          {
+            "lineNumber": 1049,
+            "text": "    _safe_set_atom_property(atom, 'is_operation_running', False)"
+          },
+          {
+            "lineNumber": 1050,
+            "text": "    _safe_set_atom_property(atom, 'operation_progress', 100.0)"
+          },
+          {
+            "lineNumber": 1051,
+            "text": "    _safe_set_atom_property(atom, 'operation_status', f\"Complete! Found unused items in {len(_smart_select_state['detected_categories'])} categories\")"
+          },
+          {
+            "lineNumber": 1052,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1053,
+            "text": "    # Clear state"
+          },
+          {
+            "lineNumber": 1054,
+            "text": "    _smart_select_state = None"
+          },
+          {
+            "lineNumber": 1055,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1056,
+            "text": "    # Force UI update"
+          },
+          {
+            "lineNumber": 1057,
+            "text": "    for area in bpy.context.screen.areas:"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 1058,
+            "text": "        area.tag_redraw()"
+          },
+          {
+            "lineNumber": 1059
+          },
+          {
+            "lineNumber": 1060
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 1061,
+            "text": "def _on_clean_scan_complete(results, **kwargs):"
+          },
+          {
+            "lineNumber": 1062,
+            "text": "    \"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 1144
+          },
+          "startPosition": {
+            "column": 72,
+            "line": 1016
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.3427356481552124
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 879,
+            "text": "def _process_clean_execute_step():"
+          },
+          {
+            "lineNumber": 897
+          },
+          {
+            "lineNumber": 898,
+            "text": "        category, unused_list = _clean_execute_state['categories_to_clean'][_clean_execute_state['current_category_index']]"
+          },
+          {
+            "lineNumber": 899,
+            "text": "        "
+          },
+          {
+            "lineNumber": 900,
+            "text": "        if unused_list and _clean_execute_state['current_item_index'] \u003c len(unused_list):"
+          },
+          {
+            "lineNumber": 901,
+            "text": "            # Delete current item"
+          },
+          {
+            "lineNumber": 902,
+            "text": "            item_key = unused_list[_clean_execute_state['current_item_index']]"
+          },
+          {
+            "lineNumber": 903,
+            "text": "            _safe_set_atom_property(atom, 'operation_status', f\"Removing {category}: {item_key}...\")"
+          },
+          {
+            "lineNumber": 904,
+            "text": "            "
+          },
+          {
+            "lineNumber": 905,
+            "text": "            try:"
+          },
+          {
+            "lineNumber": 906,
+            "text": "                if category == 'collections':"
+          },
+          {
+            "lineNumber": 907,
+            "text": "                    if item_key in bpy.data.collections:"
+          },
+          {
+            "lineNumber": 908,
+            "text": "                        bpy.data.collections.remove(bpy.data.collections[item_key])"
+          },
+          {
+            "lineNumber": 909,
+            "text": "                elif category == 'images':"
+          },
+          {
+            "lineNumber": 910,
+            "text": "                    if item_key in bpy.data.images:"
+          },
+          {
+            "lineNumber": 911,
+            "text": "                        bpy.data.images.remove(bpy.data.images[item_key])"
+          },
+          {
+            "lineNumber": 912,
+            "text": "                elif category == 'lights':"
+          },
+          {
+            "lineNumber": 913,
+            "text": "                    if item_key in bpy.data.lights:"
+          },
+          {
+            "lineNumber": 914,
+            "text": "                        bpy.data.lights.remove(bpy.data.lights[item_key])"
+          },
+          {
+            "lineNumber": 915,
+            "text": "                elif category == 'materials':"
+          },
+          {
+            "lineNumber": 916,
+            "text": "                    if item_key in bpy.data.materials:"
+          },
+          {
+            "lineNumber": 917,
+            "text": "                        bpy.data.materials.remove(bpy.data.materials[item_key])"
+          },
+          {
+            "lineNumber": 918,
+            "text": "                elif category == 'node_groups':"
+          },
+          {
+            "lineNumber": 919,
+            "text": "                    if item_key in bpy.data.node_groups:"
+          },
+          {
+            "lineNumber": 920,
+            "text": "                        bpy.data.node_groups.remove(bpy.data.node_groups[item_key])"
+          },
+          {
+            "lineNumber": 921,
+            "text": "                elif category == 'objects':"
+          },
+          {
+            "lineNumber": 922,
+            "text": "                    if item_key in bpy.data.objects:"
+          },
+          {
+            "lineNumber": 923,
+            "text": "                        bpy.data.objects.remove(bpy.data.objects[item_key])"
+          },
+          {
+            "lineNumber": 924,
+            "text": "                elif category == 'particles':"
+          },
+          {
+            "lineNumber": 925,
+            "text": "                    if item_key in bpy.data.particles:"
+          },
+          {
+            "lineNumber": 926,
+            "text": "                        bpy.data.particles.remove(bpy.data.particles[item_key])"
+          },
+          {
+            "lineNumber": 927,
+            "text": "                elif category == 'textures':"
+          },
+          {
+            "lineNumber": 928,
+            "text": "                    if item_key in bpy.data.textures:"
+          },
+          {
+            "lineNumber": 929,
+            "text": "                        bpy.data.textures.remove(bpy.data.textures[item_key])"
+          },
+          {
+            "lineNumber": 930,
+            "text": "                elif category == 'armatures':"
+          },
+          {
+            "lineNumber": 931,
+            "text": "                    if item_key in bpy.data.armatures:"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 974
+          },
+          "startPosition": {
+            "line": 878
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 880
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 879
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.3388344943523407
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 1061,
+            "text": "def _on_clean_scan_complete(results, **kwargs):"
+          },
+          {
+            "lineNumber": 1062,
+            "text": "    \"\"\"Callback for Clean scan completion."
+          },
+          {
+            "lineNumber": 1063,
+            "text": "    Populates operator properties and shows dialog.\"\"\""
+          },
+          {
+            "lineNumber": 1064,
+            "text": "    global _clean_operator_instance, _clean_invoke_state, _clean_pending_results, _clean_pending_categories"
+          },
+          {
+            "lineNumber": 1065,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1066,
+            "text": "    atom = bpy.context.scene.atomic"
+          },
+          {
+            "lineNumber": 1067,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1068,
+            "text": "    # Store results for later use (operator instance may be invalidated)"
+          },
+          {
+            "lineNumber": 1069,
+            "text": "    scan_results = results"
+          },
+          {
+            "lineNumber": 1070,
+            "text": "    selected_categories = _clean_invoke_state.get('selected_categories', [])"
+          },
+          {
+            "lineNumber": 1071,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1072,
+            "text": "    # Debug: Log all results"
+          },
+          {
+            "lineNumber": 1073,
+            "text": "    config.debug_print(f\"[Atomic Clean] Scan complete, results keys: {list(results.keys()) if results else 'None'}\")"
+          },
+          {
+            "lineNumber": 1074,
+            "text": "    for category in selected_categories:"
+          },
+          {
+            "lineNumber": 1075,
+            "text": "        category_results = results.get(category, [])"
+          },
+          {
+            "lineNumber": 1076,
+            "text": "        config.debug_print(f\"[Atomic Clean] Category '{category}': {len(category_results) if category_results else 'None'} items\")"
+          },
+          {
+            "lineNumber": 1077,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1078,
+            "text": "    # Calculate found items for debug"
+          },
+          {
+            "lineNumber": 1079,
+            "text": "    found_items = {}"
+          },
+          {
+            "lineNumber": 1080,
+            "text": "    for category in selected_categories:"
+          },
+          {
+            "lineNumber": 1081,
+            "text": "        unused_list = results.get(category, [])"
+          },
+          {
+            "lineNumber": 1082,
+            "text": "        if unused_list:"
+          },
+          {
+            "lineNumber": 1083,
+            "text": "            found_items[category] = len(unused_list)"
+          },
+          {
+            "lineNumber": 1084,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1085,
+            "text": "    # Debug output"
+          },
+          {
+            "lineNumber": 1086,
+            "text": "    if selected_categories:"
+          },
+          {
+            "lineNumber": 1087,
+            "text": "        if found_items:"
+          },
+          {
+            "lineNumber": 1088,
+            "text": "            config.debug_print(f\"[Atomic Clean] Selected categories: {', '.join(selected_categories)}\")"
+          },
+          {
+            "lineNumber": 1089,
+            "text": "            config.debug_print(f\"[Atomic Clean] Found unused items: {found_items}\")"
+          },
+          {
+            "lineNumber": 1090,
+            "text": "        else:"
+          },
+          {
+            "lineNumber": 1091,
+            "text": "            config.debug_print(f\"[Atomic Clean] Selected categories: {', '.join(selected_categories)}\")"
+          },
+          {
+            "lineNumber": 1092,
+            "text": "            config.debug_print(f\"[Atomic Clean] WARNING: No unused items found in selected categories!\")"
+          },
+          {
+            "lineNumber": 1093,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1094,
+            "text": "    # Operation complete - show dialog"
+          },
+          {
+            "lineNumber": 1095,
+            "text": "    _safe_set_atom_property(atom, 'is_operation_running', False)"
+          },
+          {
+            "lineNumber": 1096,
+            "text": "    _safe_set_atom_property(atom, 'operation_progress', 100.0)"
+          },
+          {
+            "lineNumber": 1097,
+            "text": "    _safe_set_atom_property(atom, 'operation_status', \"\")"
+          },
+          {
+            "lineNumber": 1098,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1099,
+            "text": "    # Force UI update"
+          },
+          {
+            "lineNumber": 1100,
+            "text": "    for area in bpy.context.screen.areas:"
+          },
+          {
+            "lineNumber": 1101,
+            "text": "        area.tag_redraw()"
+          },
+          {
+            "lineNumber": 1102,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1103,
+            "text": "    # Use a timer to invoke the dialog"
+          },
+          {
+            "lineNumber": 1104,
+            "text": "    def show_dialog():"
+          },
+          {
+            "lineNumber": 1105,
+            "text": "        global"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 1144
+          },
+          "startPosition": {
+            "column": 25,
+            "line": 1057
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.33057284355163574
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 580,
+            "text": "def draw(self, context):"
+          },
+          {
+            "lineNumber": 673
+          },
+          {
+            "lineNumber": 674,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 675,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 676
+          },
+          {
+            "lineNumber": 677,
+            "text": "        # display when the main panel armatures property is toggled"
+          },
+          {
+            "lineNumber": 678,
+            "text": "        if atom.armatures:"
+          },
+          {
+            "lineNumber": 679,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 680,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 681,
+            "text": "                title=\"Armatures\","
+          },
+          {
+            "lineNumber": 682,
+            "text": "                items=self.unused_armatures,"
+          },
+          {
+            "lineNumber": 683,
+            "text": "                icon=\"ARMATURE_DATA\","
+          },
+          {
+            "lineNumber": 684,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 685,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 686
+          },
+          {
+            "lineNumber": 687,
+            "text": "        # display when the main panel worlds property is toggled"
+          },
+          {
+            "lineNumber": 688,
+            "text": "        if atom.worlds:"
+          },
+          {
+            "lineNumber": 689,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 690,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 691,
+            "text": "                title=\"Worlds\","
+          },
+          {
+            "lineNumber": 692,
+            "text": "                items=self.unused_worlds,"
+          },
+          {
+            "lineNumber": 693,
+            "text": "                icon=\"WORLD\","
+          },
+          {
+            "lineNumber": 694,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 695,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 696
+          },
+          {
+            "lineNumber": 697,
+            "text": "        row = layout.row()  # extra spacing"
+          },
+          {
+            "lineNumber": 698
+          },
+          {
+            "lineNumber": 699,
+            "text": "    def execute(self, context):"
+          },
+          {
+            "lineNumber": 700,
+            "text": "        atom = context.scene.atomic"
+          },
+          {
+            "lineNumber": 701
+          },
+          {
+            "lineNumber": 702,
+            "text": "        # Count total items to delete"
+          },
+          {
+            "lineNumber": 703,
+            "text": "        total_items = 0"
+          },
+          {
+            "lineNumber": 704,
+            "text": "        categories_to_clean = []"
+          },
+          {
+            "lineNumber": 705,
+            "text": "        "
+          },
+          {
+            "lineNumber": 706,
+            "text": "        if atom.collections and self.unused_collections:"
+          },
+          {
+            "lineNumber": 707,
+            "text": "            total_items += len(self.unused_collections)"
+          },
+          {
+            "lineNumber": 708,
+            "text": "            categories_to_clean.append(('collections', self.unused_collections))"
+          },
+          {
+            "lineNumber": 709,
+            "text": "        if atom.images and self.unused_images:"
+          },
+          {
+            "lineNumber": 710,
+            "text": "            total_items += len(self.unused_images)"
+          },
+          {
+            "lineNumber": 711,
+            "text": "            categories_to_clean.append(('images', self.unused_images))"
+          },
+          {
+            "lineNumber": 712,
+            "text": "        if atom.lights and self.unused_lights:"
+          },
+          {
+            "lineNumber": 713,
+            "text": "            total_items += len(self.unused_lights)"
+          },
+          {
+            "lineNumber": 714,
+            "text": "            categories_to_clean.append(('lights', self.unused_lights))"
+          },
+          {
+            "lineNumber": 715,
+            "text": "        if atom.materials and self.unused_materials:"
+          },
+          {
+            "lineNumber": 716,
+            "text": "            total_items += len(self.unused_materials)"
+          },
+          {
+            "lineNumber": 717,
+            "text": "            categories_to_clean.append(('materials', self.unused_materials))"
+          },
+          {
+            "lineNumber": 718,
+            "text": "        if atom.node_groups and self.unused_node_groups:"
+          },
+          {
+            "lineNumber": 719,
+            "text": "            total_items += len(self.unused_node_groups)"
+          },
+          {
+            "lineNumber": 720,
+            "text": "            categories_to_clean.append(('node_groups', self.unused_node_groups))"
+          },
+          {
+            "lineNumber": 721,
+            "text": "        if atom.objects and self.unused_objects:"
+          },
+          {
+            "lineNumber": 722,
+            "text": "            total_items += len(self.unused_objects)"
+          },
+          {
+            "lineNumber": 723,
+            "text": "            categories_to_clean.append(('objects', self.unused_objects))"
+          },
+          {
+            "lineNumber": 724,
+            "text": "        if atom.particles and self.unused_particles:"
+          },
+          {
+            "lineNumber": 725,
+            "text": "            total_items += len(self.unused_particles)"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 875
+          },
+          "startPosition": {
+            "line": 561
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 563
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 562
+              }
+            },
+            {
+              "endPosition": {
+                "column": 9,
+                "line": 581
+              },
+              "startPosition": {
+                "column": 5,
+                "line": 580
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.32671770453453064
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 284,
+            "text": "def _check_single_image(image):"
+          },
+          {
+            "lineNumber": 353
+          },
+          {
+            "lineNumber": 354,
+            "text": "    "
+          },
+          {
+            "lineNumber": 355,
+            "text": "    # If image is only used by objects, and ALL those objects are unused, mark image as unused"
+          },
+          {
+            "lineNumber": 356,
+            "text": "    # Check each object individually to avoid recursion issues (use cache)"
+          },
+          {
+            "lineNumber": 357,
+            "text": "    if objects_using_image:"
+          },
+          {
+            "lineNumber": 358,
+            "text": "        all_objects_unused = True"
+          },
+          {
+            "lineNumber": 359,
+            "text": "        for obj_name in objects_using_image:"
+          },
+          {
+            "lineNumber": 360,
+            "text": "            if obj_name not in _image_scan_cache['object_all_results']:"
+          },
+          {
+            "lineNumber": 361,
+            "text": "                _image_scan_cache['object_all_results'][obj_name] = users.object_all(obj_name)"
+          },
+          {
+            "lineNumber": 362,
+            "text": "            if _image_scan_cache['object_all_results'][obj_name]:"
+          },
+          {
+            "lineNumber": 363,
+            "text": "                all_objects_unused = False"
+          },
+          {
+            "lineNumber": 364,
+            "text": "                break"
+          },
+          {
+            "lineNumber": 365,
+            "text": "        "
+          },
+          {
+            "lineNumber": 366,
+            "text": "        if all_objects_unused:"
+          },
+          {
+            "lineNumber": 367,
+            "text": "            # Check if image has a fake user or if ignore fake users is enabled"
+          },
+          {
+            "lineNumber": 368,
+            "text": "            if not image.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 369,
+            "text": "                # if image is not in our do not flag list"
+          },
+          {
+            "lineNumber": 370,
+            "text": "                if image_name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 371,
+            "text": "                    return True"
+          },
+          {
+            "lineNumber": 372,
+            "text": "    "
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 373,
+            "text": "    return False"
+          },
+          {
+            "lineNumber": 374
+          },
+          {
+            "lineNumber": 375
+          },
+          {
+            "lineNumber": 376,
+            "text": "# Atomic Data Manager Clear Cache Operator"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 377,
+            "text": "class ATOMIC_OT_clear_cache(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 378,
+            "text": "    \"\"\"Clear the unused data cache\"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 386
+          },
+          "startPosition": {
+            "line": 283
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 285
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 284
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.3171977996826172
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 1393,
+            "text": "def _process_clean_invoke_step():"
+          },
+          {
+            "lineNumber": 1394,
+            "text": "    \"\"\"Process Clean invoke in steps to avoid blocking the UI."
+          },
+          {
+            "lineNumber": 1395,
+            "text": "    Uses unified scanner for full scan of selected categories only.\"\"\""
+          },
+          {
+            "lineNumber": 1396,
+            "text": "    config.debug_print(\"[Atomic Debug] Clean: _process_clean_invoke_step() called\")"
+          },
+          {
+            "lineNumber": 1397,
+            "text": "    try:"
+          },
+          {
+            "lineNumber": 1398,
+            "text": "        # Check if context is valid"
+          },
+          {
+            "lineNumber": 1399,
+            "text": "        if not hasattr(bpy.context, 'scene') or bpy.context.scene is None:"
+          },
+          {
+            "lineNumber": 1400,
+            "text": "            config.debug_print(\"[Atomic Debug] Clean: Invalid context, returning\")"
+          },
+          {
+            "lineNumber": 1401,
+            "text": "            return None"
+          },
+          {
+            "lineNumber": 1402,
+            "text": "        atom = bpy.context.scene.atomic"
+          },
+          {
+            "lineNumber": 1403,
+            "text": "        global _clean_invoke_state, _scan_state"
+          },
+          {
+            "lineNumber": 1404,
+            "text": "        "
+          },
+          {
+            "lineNumber": 1405,
+            "text": "        config.debug_print(f\"[Atomic Debug] Clean: _clean_invoke_state = {_clean_invoke_state}\")"
+          },
+          {
+            "lineNumber": 1406,
+            "text": "        config.debug_print(f\"[Atomic Debug] Clean: _scan_state = {_scan_state}\")"
+          },
+          {
+            "lineNumber": 1407,
+            "text": "        "
+          },
+          {
+            "lineNumber": 1408,
+            "text": "        # Check for cancellation"
+          },
+          {
+            "lineNumber": 1409,
+            "text": "        if atom.cancel_operation:"
+          },
+          {
+            "lineNumber": 1410,
+            "text": "            config.debug_print(\"[Atomic Debug] Clean: Operation cancelled\")"
+          },
+          {
+            "lineNumber": 1411,
+            "text": "            _safe_set_atom_property(atom, 'is_operation_running', False)"
+          },
+          {
+            "lineNumber": 1412,
+            "text": "            _safe_set_atom_property(atom, 'operation_progress', 0.0)"
+          },
+          {
+            "lineNumber": 1413,
+            "text": "            _safe_set_atom_property(atom, 'operation_status', \"Operation cancelled\")"
+          },
+          {
+            "lineNumber": 1414,
+            "text": "            _safe_set_atom_property(atom, 'cancel_operation', False)"
+          },
+          {
+            "lineNumber": 1415,
+            "text": "            _clean_invoke_state = None"
+          },
+          {
+            "lineNumber": 1416,
+            "text": "            _scan_state = None"
+          },
+          {
+            "lineNumber": 1417,
+            "text": "            # Invalidate cache when scan is cancelled"
+          },
+          {
+            "lineNumber": 1418,
+            "text": "            _invalidate_cache()"
+          },
+          {
+            "lineNumber": 1419,
+            "text": "            config.debug_print(\"[Atomic Debug] Cache invalidated due to cancellation\")"
+          },
+          {
+            "lineNumber": 1420,
+            "text": "            # Force UI update"
+          },
+          {
+            "lineNumber": 1421,
+            "text": "            for area in bpy.context.screen.areas:"
+          },
+          {
+            "lineNumber": 1422,
+            "text": "                area.tag_redraw()"
+          },
+          {
+            "lineNumber": 1423,
+            "text": "            return None"
+          },
+          {
+            "lineNumber": 1424,
+            "text": "        "
+          },
+          {
+            "lineNumber": 1425,
+            "text": "        # Check if scan has been started"
+          },
+          {
+            "lineNumber": 1426,
+            "text": "        scan_started = _clean_invoke_state.get('scan_started', False)"
+          },
+          {
+            "lineNumber": 1427,
+            "text": "        config.debug_print(f\"[Atomic Debug] Clean: scan_started = {scan_started}, condition result = {not scan_started}\")"
+          },
+          {
+            "lineNumber": 1428,
+            "text": "        if not scan_started:"
+          },
+          {
+            "lineNumber": 1429,
+            "text": "            config.debug_print"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 1478
+          },
+          "startPosition": {
+            "column": 70,
+            "line": 1389
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.31620290875434875
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 207,
+            "text": "def materials_deep():"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 208,
+            "text": "    # returns a list of keys of unused materials"
+          },
+          {
+            "lineNumber": 209
+          },
+          {
+            "lineNumber": 210,
+            "text": "    unused = []"
+          },
+          {
+            "lineNumber": 211
+          },
+          {
+            "lineNumber": 212,
+            "text": "    for material in bpy.data.materials:"
+          },
+          {
+            "lineNumber": 213,
+            "text": "        # Skip library-linked and override datablocks"
+          },
+          {
+            "lineNumber": 214,
+            "text": "        if compat.is_library_or_override(material):"
+          },
+          {
+            "lineNumber": 215,
+            "text": "            continue"
+          },
+          {
+            "lineNumber": 216,
+            "text": "        "
+          },
+          {
+            "lineNumber": 217,
+            "text": "        # Check if material is used by brushes - these should always be ignored"
+          },
+          {
+            "lineNumber": 218,
+            "text": "        if users.material_brushes(material.name):"
+          },
+          {
+            "lineNumber": 219,
+            "text": "            continue"
+          },
+          {
+            "lineNumber": 220,
+            "text": "        "
+          },
+          {
+            "lineNumber": 221,
+            "text": "        # First check: standard unused detection"
+          },
+          {
+            "lineNumber": 222,
+            "text": "        if not users.material_all(material.name):"
+          },
+          {
+            "lineNumber": 223,
+            "text": "            # check if material has a fake user or if ignore fake users"
+          },
+          {
+            "lineNumber": 224,
+            "text": "            # is enabled"
+          },
+          {
+            "lineNumber": 225,
+            "text": "            if not material.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 226,
+            "text": "                unused.append(material.name)"
+          },
+          {
+            "lineNumber": 227,
+            "text": "        else:"
+          },
+          {
+            "lineNumber": 228,
+            "text": "            # Second check: material is used, but check if it's ONLY used by unused objects"
+          },
+          {
+            "lineNumber": 229,
+            "text": "            # This fixes issue #5: materials used by unused objects should be marked as unused"
+          },
+          {
+            "lineNumber": 230,
+            "text": "            # Get all objects that use this material"
+          },
+          {
+            "lineNumber": 231,
+            "text": "            objects_using_material = []"
+          },
+          {
+            "lineNumber": 232,
+            "text": "            objects_using_material.extend(users.material_objects(material.name))"
+          },
+          {
+            "lineNumber": 233,
+            "text": "            objects_using_material.extend(users.material_geometry_nodes(material.name))"
+          },
+          {
+            "lineNumber": 234,
+            "text": "            "
+          },
+          {
+            "lineNumber": 235,
+            "text": "            # Remove duplicates"
+          },
+          {
+            "lineNumber": 236,
+            "text": "            objects_using_material = list(set(objects_using_material))"
+          },
+          {
+            "lineNumber": 237,
+            "text": "            "
+          },
+          {
+            "lineNumber": 238,
+            "text": "            # If material is only used by objects, and ALL those objects are unused, mark material as unused"
+          },
+          {
+            "lineNumber": 239,
+            "text": "            # Check each object individually to avoid recursion issues"
+          },
+          {
+            "lineNumber": 240,
+            "text": "            if objects_using_material:"
+          },
+          {
+            "lineNumber": 241,
+            "text": "                all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_material)"
+          },
+          {
+            "lineNumber": 242,
+            "text": "                if all_objects_unused:"
+          },
+          {
+            "lineNumber": 243,
+            "text": "                    # Check if material has a fake user or if ignore fake users is enabled"
+          },
+          {
+            "lineNumber": 244,
+            "text": "                    if not material.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 245,
+            "text": "                        unused.append(material.name)"
+          },
+          {
+            "lineNumber": 246
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 247,
+            "text": "    return unused"
+          },
+          {
+            "lineNumber": 248
+          },
+          {
+            "lineNumber": 249
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 250,
+            "text": "def materials_shallow():"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 251,
+            "text": "    # returns a list of keys of unused material that may be"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 252,
+            "text": "    # incomplete, but is significantly faster than doing a deep search"
+          },
+          {
+            "lineNumber": 253
+          },
+          {
+            "lineNumber": 254,
+            "text": "    "
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 262
+          },
+          "startPosition": {
+            "column": 35,
+            "line": 203
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "signatures": {}
+      },
+      "score": 0.31477516889572144
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="semantic_search_full"><details>
+<summary>Tool use: **semantic_search_full**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-user-blender-get_scene_info">
+<details>
+<summary>Tool use: **mcp-blender-user-blender-get_scene_info**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "get_scene_info",
+      "parameters": "{\"user_prompt\":\"Inspect scene for CC_Base_Body.012 mesh cleanable detection\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"name\\\": \\\"Warehouse_SetDressed\\\",\\n  \\\"object_count\\\": 261,\\n  \\\"objects\\\": [\\n    {\\n      \\\"name\\\": \\\"BSDF_AMZN_Warehouse\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -2.59,\\n        27.17,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"AmazonSmile\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        3.27,\\n        -16.05,\\n        -1.82\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"SLAM_0\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        3.27,\\n        -16.05,\\n        -1.82\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"SLAM_0.005\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        4.07,\\n        -14.34,\\n        -0.44\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"AmazonSmile.004\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        -2.51,\\n        24.68,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"SLAM_0.006\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        -2.51,\\n        24.68,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        1.5,\\n        -1.41,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01.001\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -0.1,\\n        4.38,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01.002\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -2.34,\\n        4.38,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01.003\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -5.68,\\n        4.38,\\n        0.0\\n      ]\\n    }\\n  ],\\n  \\\"materials_count\\\": 81\\n}\"}],\"structuredContent\":{\"result\":\"{\\n  \\\"name\\\": \\\"Warehouse_SetDressed\\\",\\n  \\\"object_count\\\": 261,\\n  \\\"objects\\\": [\\n    {\\n      \\\"name\\\": \\\"BSDF_AMZN_Warehouse\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -2.59,\\n        27.17,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"AmazonSmile\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        3.27,\\n        -16.05,\\n        -1.82\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"SLAM_0\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        3.27,\\n        -16.05,\\n        -1.82\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"SLAM_0.005\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        4.07,\\n        -14.34,\\n        -0.44\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"AmazonSmile.004\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        -2.51,\\n        24.68,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"SLAM_0.006\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        -2.51,\\n        24.68,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        1.5,\\n        -1.41,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01.001\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -0.1,\\n        4.38,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01.002\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -2.34,\\n        4.38,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"OV-setdress_01.003\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        -5.68,\\n        4.38,\\n        0.0\\n      ]\\n    }\\n  ],\\n  \\\"materials_count\\\": 81\\n}\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-user-blender-get_scene_info"><details>
+<summary>Tool use: **mcp-blender-user-blender-get_scene_info**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Scene info shows a different blend file. Running Blender code to locate `CC_Base_Body.012` and tracing Atomic's unused-mesh logic in the codebase.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-user-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-user-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"\\nimport bpy\\nmname = \\\"CC_Base_Body.012\\\"\\nif mname in bpy.data.meshes:\\n    m = bpy.data.meshes[mname]\\n    print(\\\"MESH_FOUND\\\", mname)\\n    print(\\\"users\\\", m.users)\\n    print(\\\"use_fake_user\\\", m.use_fake_user)\\n    print(\\\"library\\\", getattr(m, \\\"library\\\", None))\\n    print(\\\"override_library\\\", getattr(m, \\\"override_library\\\", None))\\n    users_obs = [o.name for o in bpy.data.objects if o.data == m]\\n    print(\\\"objects_using_mesh\\\", users_obs)\\n    for on in users_obs:\\n        ob = bpy.data.objects[on]\\n        print(\\\"  ob\\\", on, \\\"users\\\", ob.users, \\\"hide_render\\\", getattr(ob, \\\"hide_render\\\", None))\\nelse:\\n    print(\\\"MESH_NOT_IN_FILE\\\", list(bpy.data.meshes)[:20], \\\"... total\\\", len(bpy.data.meshes))\\n\",\"user_prompt\":\"Find CC_Base_Body.012 mesh usage in current Blender file\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: MESH_FOUND CC_Base_Body.012\\nusers 0\\nuse_fake_user False\\nlibrary None\\noverride_library None\\nobjects_using_mesh []\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: MESH_FOUND CC_Base_Body.012\\nusers 0\\nuse_fake_user False\\nlibrary None\\noverride_library None\\nobjects_using_mesh []\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-user-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-user-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "E:/atomic-data-manager/stats",
+  "pattern": "meshes|object_all|unused"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/stats",
+  "pattern": "meshes|object_all|unused",
+  "topFiles": [
+    {
+      "matchCount": 21,
+      "uri": "stats\\rna_analysis.py"
+    },
+    {
+      "matchCount": 20,
+      "uri": "stats\\users.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "stats\\missing.py"
+    },
+    {
+      "matchCount": 113,
+      "uri": "stats\\unused.py"
+    },
+    {
+      "matchCount": 84,
+      "uri": "stats\\unused_parallel.py"
+    },
+    {
+      "matchCount": 25,
+      "uri": "stats\\count.py"
+    }
+  ],
+  "totalFiles": 6,
+  "totalMatches": 264
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking mesh usage**
+
+The mesh has zero users and isn't shown in Atomic's Clean dialog, suggesting it's unused. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/unused_parallel.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "E:/atomic-data-manager",
+  "pattern": "mesh|meshes"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager",
+  "pattern": "mesh|meshes",
+  "topFiles": [
+    {
+      "matchCount": 7,
+      "uri": ".\\utils\\compat.py"
+    },
+    {
+      "matchCount": 13,
+      "uri": ".\\stats\\rna_analysis.py"
+    },
+    {
+      "matchCount": 5,
+      "uri": ".\\stats\\users.py"
+    },
+    {
+      "matchCount": 6,
+      "uri": ".\\ui\\inspect_ui.py"
+    },
+    {
+      "matchCount": 3,
+      "uri": ".\\stats\\missing.py"
+    },
+    {
+      "matchCount": 3,
+      "uri": ".\\stats\\unnamed.py"
+    }
+  ],
+  "totalFiles": 6,
+  "totalMatches": 37
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "E:/atomic-data-manager/stats/unused_parallel.py",
+  "pattern": "CATEGORIES"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/stats/unused_parallel.py",
+  "pattern": "CATEGORIES",
+  "topFiles": [
+    {
+      "matchCount": 5,
+      "uri": "stats\\unused_parallel.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 5
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/unused_parallel.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "E:/atomic-data-manager",
+  "pattern": "meshes|analyze_unused"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager",
+  "pattern": "meshes|analyze_unused",
+  "topFiles": [
+    {
+      "matchCount": 3,
+      "uri": ".\\utils\\compat.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\ops\\main_ops.py"
+    },
+    {
+      "matchCount": 9,
+      "uri": ".\\stats\\rna_analysis.py"
+    },
+    {
+      "matchCount": 3,
+      "uri": ".\\stats\\users.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": ".\\stats\\missing.py"
+    },
+    {
+      "matchCount": 5,
+      "uri": ".\\ui\\inspect_ui.py"
+    }
+  ],
+  "totalFiles": 6,
+  "totalMatches": 23
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/ops/main_ops.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "E:/atomic-data-manager/ops/main_ops.py",
+  "pattern": "total_categories|scan_categories|category.*list"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/ops/main_ops.py",
+  "pattern": "total_categories|scan_categories|category.*list",
+  "topFiles": [
+    {
+      "matchCount": 12,
+      "uri": "ops\\main_ops.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 12
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "E:/atomic-data-manager/ops/main_ops.py",
+  "pattern": "categories_to_scan"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/ops/main_ops.py",
+  "pattern": "categories_to_scan",
+  "topFiles": [
+    {
+      "matchCount": 11,
+      "uri": "ops\\main_ops.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 11
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Fixing cleanup logic**
+
+The cleanup logic excludes orphan meshes because Mesh isn't in the CATEGORIES list, so CC_Base_Body.012 isn't detected as cleanable. The scan doesn't run for meshes because they're not in the CATEGORIES list, even though `analyze_unused_from_graph` supports them. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what Blender MCP showed and how Atomic behaves.
+
+### What Blender reports (via MCP)
+
+For **`CC_Base_Base_Body.012`** (mesh name **`CC_Base_Body.012`** in the script):
+
+- **`users`**: `0`  
+- **`objects_using_mesh`**: `[]`  
+- **`library`**: `None`  
+- **`override_library`**: `None`  
+
+So this is an **orphan mesh** in the file: nothing references it. It isn’t “protected” as a linked/override ID in RNA.
+
+### Why Atomic doesn’t treat it as “cleanable”
+
+**Clean / Smart Select never scan or remove mesh datablocks as their own category.**
+
+`CATEGORIES` in [`stats/unused_parallel.py`](E:/atomic-data-manager/stats/unused_parallel.py) is:
+
+```234:235:E:/atomic-data-manager/stats/unused_parallel.py
+CATEGORIES = ['collections', 'images', 'lights', 'materials', 'node_groups', 
+              'objects', 'particles', 'textures', 'armatures', 'worlds']
+```
+
+There is **no `'meshes'`** entry. The unified scanner uses this same list ([`main_ops.py`](E:/atomic-data-manager/ops/main_ops.py) ties it to `categories_to_scan`), so **unused meshes are never computed for Clean** and never shown in the dialog.
+
+RNA code *can* reason about meshes ([`analyze_unused_from_graph`](E:/atomic-data-manager/stats/rna_analysis.py) supports the `'meshes'` category), but that path isn’t used for the categories Atomic actually scans.
+
+So **`CC_Base_Body.012` not being “cleanable” is expected**: the add-on cleans **objects** (and the other types above), not **mesh blocks** themselves. Deleting an unused **object** frees its mesh only if nothing else uses that mesh; an already-orphan mesh stays until something removes **`bpy.data.meshes`** entries—e.g. Blender’s **Unused Data** cleanup—not Atomic’s current Clean list.
+
+**Practical takeaway:** Use **File → Clean Up → Unused Data Blocks** (or a small script/`bpy.data.meshes.remove`) for orphan meshes, or treat **adding a `meshes` category** end-to-end (scan + UI + delete) as a new Atomic feature.
+
+---
+
+_**User**_
+
+@c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt ah, check again; I originally thought that blender's garbage collection sh ould catch it on save, I thought I had purged data and/or reloaded but it appears to be purged properly now.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Verifying cleanup**
+
+The terminal log shows `Deleted 6 data-block(s)` which confirms Blender's cleanup process ran successfully. Confirmed Blender does not automatically remove zero-user meshes on save; explicit cleanup was required. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what stands out in `terminals/3.txt` relative to your question:
+
+### Save vs purge
+Blender does **not** rely on “garbage collection on save” to strip **orphan** datablocks. A normal **Save** writes whatever is still in `bpy.data`. Blocks with **`users == 0`** can stay in the file until something actually removes them (e.g. **Clean Up → Unused Data Blocks**, or an add-on/script that deletes them). So it’s normal that **reload alone** didn’t make the mesh disappear if the `.blend` on disk still contained it.
+
+### Evidence it’s actually gone now
+Around **00:49** the log shows:
+
+```text
+Info: Deleted 6 data-block(s)
+```
+
+That message is from Blender **deleting** datablocks (almost always via **unused data** cleanup or a tool that calls the same kind of removal), not from a plain save. After that you still have **`Saved "P&S2025_anim_2a.blend"`**, so the cleaned file was written to disk.
+
+So your updated read fits: the mesh wasn’t “fixed” by save/reload alone; it was cleared once **unused data** (those 6 blocks) was actually removed, then saved.
+
+**Atomic** still doesn’t list **meshes** as their own Clean category, so that purge was almost certainly **Blender’s** cleanup (or another add-on like DatablockTools), not Atomic’s mesh list—which matches what we concluded earlier.
