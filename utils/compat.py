@@ -235,6 +235,7 @@ def _light_fingerprint():
         len(bpy.data.node_groups),
         len(bpy.data.objects),
         len(bpy.data.armatures),
+        len(bpy.data.collections),
     )
 
 
@@ -242,11 +243,37 @@ def _skip_linked(id_block):
     return getattr(id_block, "library", None) is not None
 
 
+# Set at start of build_report(); object.data IDs whose users are overridden objects
+_storage_override_data_ids = frozenset()
+
+
+def _object_data_override_ids():
+    """IDs used as ob.data for at least one object with a library override."""
+    s = set()
+    for ob in bpy.data.objects:
+        if getattr(ob, "override_library", None) and ob.data is not None:
+            s.add(ob.data)
+    return frozenset(s)
+
+
+def is_library_override_storage(id_block):
+    """
+    True if this ID is a library override, including object-data reached only
+    via an overridden Object (obdata may lack override_library).
+    """
+    if id_block is None:
+        return False
+    if getattr(id_block, "override_library", None):
+        return True
+    return id_block in _storage_override_data_ids
+
+
 def _override_weight_factor(id_block):
-    return 0.08 if getattr(id_block, "override_library", None) else 1.0
+    return 0.08 if is_library_override_storage(id_block) else 1.0
 
 
-def _mesh_weight(m):
+def _mesh_size_bytes(m):
+    """Rough serialized footprint estimate (verts/loops/faces), scaled for overrides."""
     if _skip_linked(m):
         return None
     try:
@@ -281,13 +308,13 @@ def _image_entry(img):
                     pass
     ow = _override_weight_factor(img)
     if embedded > 0:
-        weight = int(embedded * ow) + 1
-        return ("images", img.name, embedded, weight, "packed")
-    weight = int(256 * ow)
-    return ("images", img.name, 0, weight, "external")
+        size_b = max(1, int(embedded * ow))
+        return ("images", img.name, embedded, size_b, "packed")
+    size_b = max(1, int(256 * ow))
+    return ("images", img.name, 0, size_b, "external")
 
 
-def _armature_weight(a):
+def _armature_size_bytes(a):
     if _skip_linked(a):
         return None
     try:
@@ -298,7 +325,7 @@ def _armature_weight(a):
     return int((2048 + n * 320) * ow)
 
 
-def _curve_weight(c):
+def _curve_size_bytes(c):
     if _skip_linked(c):
         return None
     try:
@@ -309,7 +336,7 @@ def _curve_weight(c):
     return int((1024 + n * 24) * ow)
 
 
-def _node_tree_weight(nt):
+def _node_tree_size_bytes(nt):
     if not nt or _skip_linked(nt):
         return None
     try:
@@ -320,7 +347,7 @@ def _node_tree_weight(nt):
     return int((2048 + n * 96) * ow)
 
 
-def _action_weight(act):
+def _action_size_bytes(act):
     if _skip_linked(act):
         return None
     try:
@@ -332,28 +359,28 @@ def _action_weight(act):
     return int((256 + kp * 20 + fc * 80) * ow)
 
 
-def _object_weight(ob):
+def _object_size_bytes(ob):
     if _skip_linked(ob):
         return None
     ow = _override_weight_factor(ob)
     return int(192 * ow)
 
 
-def _texture_weight(tex):
+def _texture_size_bytes(tex):
     if _skip_linked(tex):
         return None
     ow = _override_weight_factor(tex)
     return int(512 * ow)
 
 
-def _volume_weight(vol):
+def _volume_size_bytes(vol):
     if _skip_linked(vol):
         return None
     ow = _override_weight_factor(vol)
     return int(4096 * ow)
 
 
-def _pointcloud_weight(pc):
+def _pointcloud_size_bytes(pc):
     if _skip_linked(pc):
         return None
     try:
@@ -377,8 +404,8 @@ def _sound_entry(snd):
             pass
     ow = _override_weight_factor(snd)
     if embedded > 0:
-        return ("sounds", snd.name, embedded, int(embedded * ow) + 1, "packed")
-    return ("sounds", snd.name, 0, int(256 * ow), "external")
+        return ("sounds", snd.name, embedded, max(1, int(embedded * ow)), "packed")
+    return ("sounds", snd.name, 0, max(1, int(256 * ow)), "external")
 
 
 def _font_entry(font):
@@ -393,8 +420,20 @@ def _font_entry(font):
             embedded = 0
     ow = _override_weight_factor(font)
     if embedded > 0:
-        return ("fonts", font.name, embedded, int(embedded * ow) + 1, "packed")
+        return ("fonts", font.name, embedded, max(1, int(embedded * ow)), "packed")
     return None
+
+
+def _collection_size_bytes(coll):
+    if _skip_linked(coll):
+        return None
+    try:
+        no = len(coll.objects)
+        nc = len(coll.children)
+    except (AttributeError, RuntimeError, ReferenceError):
+        return None
+    ow = _override_weight_factor(coll)
+    return max(64, int((512 + no * 96 + nc * 256) * ow))
 
 
 def _fmt_bytes(n):
@@ -405,28 +444,60 @@ def _fmt_bytes(n):
     return f"{int(n)} B"
 
 
-def _fmt_weight(w):
-    if w >= 1048576:
-        return f"{w / 1048576:.2f}M"
-    if w >= 1024:
-        return f"{w / 1024:.2f}K"
-    return str(int(w))
+def format_bytes(n):
+    """Human-readable size for storage estimates."""
+    return _fmt_bytes(n)
+
+
+_STORAGE_TYPE_ICONS = {
+    "Mesh": "MESH_DATA",
+    "Image": "IMAGE_DATA",
+    "Armature": "ARMATURE_DATA",
+    "Material": "MATERIAL",
+    "Object": "OBJECT_DATA",
+    "Curve": "CURVE_DATA",
+    "NodeTree": "NODETREE",
+    "Action": "ACTION",
+    "Texture": "TEXTURE",
+    "Volume": "VOLUME_DATA",
+    "PointCloud": "POINTCLOUD_DATA",
+    "Sound": "SOUND",
+    "Font": "FONT_DATA",
+    "Collection": "OUTLINER_COLLECTION",
+}
+
+
+def storage_type_icon(type_name):
+    """Blender UI icon for a storage row type label."""
+    return _STORAGE_TYPE_ICONS.get(type_name, "BLANK1")
+
+
+def storage_override_icon(is_lib_override):
+    """Second column: library override emblem vs empty spacer."""
+    return "LIBRARY_DATA_OVERRIDE" if is_lib_override else "BLANK1"
 
 
 def build_report():
     """Build storage report dict. Call through get_report() for caching."""
+    global _storage_override_data_ids
+    _storage_override_data_ids = _object_data_override_ids()
     rows = []
 
+    def _ov(id_block):
+        return is_library_override_storage(id_block)
+
     for m in bpy.data.meshes:
-        w = _mesh_weight(m)
-        if w is not None:
+        sz = _mesh_size_bytes(m)
+        if sz is not None:
+            io = _ov(m)
             rows.append(
                 {
                     "type": "Mesh",
                     "name": m.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(m, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
@@ -434,137 +505,157 @@ def build_report():
         e = _image_entry(img)
         if e is None:
             continue
-        typ, name, emb, w, kind = e
+        _typ, name, emb, sz, kind = e
+        io = _ov(img)
         rows.append(
             {
                 "type": "Image",
                 "name": name,
                 "embedded": emb,
-                "weight": w,
+                "size_bytes": sz,
+                "is_lib_override": io,
                 "kind": kind,
             }
         )
 
     for a in bpy.data.armatures:
-        w = _armature_weight(a)
-        if w is not None:
+        sz = _armature_size_bytes(a)
+        if sz is not None:
+            io = _ov(a)
             rows.append(
                 {
                     "type": "Armature",
                     "name": a.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(a, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
     for c in getattr(bpy.data, "curves", []):
-        w = _curve_weight(c)
-        if w is not None:
+        sz = _curve_size_bytes(c)
+        if sz is not None:
+            io = _ov(c)
             rows.append(
                 {
                     "type": "Curve",
                     "name": c.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(c, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
     for ng in bpy.data.node_groups:
-        w = _node_tree_weight(ng)
-        if w is not None:
+        sz = _node_tree_size_bytes(ng)
+        if sz is not None:
+            io = _ov(ng)
             rows.append(
                 {
                     "type": "NodeTree",
                     "name": ng.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(ng, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
     for mat in bpy.data.materials:
         if _skip_linked(mat):
             continue
-        w = _node_tree_weight(mat.node_tree) if mat.use_nodes and mat.node_tree else 256
-        if w is None:
-            w = 256
+        sz = _node_tree_size_bytes(mat.node_tree) if mat.use_nodes and mat.node_tree else 256
+        if sz is None:
+            sz = 256
         ow = _override_weight_factor(mat)
-        w = int(w * ow)
+        sz = int(sz * ow)
+        io = _ov(mat)
         rows.append(
             {
                 "type": "Material",
                 "name": mat.name,
                 "embedded": 0,
-                "weight": w,
-                "kind": "override" if getattr(mat, "override_library", None) else "local",
+                "size_bytes": sz,
+                "is_lib_override": io,
+                "kind": "override" if io else "local",
             }
         )
 
     if hasattr(bpy.data, "actions"):
         for act in bpy.data.actions:
-            w = _action_weight(act)
-            if w is not None:
+            sz = _action_size_bytes(act)
+            if sz is not None:
+                io = _ov(act)
                 rows.append(
                     {
                         "type": "Action",
                         "name": act.name,
                         "embedded": 0,
-                        "weight": w,
-                        "kind": "override" if getattr(act, "override_library", None) else "local",
+                        "size_bytes": sz,
+                        "is_lib_override": io,
+                        "kind": "override" if io else "local",
                     }
                 )
 
     for tex in getattr(bpy.data, "textures", []):
-        w = _texture_weight(tex)
-        if w is not None:
+        sz = _texture_size_bytes(tex)
+        if sz is not None:
+            io = _ov(tex)
             rows.append(
                 {
                     "type": "Texture",
                     "name": tex.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(tex, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
     for ob in bpy.data.objects:
-        w = _object_weight(ob)
-        if w is not None:
+        sz = _object_size_bytes(ob)
+        if sz is not None:
+            io = _ov(ob)
             rows.append(
                 {
                     "type": "Object",
                     "name": ob.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(ob, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
     for vol in getattr(bpy.data, "volumes", []):
-        w = _volume_weight(vol)
-        if w is not None:
+        sz = _volume_size_bytes(vol)
+        if sz is not None:
+            io = _ov(vol)
             rows.append(
                 {
                     "type": "Volume",
                     "name": vol.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(vol, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
     for pc in getattr(bpy.data, "pointclouds", []):
-        w = _pointcloud_weight(pc)
-        if w is not None:
+        sz = _pointcloud_size_bytes(pc)
+        if sz is not None:
+            io = _ov(pc)
             rows.append(
                 {
                     "type": "PointCloud",
                     "name": pc.name,
                     "embedded": 0,
-                    "weight": w,
-                    "kind": "override" if getattr(pc, "override_library", None) else "local",
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
                 }
             )
 
@@ -572,13 +663,15 @@ def build_report():
         e = _sound_entry(snd)
         if e is None:
             continue
-        typ, name, emb, w, kind = e
+        _typ, name, emb, sz, kind = e
+        io = _ov(snd)
         rows.append(
             {
                 "type": "Sound",
                 "name": name,
                 "embedded": emb,
-                "weight": w,
+                "size_bytes": sz,
+                "is_lib_override": io,
                 "kind": kind,
             }
         )
@@ -587,42 +680,52 @@ def build_report():
         e = _font_entry(font)
         if e is None:
             continue
-        typ, name, emb, w, kind = e
+        _typ, name, emb, sz, kind = e
+        io = _ov(font)
         rows.append(
             {
                 "type": "Font",
                 "name": name,
                 "embedded": emb,
-                "weight": w,
+                "size_bytes": sz,
+                "is_lib_override": io,
                 "kind": kind,
             }
         )
 
-    def sort_key(r):
-        return (r["embedded"] * 10 ** 9 + r["weight"])
+    for coll in bpy.data.collections:
+        sz = _collection_size_bytes(coll)
+        if sz is not None:
+            io = _ov(coll)
+            rows.append(
+                {
+                    "type": "Collection",
+                    "name": coll.name,
+                    "embedded": 0,
+                    "size_bytes": sz,
+                    "is_lib_override": io,
+                    "kind": "override" if io else "local",
+                }
+            )
 
-    rows.sort(key=sort_key, reverse=True)
+    rows.sort(key=lambda r: r["size_bytes"], reverse=True)
 
     by_type = {}
-    total_w = 0
+    total_estimated = 0
     total_emb = 0
     for r in rows:
         t = r["type"]
-        by_type[t] = by_type.get(t, 0) + r["weight"]
-        total_w += r["weight"]
-        total_emb += r["embedded"]
+        by_type[t] = by_type.get(t, 0) + r["size_bytes"]
+        total_estimated += r["size_bytes"]
+        total_emb += r.get("embedded", 0)
 
     type_order = sorted(by_type.keys(), key=lambda t: -by_type[t])
-    by_type_pct = []
-    for t in type_order:
-        w = by_type[t]
-        pct = (100.0 * w / total_w) if total_w else 0.0
-        by_type_pct.append((t, w, pct))
+    by_type_sizes = [(t, by_type[t]) for t in type_order]
 
     return {
         "rows": rows,
-        "by_type": by_type_pct,
-        "total_weight": total_w,
+        "by_type": by_type_sizes,
+        "total_estimated_bytes": total_estimated,
         "total_embedded_packed": total_emb,
     }
 
@@ -641,16 +744,6 @@ def get_report():
     _cache_light = light
     _cache_vert_sum = vs
     return _cache_report
-
-
-def format_row_label(r):
-    """Single-line summary for UI list."""
-    emb = r["embedded"]
-    w = r["weight"]
-    kind = r["kind"]
-    if emb > 0:
-        return f"{r['type']} | {_fmt_bytes(emb)} embedded | w={_fmt_weight(w)} | {kind}"
-    return f"{r['type']} | w={_fmt_weight(w)} | {kind}"
 
 
 def format_embedded_total(n):
