@@ -18170,3 +18170,736 @@ _**Agent (composer-2-fast)**_
 
 
 Implementing helper functions, updating `_override_weight_factor`, setting override IDs at the start of `build_report`, adding `is_lib_override` to rows, adding collections + fingerprint, then updating the UI.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Adding collection size bytes**
+
+I'm adding `_collection_size_bytes` after `_font_entry` and updating the icon mappings. 
+
+**Updating storage overrides**
+
+I'm adding global storage override data IDs and updating rows with library override flags. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Updating stats panel**
+
+I'm adding backward compatibility for cached rows without `is_lib_override` and updating the stats panel UI with dual icon rows and help text. I'm verifying OUTLINER_COLLECTION exists and checking LIBRARY_DATA_OVERRIDE usage in stats panel. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\utils\compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\ui\stats_panel_ui.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: python -m py_compile "e:\atomic-data-manager\utils\compat.py" "e:\atomic-data-manager\ui\stats_panel_ui.py"</summary>
+
+```bash
+python -m py_compile "e:\atomic-data-manager\utils\compat.py" "e:\atomic-data-manager\ui\stats_panel_ui.py"
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "e:\\atomic-data-manager\\utils\\compat.py",
+    "e:\\atomic-data-manager\\ui\\stats_panel_ui.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "e:\\atomic-data-manager\\utils\\compat.py"
+    },
+    {
+      "relativeWorkspacePath": "e:\\atomic-data-manager\\ui\\stats_panel_ui.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints"><details>
+<summary>Tool use: **read_lints**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="todo_write">
+<details>
+<summary>Tool use: **todo_write**</summary>
+
+
+Parameters:
+
+```json
+{
+  "merge": true
+}
+```
+Result:
+
+```json
+{
+  "finalTodos": [
+    {
+      "content": "Add is_library_override_storage + object-data set; use in _override_weight_factor and rows",
+      "id": "override-helper",
+      "status": "completed"
+    },
+    {
+      "content": "Add _collection_size_bytes + bpy.data.collections loop; fingerprint + GROUP icon",
+      "id": "collections-report",
+      "status": "completed"
+    },
+    {
+      "content": "stats_panel_ui STORAGE: row with type icon, override icon, name; size on split",
+      "id": "dual-icon-ui",
+      "status": "completed"
+    }
+  ],
+  "initialTodos": [
+    {
+      "content": "Add is_library_override_storage + object-data set; use in _override_weight_factor and rows",
+      "id": "override-helper",
+      "status": "in_progress"
+    },
+    {
+      "content": "Add _collection_size_bytes + bpy.data.collections loop; fingerprint + GROUP icon",
+      "id": "collections-report",
+      "status": "pending"
+    },
+    {
+      "content": "stats_panel_ui STORAGE: row with type icon, override icon, name; size on split",
+      "id": "dual-icon-ui",
+      "status": "pending"
+    }
+  ],
+  "success": true,
+  "wasMerge": true
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="todo_write"><details>
+<summary>Tool use: **todo_write**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what was implemented:
+
+### [`utils/compat.py`](e:/atomic-data-manager/utils/compat.py)
+- **`_object_data_override_ids()`** – collects `ob.data` for every object with **`override_library`**.
+- **`_storage_override_data_ids`** – set at the **start** of **`build_report()`** to that frozenset.
+- **`is_library_override_storage(id_block)`** – true if **`id_block.override_library`** is set **or** the ID is in the object-data set (fixes armatures like **Paul_Rigify.001** when only the object is overridden).
+- **`_override_weight_factor`** – now uses **`is_library_override_storage`** (no direct **`override_library`** check).
+- Every storage row includes **`is_lib_override`**; **`kind`** still distinguishes packed vs external for images/sounds/fonts.
+- **`_collection_size_bytes`**, loop over **`bpy.data.collections`** (skipping linked-only), rows with **`type`: `"Collection"`**.
+- **`_STORAGE_TYPE_ICONS`**: **`Collection` → `OUTLINER_COLLECTION`**.
+- **`storage_override_icon(is_lib_override)`** – returns **`LIBRARY_DATA_OVERRIDE`** or **`BLANK1`**.
+- **`_light_fingerprint`** – includes **`len(bpy.data.collections)`**.
+- **`total_emb`** aggregation uses **`r.get("embedded", 0)`**.
+
+### [`ui/stats_panel_ui.py`](e:/atomic-data-manager/ui/stats_panel_ui.py)
+- Imports **`storage_override_icon`**.
+- Help line: *“Second icon = library override (when applicable).”*
+- Each row: **type icon** | **override icon (or blank)** | **name** on the left; **size** on the right split.
+- **`r.get("is_lib_override", False)`** for older rows if any.
+
+All related todos are **completed**. If Blender complains about **`LIBRARY_DATA_OVERRIDE`** or **`OUTLINER_COLLECTION`**, say which version and we can swap the icon names.
+
+---
+
+_**User**_
+
+bump 2.6.0 and concisely update the changelog with the changes in the last 4 commits.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: git -C "e:\atomic-data-manager" log -4 --oneline</summary>
+
+```bash
+git -C "e:\atomic-data-manager" log -4 --oneline
+```
+
+```
+8871efb refine storage datablock calculation and UI draw, including overrides!
+90a94fe begin implementing storage stats section
+9e08468 Unparent &amp; strip armature mods on kept meshes before removing rig objects.
+73d461c resolve #15
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.{toml,py,md}",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "2\\.5\\.|version"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "2\\.5\\.|version",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "stats/count.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ops\\direct_use_ops.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "stats/misc.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ops/utils/clean.py"
+    },
+    {
+      "matchCount": 6,
+      "uri": "ops/main_ops.py"
+    },
+    {
+      "matchCount": 43,
+      "uri": ".specstory/history/2025-10-09_00-08Z-update-blender-addon-for-version-4-5.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ui/inspect_ui.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ops/missing_file_ops.py"
+    },
+    {
+      "matchCount": 37,
+      "uri": "utils/version.py"
+    },
+    {
+      "matchCount": 100,
+      "uri": ".specstory/history/2025-12-01_19-37-05Z-integrate-multi-blender-version-support.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ui/preferences_ui.py"
+    },
+    {
+      "matchCount": 13,
+      "uri": "stats/users.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "stats/unused_parallel.py"
+    },
+    {
+      "matchCount": 100,
+      "uri": ".specstory/history/2025-12-16_23-24Z-blender-library-packed-files-error.md"
+    },
+    {
+      "matchCount": 11,
+      "uri": "utils/compat.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "__init__.py"
+    },
+    {
+      "matchCount": 11,
+      "uri": "utils\\compat.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "stats/rna_analysis.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ui\\stats_panel_ui.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ui/__init__.py"
+    }
+  ],
+  "totalFiles": 50,
+  "totalMatches": 687
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\CHANGELOG.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: git -C "e:\atomic-data-manager" log -4 --format="%h %s%n%b---"</summary>
+
+```bash
+git -C "e:\atomic-data-manager" log -4 --format="%h %s%n%b---"
+```
+
+```
+8871efb refine storage datablock calculation and UI draw, including overrides!
+---
+90a94fe begin implementing storage stats section
+---
+9e08468 Unparent &amp; strip armature mods on kept meshes before removing rig objects.
+---
+73d461c resolve #15
+---
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: e:\atomic-data-manager\blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "e:\\atomic-data-manager\\__init__.py",
+  "pattern": "__version__|2\\.5"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager\\__init__.py",
+  "pattern": "__version__|2\\.5",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "e:\\atomic-data-manager",
+  "pattern": "2\\.5\\.0"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "e:\\atomic-data-manager",
+  "pattern": "2\\.5\\.0",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": ".specstory/history/2026-03-27_17-49-33Z-blender-add-on-bug-fixes.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": ".specstory\\history\\2026-03-27_17-49-33Z-blender-add-on-bug-fixes.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "CHANGELOG.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "blender_manifest.toml"
+    }
+  ],
+  "totalFiles": 4,
+  "totalMatches": 4
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: git -C "e:\atomic-data-manager" log -1 --format=%ci 8871efb</summary>
+
+```bash
+git -C "e:\atomic-data-manager" log -1 --format=%ci 8871efb
+```
+
+```
+2026-03-27 13:22:50 -0600
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Updating changelog date**
+
+I'm setting the changelog date to 2026-03-27. I'm updating the changelog under v2.6.0 with features, fixes, and internal changes. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Bumping the manifest version and adding a concise v2.6.0 changelog entry summarizing the last four commits.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\blender_manifest.toml</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: e:\atomic-data-manager\CHANGELOG.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what was updated:
+
+### Version
+- [`blender_manifest.toml`](e:/atomic-data-manager/blender_manifest.toml): **`version = "2.6.0"`** (this is where the add-on version is defined; there is no `__version__` in `__init__.py`).
+
+### Changelog
+- New **[v2.6.0] - 2026-03-27** section at the top of [`CHANGELOG.md`](e:/atomic-data-manager/CHANGELOG.md), aligned with the last four commits:
+  - **73d461c** — GN material/image usage on library overrides (#15) + `is_object_linked_without_override`
+  - **9e08468** — Clean: unparent + strip armature modifiers before rig removal
+  - **90a94fe** / **8871efb** — Storage tab, byte estimates, compat placement, overrides/collections/dual-icon UI

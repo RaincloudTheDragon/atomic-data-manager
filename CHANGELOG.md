@@ -1,3 +1,11 @@
+## [v2.6.0] - 2026-03-27
+
+### Features
+
+- **Stats for Nerds — Storage**: local blend storage estimates (bytes per datablock type, largest IDs with type + library-override icons and names), including **collections**; packed totals on Overview. Implementation lives in `utils/compat` for reliable `bl_ext` loading.
+- **Smart Select / Clean (issue #15)**: materials and images used in Geometry Nodes are detected on **library override** objects (not only pure locals); pure linked objects are still skipped via `is_object_linked_without_override`.
+- **Clean**: before removing rig objects, **unparent** scene objects that would be orphaned (keep transform) and **remove Armature modifiers** targeting deleted objects, with info reports.
+
 ## [v2.5.0] - 2026-01-28
 
 ### Features
