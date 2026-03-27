@@ -31,6 +31,11 @@ from bpy.utils import register_class
 from ..utils import compat
 from ..stats import count
 from ..stats import misc
+from ..utils.compat import (
+    format_embedded_total,
+    format_row_label,
+    get_report,
+)
 from .utils import ui_layouts
 
 
@@ -46,6 +51,8 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         atom = bpy.context.scene.atomic
+        # Keep blend storage scan in sync whenever the stats panel is shown
+        storage_report = get_report()
 
         # categories selector / header
         row = layout.row()
@@ -65,6 +72,12 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             # blender project file size statistic
             row = box.row()
             row.label(text="Blend File Size:     " + misc.blend_size())
+
+            row = box.row()
+            row.label(
+                text="Packed data (local IDs): "
+                + format_embedded_total(storage_report["total_embedded_packed"])
+            )
 
             # cateogry statistics
             split = box.split()
@@ -114,6 +127,43 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
 
             # world count
             col.label(text=str(count.worlds()))
+
+        # local blend storage (excludes linked IDs)
+        elif atom.stats_mode == 'STORAGE':
+
+            row = box.row()
+            row.label(text="Local blend storage", icon='DISK_DRIVE')
+
+            rep = storage_report
+
+            col = box.column(align=True)
+            col.label(
+                text="IDs linked from another .blend (library) are excluded.",
+                icon='INFO',
+            )
+            col.label(text="Packed = bytes embedded here.")
+            col.label(text="Weights rank other data; compressed .blend is smaller.")
+
+            row = col.row()
+            row.label(
+                text="Packed embedded total: "
+                + format_embedded_total(rep["total_embedded_packed"])
+            )
+
+            col.separator()
+            col.label(text="By datablock type (weight share)")
+
+            for t, _w, pct in rep["by_type"][:12]:
+                col.label(text="  %s: %.1f%%" % (t, pct))
+
+            col.separator()
+            col.label(text="Largest local datablocks (top 40)")
+
+            for r in rep["rows"][:40]:
+                col.label(text="  " + format_row_label(r))
+
+            if len(rep["rows"]) > 40:
+                col.label(text="  ...")
 
         # collection statistics
         elif atom.stats_mode == 'COLLECTIONS':
