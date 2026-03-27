@@ -416,8 +416,8 @@ def image_geometry_nodes(image_key):
     from ..utils import compat
 
     for obj in bpy.data.objects:
-        # Skip library-linked and override objects
-        if compat.is_library_or_override(obj):
+        # Skip purely linked objects; library overrides can have local GN modifiers (#15)
+        if compat.is_object_linked_without_override(obj):
             continue
 
         # Check if object is in any scene collection (reuse object_all logic)
@@ -583,8 +583,8 @@ def material_geometry_nodes(material_key):
     from ..utils import compat
 
     for obj in bpy.data.objects:
-        # Skip library-linked and override objects
-        if compat.is_library_or_override(obj):
+        # Skip purely linked objects; library overrides can have local GN modifiers (#15)
+        if compat.is_object_linked_without_override(obj):
             continue
 
         # Check if object is in any scene collection (reuse object_all logic)
