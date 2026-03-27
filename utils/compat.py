@@ -177,3 +177,16 @@ def is_library_or_override(datablock):
         return True
     
     return False
+
+
+def is_object_linked_without_override(obj):
+    """
+    True if obj comes from another .blend file but is not a library override.
+
+    Override objects live in the current file and may have local modifiers
+    (e.g. Geometry Nodes) that reference local materials or images; those
+    must be scanned. Purely linked objects have no such local stack here.
+    """
+    lib = getattr(obj, "library", None)
+    ovl = getattr(obj, "override_library", None)
+    return lib is not None and ovl is None
