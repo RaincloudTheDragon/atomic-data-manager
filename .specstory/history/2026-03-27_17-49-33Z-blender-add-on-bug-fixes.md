@@ -23148,8 +23148,6 @@ _**Agent (composer-2-fast)**_
 
 <details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/CHANGELOG.md</summary>
 
-Status: **loading**
-
 </details>
 
 </tool-use>
@@ -23158,3 +23156,22 @@ Status: **loading**
 <summary>Tool use: **edit_file_v2**</summary>
 
 </details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what changed:
+
+**`blender_manifest.toml`** — `version` is now **2.6.1**.
+
+**`CHANGELOG.md`** — new section:
+
+```markdown
+## [v2.6.1] - 2026-03-27
+
+### Fixes
+
+- **Stats → Storage**: action byte estimates include **layered/slotted actions** (Blender 4.4+): keyframes in **channel bags** on strips are counted, so values are no longer stuck at the **256 B** minimum when `Action.fcurves` is empty.
+```
+
+Add-on version is only declared in the manifest (no `bl_info` in this tree), so nothing else needed for the bump.
