@@ -347,16 +347,66 @@ def _node_tree_size_bytes(nt):
     return int((2048 + n * 96) * ow)
 
 
+def _action_keyframe_counts(act):
+    """
+    Keyframe point count and F-curve count for storage estimate.
+    Blender 4.4+ layered actions store curves in ActionChannelBag under
+    strips; act.fcurves is often empty, so we must walk layers/slots.
+    """
+    kp, fc = 0, 0
+    layers = getattr(act, "layers", None)
+    if layers and len(layers) > 0:
+        for layer in layers:
+            strips = getattr(layer, "strips", None)
+            if not strips:
+                continue
+            for strip in strips:
+                if not (hasattr(strip, "channelbags") or hasattr(strip, "channelbag")):
+                    continue
+                bags = getattr(strip, "channelbags", None)
+                if bags and len(bags) > 0:
+                    for bag in bags:
+                        for fcurve in bag.fcurves:
+                            fc += 1
+                            try:
+                                kp += len(fcurve.keyframe_points)
+                            except (TypeError, AttributeError, RuntimeError, ReferenceError):
+                                pass
+                else:
+                    slots = getattr(act, "slots", None)
+                    if not slots:
+                        continue
+                    for slot in slots:
+                        try:
+                            bag = strip.channelbag(slot, ensure=False)
+                        except (TypeError, AttributeError, RuntimeError, ReferenceError):
+                            bag = None
+                        if bag is None:
+                            continue
+                        for fcurve in bag.fcurves:
+                            fc += 1
+                            try:
+                                kp += len(fcurve.keyframe_points)
+                            except (TypeError, AttributeError, RuntimeError, ReferenceError):
+                                pass
+        return kp, fc
+    fcurves = getattr(act, "fcurves", None)
+    if fcurves:
+        for fcurve in fcurves:
+            fc += 1
+            try:
+                kp += len(fcurve.keyframe_points)
+            except (TypeError, AttributeError, RuntimeError, ReferenceError):
+                pass
+    return kp, fc
+
+
 def _action_size_bytes(act):
     if _skip_linked(act):
         return None
-    try:
-        kp = sum(len(fc.keyframe_points) for fc in act.fcurves)
-        fc = len(act.fcurves)
-    except (AttributeError, RuntimeError, ReferenceError):
-        kp, fc = 0, 0
+    kp, fc = _action_keyframe_counts(act)
     ow = _override_weight_factor(act)
-    return int((256 + kp * 20 + fc * 80) * ow)
+    return max(64, int((256 + kp * 20 + fc * 80) * ow))
 
 
 def _object_size_bytes(ob):
