@@ -18853,7 +18853,6 @@ I'm checking the MCP tools to understand how 'cleanable' objects are detected in
 
 _**Agent (composer-2-fast)**_
 
-
 Tracing how Atomic marks meshes as cleanable and inspecting the mesh in Blender via MCP.
 
 
@@ -21990,7 +21989,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
 Scene info shows a different blend file. Running Blender code to locate `CC_Base_Body.012` and tracing Atomic's unused-mesh logic in the codebase.
 
 
@@ -22115,13 +22113,6 @@ The mesh has zero users and isn't shown in Atomic's Clean dialog, suggesting it'
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/unused_parallel.py</summary>
 
@@ -22201,13 +22192,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
 <summary>Tool use: **ripgrep_raw_search**</summary>
@@ -22263,13 +22247,6 @@ _**Agent (composer-2-fast)**_
 <summary>Tool use: **read_file_v2**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -22352,13 +22329,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/ops/main_ops.py</summary>
 
@@ -22369,13 +22339,6 @@ _**Agent (composer-2-fast)**_
 <summary>Tool use: **read_file_v2**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -22421,13 +22384,6 @@ Status: **completed**
 <summary>Tool use: **ripgrep_raw_search**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -22483,7 +22439,6 @@ The cleanup logic excludes orphan meshes because Mesh isn't in the CATEGORIES li
 
 _**Agent (composer-2-fast)**_
 
-
 Here’s what Blender MCP showed and how Atomic behaves.
 
 ### What Blender reports (via MCP)
@@ -22526,13 +22481,6 @@ _**User**_
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt</summary>
 
@@ -22553,7 +22501,6 @@ The terminal log shows `Deleted 6 data-block(s)` which confirms Blender's cleanu
 
 _**Agent (composer-2-fast)**_
 
-
 Here’s what stands out in `terminals/3.txt` relative to your question:
 
 ### Save vs purge
@@ -22571,3 +22518,198 @@ That message is from Blender **deleting** datablocks (almost always via **unused
 So your updated read fits: the mesh wasn’t “fixed” by save/reload alone; it was cleared once **unused data** (those 6 blocks) was actually removed, then saved.
 
 **Atomic** still doesn’t list **meshes** as their own Clean category, so that purge was almost certainly **Blender’s** cleanup (or another add-on like DatablockTools), not Atomic’s mesh list—which matches what we concluded earlier.
+
+---
+
+_**User**_
+
+@c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\4.txt Ah, I've noticed an error. all the actions show placeholder values @ 256 B, so the channelbags aren't being added up for their data.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+Tracing how action storage is computed and updating it for Blender's Action/slots/channel-bag model.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/utils/compat.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search">
+<details>
+<summary>Tool use: **web_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "searchTerm": "Blender 4.4 Action slotted channel bag Python API bpy.types.Action"
+}
+```
+Result:
+
+```json
+{
+  "isFinal": true,
+  "references": [
+    {
+      "chunk": "Links:\n1. [Slotted Actions - Blender Developer Documentation](https://wiki.blender.org/release_notes/4.4/upgrading/slotted_actions/)\n2. [ActionChannelBag(bpy_struct) - Blender Python API](https://docs.blender.org/api/4.4/bpy.types.ActionChannelBag.html)\n3. [Python API - Blender Developer Documentation](https://wiki.blender.org/release_notes/4.4/python_api/)\n4. [How exactly do ActionSlots work?](https://blender.stackexchange.com/questions/339852/how-exactly-do-actionslots-work)\n5. [Animation \u0026 Rigging - Blender Developer Documentation](https://developer.blender.org/docs/release_notes/4.4/animation_rigging/)\n\n# Blender 4.4 Action Slotted Channel Bag Python API\n\n## Overview\nIn Blender 4.4, Actions now use a slotted architecture that allows a single Action to animate multiple objects or data-blocks.[1][5] The Python API has changed significantly to accommodate this new structure.\n\n## Channel Bag Access\nThe &#96;ActionChannelBag&#96; is a collection of animation channels associated with an action slot.[2] To access F-Curves and groups, you must retrieve the channel bag through the action's layer and strip structure:\n\n&#96;&#96;&#96;python\nstrip = action.layers[0].strips[0]\nchannelbag = strip.channelbag(slot, ensure=True)\nfcurve = channelbag.fcurves.new(\"location\", index=1)\ngroup = channelbag.groups.new(\"Object Transform\")\n&#96;&#96;&#96;[1]\n\n## ActionChannelBag Properties\nThe &#96;bpy.types.ActionChannelBag&#96; class provides:[2]\n- **fcurves**: Individual F-Curves that animate the slot (read-only collection)\n- **groups**: Groupings of F-Curves for display in the dopesheet and graph editor (read-only collection)\n- **slot_handle**: Internal slot identifier (read-only)\n\n## Backward Compatibility\nThe legacy API from Blender 4.3 still works in 4.4 as a proxy to the first slot's channel bag, but is deprecated and will be removed in Blender 5.0.[1] Properties like &#96;action.fcurves&#96; and &#96;action.groups&#96; act as shortcuts to &#96;action.layers[0].strips[0].channelbag(action.slots[0])&#96;.\n\n## Key Workflow\nTo work with slotted actions, you must access the channel bag for a specific slot before manipulating F-Curves or groups.[1]",
+      "title": "Web search results for query: Blender 4.4 Action slotted channel bag Python API bpy.types.Action"
+    }
+  ],
+  "rejected": false
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_search"><details>
+<summary>Tool use: **web_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://docs.blender.org/api/current/bpy.types.Action.html"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "Action(ID) - Blender Python API\n\n# Action(ID)¶\n\nbase classes — [bpy_struct](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct), [ID](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID)\n\nclass bpy.types.Action(ID)¶\n\nA collection of F-Curves for animation\n\ncurve_frame_range¶\n\nThe combined frame range of all F-Curves within this action (array of 2 items, in [-inf, inf], default (0.0, 0.0), readonly)\n\nType:\n\n[mathutils.Vector](https://docs.blender.org/api/current/mathutils.html#mathutils.Vector)\n\nframe_end¶\n\nThe end frame of the manually set intended playback range (in [-1.04857e+06, 1.04857e+06], default 0.0)\n\nType:\n\nfloat\n\nframe_range¶\n\nThe intended playback frame range of this action, using the manually set range if available, or the combined frame range of all F-Curves within this action if not (assigning sets the manual frame range) (array of 2 items, in [-inf, inf], default (0.0, 0.0))\n\nType:\n\n[mathutils.Vector](https://docs.blender.org/api/current/mathutils.html#mathutils.Vector)\n\nframe_start¶\n\nThe start frame of the manually set intended playback range (in [-1.04857e+06, 1.04857e+06], default 0.0)\n\nType:\n\nfloat\n\nis_action_layered¶\n\nReturn whether this is a layered Action. At this point all actions are layered through versioning and this function will always return true (default False, readonly)\n\nType:\n\nbool\n\nis_action_legacy¶\n\nReturn whether this is a legacy Action. Legacy Actions have no layers or slots. Since Blender 4.4 actions are automatically updated to layered actions. This will only return true on empty actions (default False, readonly)\n\nType:\n\nbool\n\nis_empty¶\n\nFalse when there is any Layer, Slot, or legacy F-Curve (default False, readonly)\n\nType:\n\nbool\n\nlayers¶\n\nThe list of layers that make up this Action (default None, readonly)\n\nType:\n\n[ActionLayers](https://docs.blender.org/api/current/bpy.types.ActionLayers.html#bpy.types.ActionLayers) [[ActionLayer](https://docs.blender.org/api/current/bpy.types.ActionLayer.html#bpy.types.ActionLayer)]\n\npose_markers¶\n\nMarkers specific to this action, for labeling poses (default None, readonly)\n\nType:\n\n[ActionPoseMarkers](https://docs.blender.org/api/current/bpy.types.ActionPoseMarkers.html#bpy.types.ActionPoseMarkers) [[TimelineMarker](https://docs.blender.org/api/current/bpy.types.TimelineMarker.html#bpy.types.TimelineMarker)]\n\nslots¶\n\nThe list of slots in this Action (default None, readonly)\n\nType:\n\n[ActionSlots](https://docs.blender.org/api/current/bpy.types.ActionSlots.html#bpy.types.ActionSlots) [[ActionSlot](https://docs.blender.org/api/current/bpy.types.ActionSlot.html#bpy.types.ActionSlot)]\n\nuse_cyclic¶\n\nThe action is intended to be used as a cycle looping over its manually set playback frame range (enabling this does not automatically make it loop) (default False)\n\nType:\n\nbool\n\nuse_frame_range¶\n\nManually specify the intended playback frame range for the action (this range is used by some tools, but does not affect animation evaluation) (default False)\n\nType:\n\nbool\n\ndeselect_keys()¶\n\nDeselects all keys of the Action. The selection status of F-Curves is unchanged.\n\nfcurve_ensure_for_datablock(datablock, data_path, *, index=0, group_name='')¶\n\nEnsure that an F-Curve exists, with the given data path and array index, for the given data-block. This action must already be assigned to the data-block. This function will also create the layer, keyframe strip, and action slot if necessary, and take care of assigning the action slot too\n\nParameters:\n\ndatablock ([ID](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID)) – The data-block animated by this action, for which to ensure the F-Curve exists. This action must already be assigned to the data-block (never None)\n\ndata_path (str) – Data Path, F-Curve data path (never None)\n\nindex (int) – Index, Array index (in [0, inf], optional)\n\ngroup_name (str) – Group Name, Name of the group for this F-Curve, if any. If the F-Curve already exists, this parameter is ignored (optional, never None)\n\nReturns:\n\nThe found or created F-Curve\n\nReturn type:\n\n[FCurve](https://docs.blender.org/api/current/bpy.types.FCurve.html#bpy.types.FCurve)\n\nflip_with_pose(object)¶\n\nFlip the action around the X axis using a pose\n\nParameters:\n\nobject ([Object](https://docs.blender.org/api/current/bpy.types.Object.html#bpy.types.Object)) – The reference armature object to use when flipping (never None)\n\nclassmethod bl_rna_get_subclass(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault ([bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)| None) – The value to return when not found.\n\nReturns:\n\nThe RNA type or default when not found.\n\nReturn type:\n\n[bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)\n\nclassmethod bl_rna_get_subclass_py(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault (type | None) – The value to return when not found.\n\nReturns:\n\nThe class or default when not found.\n\nReturn type:\n\ntype\n\n## Inherited Properties¶\n\n[bpy_struct.id_data](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_data)\n\n[ID.name](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.name)\n\n[ID.name_full](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.name_full)\n\n[ID.id_type](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.id_type)\n\n[ID.session_uid](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.session_uid)\n\n[ID.is_evaluated](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_evaluated)\n\n[ID.original](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.original)\n\n[ID.users](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.users)\n\n[ID.use_fake_user](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.use_fake_user)\n\n[ID.use_extra_user](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.use_extra_user)\n\n[ID.is_embedded_data](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_embedded_data)\n\n[ID.is_linked_packed](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_linked_packed)\n\n[ID.is_missing](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_missing)\n\n[ID.is_runtime_data](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_runtime_data)\n\n[ID.is_editable](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_editable)\n\n[ID.tag](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.tag)\n\n[ID.is_library_indirect](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.is_library_indirect)\n\n[ID.library](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.library)\n\n[ID.library_weak_reference](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.library_weak_reference)\n\n[ID.asset_data](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.asset_data)\n\n[ID.override_library](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.override_library)\n\n[ID.preview](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.preview)\n\n## Inherited Functions¶\n\n[bpy_struct.as_pointer](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.as_pointer)\n\n[bpy_struct.driver_add](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_add)\n\n[bpy_struct.driver_remove](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_remove)\n\n[bpy_struct.get](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.get)\n\n[bpy_struct.id_properties_clear](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_clear)\n\n[bpy_struct.id_properties_ensure](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ensure)\n\n[bpy_struct.id_properties_ui](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ui)\n\n[bpy_struct.is_property_hidden](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_hidden)\n\n[bpy_struct.is_property_overridable_library](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_overridable_library)\n\n[bpy_struct.is_property_readonly](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_readonly)\n\n[bpy_struct.is_property_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_set)\n\n[bpy_struct.items](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.items)\n\n[bpy_struct.keyframe_delete](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_delete)\n\n[bpy_struct.keyframe_insert](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert)\n\n[bpy_struct.keys](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keys)\n\n[bpy_struct.path_from_id](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_id)\n\n[bpy_struct.path_from_module](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_module)\n\n[bpy_struct.path_resolve](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_resolve)\n\n[bpy_struct.pop](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.pop)\n\n[bpy_struct.property_overridable_library_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_overridable_library_set)\n\n[bpy_struct.property_unset](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_unset)\n\n[bpy_struct.rna_ancestors](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.rna_ancestors)\n\n[bpy_struct.type_recast](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.type_recast)\n\n[bpy_struct.values](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.values)\n\n[ID.bl_system_properties_get](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.bl_system_properties_get)\n\n[ID.rename](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.rename)\n\n[ID.evaluated_get](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.evaluated_get)\n\n[ID.copy](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.copy)\n\n[ID.asset_mark](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.asset_mark)\n\n[ID.asset_clear](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.asset_clear)\n\n[ID.asset_generate_preview](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.asset_generate_preview)\n\n[ID.override_create](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.override_create)\n\n[ID.override_hierarchy_create](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.override_hierarchy_create)\n\n[ID.user_clear](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.user_clear)\n\n[ID.user_remap](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.user_remap)\n\n[ID.make_local](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.make_local)\n\n[ID.user_of_id](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.user_of_id)\n\n[ID.animation_data_create](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.animation_data_create)\n\n[ID.animation_data_clear](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.animation_data_clear)\n\n[ID.update_tag](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.update_tag)\n\n[ID.preview_ensure](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.preview_ensure)\n\n[ID.bl_rna_get_subclass](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.bl_rna_get_subclass)\n\n[ID.bl_rna_get_subclass_py](https://docs.blender.org/api/current/bpy.types.ID.html#bpy.types.ID.bl_rna_get_subclass_py)\n\n## References¶\n\n&#96;bpy.context.active_action&#96;\n\n&#96;bpy.context.selected_editable_actions&#96;\n\n&#96;bpy.context.selected_visible_actions&#96;\n\n[ActionConstraint.action](https://docs.blender.org/api/current/bpy.types.ActionConstraint.html#bpy.types.ActionConstraint.action)\n\n[AnimData.action](https://docs.blender.org/api/current/bpy.types.AnimData.html#bpy.types.AnimData.action)\n\n[AnimData.action_tweak_storage](https://docs.blender.org/api/current/bpy.types.AnimData.html#bpy.types.AnimData.action_tweak_storage)\n\n[BlendData.actions](https://docs.blender.org/api/current/bpy.types.BlendData.html#bpy.types.BlendData.actions)\n\n[BlendDataActions.new](https://docs.blender.org/api/current/bpy.types.BlendDataActions.html#bpy.types.BlendDataActions.new)\n\n[BlendDataActions.remove](https://docs.blender.org/api/current/bpy.types.BlendDataActions.html#bpy.types.BlendDataActions.remove)\n\n&#96;GLTF2_filter_action.action&#96;\n\n[NlaStrip.action](https://docs.blender.org/api/current/bpy.types.NlaStrip.html#bpy.types.NlaStrip.action)\n\n[NlaStrips.new](https://docs.blender.org/api/current/bpy.types.NlaStrips.html#bpy.types.NlaStrips.new)\n\n[Pose.apply_pose_from_action](https://docs.blender.org/api/current/bpy.types.Pose.html#bpy.types.Pose.apply_pose_from_action)\n\n[Pose.backup_create](https://docs.blender.org/api/current/bpy.types.Pose.html#bpy.types.Pose.backup_create)\n\n[Pose.blend_pose_from_action](https://docs.blender.org/api/current/bpy.types.Pose.html#bpy.types.Pose.blend_pose_from_action)\n\n[WindowManager.poselib_previous_action](https://docs.blender.org/api/current/bpy.types.WindowManager.html#bpy.types.WindowManager.poselib_previous_action)",
+  "url": "https://docs.blender.org/api/current/bpy.types.Action.html"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://docs.blender.org/api/current/bpy.types.ActionStrip.html"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "ActionStrip(bpy_struct) - Blender Python API\n\n# ActionStrip(bpy_struct)¶\n\nbase class — [bpy_struct](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct)\n\nsubclasses — [ActionKeyframeStrip](https://docs.blender.org/api/current/bpy.types.ActionKeyframeStrip.html#bpy.types.ActionKeyframeStrip)\n\nclass bpy.types.ActionStrip(bpy_struct)¶ type¶\n\n(default&#96;'KEYFRAME'&#96;, readonly)\n\n&#96;KEYFRAME&#96; Keyframe – Strip with a set of F-Curves for each action slot.\n\nType:\n\nLiteral[‘KEYFRAME’]\n\nclassmethod bl_rna_get_subclass(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault ([bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)| None) – The value to return when not found.\n\nReturns:\n\nThe RNA type or default when not found.\n\nReturn type:\n\n[bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)\n\nclassmethod bl_rna_get_subclass_py(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault (type | None) – The value to return when not found.\n\nReturns:\n\nThe class or default when not found.\n\nReturn type:\n\ntype\n\n## Inherited Properties¶\n\n[bpy_struct.id_data](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_data)\n\n## Inherited Functions¶\n\n[bpy_struct.as_pointer](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.as_pointer)\n\n[bpy_struct.driver_add](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_add)\n\n[bpy_struct.driver_remove](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_remove)\n\n[bpy_struct.get](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.get)\n\n[bpy_struct.id_properties_clear](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_clear)\n\n[bpy_struct.id_properties_ensure](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ensure)\n\n[bpy_struct.id_properties_ui](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ui)\n\n[bpy_struct.is_property_hidden](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_hidden)\n\n[bpy_struct.is_property_overridable_library](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_overridable_library)\n\n[bpy_struct.is_property_readonly](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_readonly)\n\n[bpy_struct.is_property_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_set)\n\n[bpy_struct.items](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.items)\n\n[bpy_struct.keyframe_delete](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_delete)\n\n[bpy_struct.keyframe_insert](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert)\n\n[bpy_struct.keys](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keys)\n\n[bpy_struct.path_from_id](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_id)\n\n[bpy_struct.path_from_module](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_module)\n\n[bpy_struct.path_resolve](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_resolve)\n\n[bpy_struct.pop](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.pop)\n\n[bpy_struct.property_overridable_library_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_overridable_library_set)\n\n[bpy_struct.property_unset](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_unset)\n\n[bpy_struct.rna_ancestors](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.rna_ancestors)\n\n[bpy_struct.type_recast](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.type_recast)\n\n[bpy_struct.values](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.values)\n\n## References¶\n\n[ActionLayer.strips](https://docs.blender.org/api/current/bpy.types.ActionLayer.html#bpy.types.ActionLayer.strips)\n\n[ActionStrips.new](https://docs.blender.org/api/current/bpy.types.ActionStrips.html#bpy.types.ActionStrips.new)\n\n[ActionStrips.remove](https://docs.blender.org/api/current/bpy.types.ActionStrips.html#bpy.types.ActionStrips.remove)",
+  "url": "https://docs.blender.org/api/current/bpy.types.ActionStrip.html"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://docs.blender.org/api/current/bpy.types.ActionKeyframeStrip.html"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "ActionKeyframeStrip(ActionStrip) - Blender Python API\n\n# ActionKeyframeStrip(ActionStrip)¶\n\nbase classes — [bpy_struct](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct), [ActionStrip](https://docs.blender.org/api/current/bpy.types.ActionStrip.html#bpy.types.ActionStrip)\n\nclass bpy.types.ActionKeyframeStrip(ActionStrip)¶\n\nStrip with a set of F-Curves for each action slot\n\nchannelbags¶\n\n(default None, readonly)\n\nType:\n\n[ActionChannelbags](https://docs.blender.org/api/current/bpy.types.ActionChannelbags.html#bpy.types.ActionChannelbags) [[ActionChannelbag](https://docs.blender.org/api/current/bpy.types.ActionChannelbag.html#bpy.types.ActionChannelbag)]\n\nchannelbag(slot, *, ensure=False)¶\n\nFind the ActionChannelbag for a specific Slot\n\nParameters:\n\nslot ([ActionSlot](https://docs.blender.org/api/current/bpy.types.ActionSlot.html#bpy.types.ActionSlot)) – Slot, The slot for which to find the channelbag\n\nensure (bool) – Create if necessary, Ensure the channelbag exists for this slot, creating it if necessary (optional)\n\nReturns:\n\nChannels\n\nReturn type:\n\n[ActionChannelbag](https://docs.blender.org/api/current/bpy.types.ActionChannelbag.html#bpy.types.ActionChannelbag)\n\nkey_insert(slot, data_path, array_index, value, time)¶\n\nkey_insert\n\nParameters:\n\nslot ([ActionSlot](https://docs.blender.org/api/current/bpy.types.ActionSlot.html#bpy.types.ActionSlot)) – Slot, The slot that identifies which ‘thing’ should be keyed\n\ndata_path (str) – Data Path, F-Curve data path (never None)\n\narray_index (int) – Array Index, Index of the animated array element, or -1 if the property is not an array (in [-inf, inf])\n\nvalue (float) – Value to key, Value of the animated property (in [-inf, inf])\n\ntime (float) – Time of the key, Time, in frames, of the key (in [-inf, inf])\n\nReturns:\n\nSuccess, Whether the key was successfully inserted\n\nReturn type:\n\nbool\n\nclassmethod bl_rna_get_subclass(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault ([bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)| None) – The value to return when not found.\n\nReturns:\n\nThe RNA type or default when not found.\n\nReturn type:\n\n[bpy.types.Struct](https://docs.blender.org/api/current/bpy.types.Struct.html#bpy.types.Struct)\n\nclassmethod bl_rna_get_subclass_py(id, default=None, /)¶ Parameters:\n\nid (str) – The RNA type identifier.\n\ndefault (type | None) – The value to return when not found.\n\nReturns:\n\nThe class or default when not found.\n\nReturn type:\n\ntype\n\n## Inherited Properties¶\n\n[bpy_struct.id_data](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_data)\n\n[ActionStrip.type](https://docs.blender.org/api/current/bpy.types.ActionStrip.html#bpy.types.ActionStrip.type)\n\n## Inherited Functions¶\n\n[bpy_struct.as_pointer](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.as_pointer)\n\n[bpy_struct.driver_add](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_add)\n\n[bpy_struct.driver_remove](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_remove)\n\n[bpy_struct.get](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.get)\n\n[bpy_struct.id_properties_clear](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_clear)\n\n[bpy_struct.id_properties_ensure](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ensure)\n\n[bpy_struct.id_properties_ui](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ui)\n\n[bpy_struct.is_property_hidden](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_hidden)\n\n[bpy_struct.is_property_overridable_library](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_overridable_library)\n\n[bpy_struct.is_property_readonly](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_readonly)\n\n[bpy_struct.is_property_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_set)\n\n[bpy_struct.items](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.items)\n\n[bpy_struct.keyframe_delete](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_delete)\n\n[bpy_struct.keyframe_insert](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert)\n\n[bpy_struct.keys](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keys)\n\n[bpy_struct.path_from_id](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_id)\n\n[bpy_struct.path_from_module](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_module)\n\n[bpy_struct.path_resolve](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_resolve)\n\n[bpy_struct.pop](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.pop)\n\n[bpy_struct.property_overridable_library_set](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_overridable_library_set)\n\n[bpy_struct.property_unset](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_unset)\n\n[bpy_struct.rna_ancestors](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.rna_ancestors)\n\n[bpy_struct.type_recast](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.type_recast)\n\n[bpy_struct.values](https://docs.blender.org/api/current/bpy.types.bpy_struct.html#bpy.types.bpy_struct.values)\n\n[ActionStrip.bl_rna_get_subclass](https://docs.blender.org/api/current/bpy.types.ActionStrip.html#bpy.types.ActionStrip.bl_rna_get_subclass)\n\n[ActionStrip.bl_rna_get_subclass_py](https://docs.blender.org/api/current/bpy.types.ActionStrip.html#bpy.types.ActionStrip.bl_rna_get_subclass_py)",
+  "url": "https://docs.blender.org/api/current/bpy.types.ActionKeyframeStrip.html"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
