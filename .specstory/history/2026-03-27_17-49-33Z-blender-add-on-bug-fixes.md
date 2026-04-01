@@ -22713,3 +22713,448 @@ Status: **completed**
 <summary>Tool use: **web_fetch**</summary>
 
 </details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Processing action fcurves**
+
+I'm implementing `_count_action_fcurves_and_keys` to handle legacy fcurves and layered strips with channelbags. I'm iterating through `strip.channelbags` directly instead of using `channelbags` collection. I'm counting keyframes in fcurves and handling layered actions with strips. I'm counting keyframes in fcurves from channelbags. I'm iterating through slots to access channelbags for fcurve processing. 
+
+**Checking fcurve duplication**
+
+I need to verify if legacy act.fcurves duplicates data from the first slot to avoid double-counting during processing. I'm prioritizing layered animation data over legacy fcurves to prevent duplicate keyframe counts. I'm counting fcurve keyframes while iterating through channelbags. 
+
+**Handling empty layers**
+
+I'm implementing fallback logic to use fcurves when layers exist but are empty. I'm implementing layered traversal only when layers exist, and never adding legacy fcurves when layers were used. I'm checking if `strip.channelbags` is iterable and verifying its behavior in Blender 5.0. I'm adding defensive try/except blocks for strip operations and implementing fallback for slots without channelbags. I'm iterating through strips and counting fcurves in channelbags. I'm counting keyframes in fcurves while handling potential errors gracefully. 
+
+I'm skipping null channel bags while counting fcurves to avoid errors. I'm counting keyframes in fcurves while handling potential errors gracefully. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Fixing `_action_size_bytes`: Blender 4.4+ stores F-curves in layered actions (`layers` → `strips` → `channelbags`), so `act.fcurves` is often empty and we were only applying the 256-byte base.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/utils/compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Verifying channelbags iteration**
+
+I'm checking if ActionChannelbags iteration works with potential different collection names. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Using `hasattr` for channel-bag access — `strip.type` may not compare reliably to `'KEYFRAME'` across versions.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/utils/compat.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: python -m py_compile "E:/atomic-data-manager/utils/compat.py"</summary>
+
+```bash
+python -m py_compile "E:/atomic-data-manager/utils/compat.py"
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "E:/atomic-data-manager/utils/compat.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "E:/atomic-data-manager/utils/compat.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints"><details>
+<summary>Tool use: **read_lints**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s where things stand:
+
+**Fix (already in place)**  
+`_action_size_bytes` in `utils/compat.py` now uses `_action_keyframe_counts()`, which walks **layered actions**: for each strip that exposes `channelbags` / `channelbag`, it counts keyframe points and F-curves from those bags (with a fallback to `channelbag(slot, …)` per slot when `channelbags` is empty). Legacy actions still use `act.fcurves`.
+
+**Small follow-up I just made**  
+Strips are no longer gated on `strip.type == "KEYFRAME"` only. The code now requires **`hasattr(strip, "channelbags")` or `hasattr(strip, "channelbag")`**, so we don’t skip valid keyframe strips if the enum string differs by Blender version.
+
+**Check**  
+`python -m py_compile` on `compat.py` passes.
+
+Reload the add-on in Blender 5.0 and reopen **Stats → Storage**: actions with real layered data should show **sizes above 256 B** instead of the flat minimum. If anything still sticks at 256 B, say which file/action and we can trace that path.
+
+---
+
+_**User**_
+
+excellent! bump 2.6.1 and concisely summarize in changelog.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/CHANGELOG.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.{py,toml,md}",
+  "path": "E:/atomic-data-manager",
+  "pattern": "2\\.6\\.0|version|bl_info"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager",
+  "pattern": "2\\.6\\.0|version|bl_info",
+  "topFiles": [
+    {
+      "matchCount": 58,
+      "uri": ".\\.specstory\\history\\2026-03-27_17-49-33Z-blender-add-on-bug-fixes.md"
+    },
+    {
+      "matchCount": 11,
+      "uri": ".\\utils\\compat.py"
+    },
+    {
+      "matchCount": 4,
+      "uri": ".\\CHANGELOG.md"
+    },
+    {
+      "matchCount": 3,
+      "uri": ".\\blender_manifest.toml"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\ui\\stats_panel_ui.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\__init__.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\ops\\direct_use_ops.py"
+    },
+    {
+      "matchCount": 6,
+      "uri": ".\\ops\\main_ops.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\ops\\utils\\clean.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\stats\\rna_analysis.py"
+    },
+    {
+      "matchCount": 13,
+      "uri": ".\\stats\\users.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": ".\\.specstory\\history\\2026-03-27_17-49-33Z-blender-add-on-bug-reports.md"
+    },
+    {
+      "matchCount": 3,
+      "uri": ".\\.specstory\\cli\\config.toml"
+    },
+    {
+      "matchCount": 481,
+      "uri": ".\\.specstory\\history\\2025-12-01_19-37-05Z-integrate-multi-blender-version-support.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\config.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\ops\\__init__.py"
+    },
+    {
+      "matchCount": 3,
+      "uri": ".\\utils\\__init__.py"
+    },
+    {
+      "matchCount": 37,
+      "uri": ".\\utils\\version.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\ui\\inspect_ui.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": ".\\stats\\count.py"
+    }
+  ],
+  "totalFiles": 44,
+  "totalMatches": 1456
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "E:/atomic-data-manager",
+  "pattern": "2\\.6\\.0|\"version\""
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager",
+  "pattern": "2\\.6\\.0|\"version\"",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **0** results in **1** directory</summary>
+
+Directory: **E:/atomic-data-manager** (0 files)
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/__init__.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Updating `blender_manifest.toml` to 2.6.1 and adding a concise `CHANGELOG.md` entry.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/blender_manifest.toml</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/CHANGELOG.md</summary>
+
+Status: **loading**
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>

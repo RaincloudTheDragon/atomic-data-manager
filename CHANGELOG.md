@@ -1,3 +1,9 @@
+## [v2.6.1] - 2026-03-27
+
+### Fixes
+
+- **Stats → Storage**: action byte estimates include **layered/slotted actions** (Blender 4.4+): keyframes in **channel bags** on strips are counted, so values are no longer stuck at the **256 B** minimum when `Action.fcurves` is empty.
+
 ## [v2.6.0] - 2026-03-27
 
 ### Features
