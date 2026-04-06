@@ -1,3 +1,9 @@
+## [v2.6.2] - 2026-04-06
+
+### Fixes
+
+- **Clean / unused materials**: if **`Material.users` > 0** (and not only a fake user) but **`material_all()`** finds no references, the material is **no longer** treated as unused—avoids false positives when a **local** material shares a name with a **linked** one or Blender holds other unmodeled refs. The same rule applies to **RNA / Smart Select** scans (the unified scanner uses `analyze_unused_from_graph`, not only `materials_deep`).
+
 ## [v2.6.1] - 2026-03-27
 
 ### Fixes
