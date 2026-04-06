@@ -223,6 +223,10 @@ def materials_deep():
             # check if material has a fake user or if ignore fake users
             # is enabled
             if not material.use_fake_user or config.include_fake_users:
+                # If Blender still counts users but we found none, don't flag (name collisions
+                # with linked IDs, drivers, or refs we don't traverse). Fake-user purge unchanged.
+                if material.users > 0 and not material.use_fake_user:
+                    continue
                 unused.append(material.name)
         else:
             # Second check: material is used, but check if it's ONLY used by unused objects

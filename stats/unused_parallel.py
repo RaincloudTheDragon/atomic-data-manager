@@ -127,6 +127,8 @@ def _has_any_unused_materials():
         # First check: standard unused detection
         if not users.material_all(material.name):
             if not material.use_fake_user or config.include_fake_users:
+                if material.users > 0 and not material.use_fake_user:
+                    continue
                 return True
         else:
             # Second check: material is used, but check if it's ONLY used by unused objects

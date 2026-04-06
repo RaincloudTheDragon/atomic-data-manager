@@ -1194,6 +1194,12 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
                                 continue
                         except (AttributeError, KeyError, RuntimeError, ReferenceError):
                             pass
+                    if category == 'materials':
+                        try:
+                            if datablock.users > 0 and not datablock.use_fake_user:
+                                continue
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
                     unused.append(item_name)
         except (AttributeError, RuntimeError, ReferenceError):
             # Datablock may be invalid

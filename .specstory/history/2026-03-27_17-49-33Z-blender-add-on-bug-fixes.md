@@ -22529,7 +22529,6 @@ _**User**_
 
 _**Agent (composer-2-fast)**_
 
-
 Tracing how action storage is computed and updating it for Blender's Action/slots/channel-bag model.
 
 
@@ -22590,13 +22589,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="unknown" data-tool-name="web_fetch">
 <details>
 <summary>Tool use: **web_fetch**</summary>
@@ -22632,13 +22624,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="unknown" data-tool-name="web_fetch">
 <details>
 <summary>Tool use: **web_fetch**</summary>
@@ -22671,13 +22656,6 @@ Status: **completed**
 <summary>Tool use: **web_fetch**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -22733,7 +22711,6 @@ I'm skipping null channel bags while counting fcurves to avoid errors. I'm count
 
 _**Agent (composer-2-fast)**_
 
-
 Fixing `_action_size_bytes`: Blender 4.4+ stores F-curves in layered actions (`layers` → `strips` → `channelbags`), so `act.fcurves` is often empty and we were only applying the 256-byte base.
 
 
@@ -22762,7 +22739,6 @@ I'm checking if ActionChannelbags iteration works with potential different colle
 
 _**Agent (composer-2-fast)**_
 
-
 Using `hasattr` for channel-bag access — `strip.type` may not compare reliably to `'KEYFRAME'` across versions.
 
 
@@ -22784,13 +22760,6 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: python -m py_compile "E:/atomic-data-manager/utils/compat.py"</summary>
 
@@ -22804,13 +22773,6 @@ python -m py_compile "E:/atomic-data-manager/utils/compat.py"
 <summary>Tool use: **run_terminal_command_v2**</summary>
 
 </details></tool-use>
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -22852,7 +22814,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
 Here’s where things stand:
 
 **Fix (already in place)**  
@@ -22873,13 +22834,6 @@ _**User**_
 excellent! bump 2.6.1 and concisely summarize in changelog.
 
 ---
-
-_**Agent (composer-2-fast)**_
-
-
-
-
-
 
 _**Agent (composer-2-fast)**_
 
@@ -23031,13 +22985,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
 <summary>Tool use: **ripgrep_raw_search**</summary>
@@ -23079,13 +23026,6 @@ Status: **completed**
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="search" data-tool-name="glob_file_search">
 <details>
 <summary>Tool use: **glob_file_search** • Searched codebase "" • **0** results in **1** directory</summary>
@@ -23102,13 +23042,6 @@ Directory: **E:/atomic-data-manager** (0 files)
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/__init__.py</summary>
 
@@ -23121,7 +23054,6 @@ _**Agent (composer-2-fast)**_
 </details></tool-use>
 
 _**Agent (composer-2-fast)**_
-
 
 Updating `blender_manifest.toml` to 2.6.1 and adding a concise `CHANGELOG.md` entry.
 
@@ -23159,7 +23091,6 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
-
 Here’s what changed:
 
 **`blender_manifest.toml`** — `version` is now **2.6.1**.
@@ -23175,3 +23106,4675 @@ Here’s what changed:
 ```
 
 Add-on version is only declared in the manifest (no `bl_info` in this tree), so nothing else needed for the bump.
+
+---
+
+_**User**_
+
+@c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt use blender mcp to view my scene, materials rock_color and rock_color.002 are being detected as cleanable when they have users.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+Inspecting the Blender MCP tools and your scene to determine why those materials are flagged cleanable.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **22** results in **1** directory</summary>
+
+Directory: **C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools** (22 files)
+
+| File |
+|------|
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\import_generated_asset_hunyuan.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_hunyuan3d_status.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\generate_hunyuan3d_model.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\poll_hunyuan_job_status.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\import_generated_asset.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\poll_rodin_job_status.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\generate_hyper3d_model_via_text.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\generate_hyper3d_model_via_images.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\download_sketchfab_model.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_sketchfab_model_preview.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\search_sketchfab_models.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_hyper3d_status.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_polyhaven_status.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_sketchfab_status.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\download_polyhaven_asset.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\search_polyhaven_assets.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\set_texture.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_object_info.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\execute_blender_code.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_polyhaven_categories.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_viewport_screenshot.json` |
+| `../C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_scene_info.json` |
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_scene_info.json</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\execute_blender_code.json</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: C:\Users\Nathan\.cursor\projects\e-atomic-data-manager\mcps\user-blender\tools\get_viewport_screenshot.json</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-get_scene_info">
+<details>
+<summary>Tool use: **mcp-blender-get_scene_info**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "get_scene_info",
+      "parameters": "{\"user_prompt\":\"Inspect scene for rock_color materials cleanable bug\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"name\\\": \\\"Scene\\\",\\n  \\\"object_count\\\": 341,\\n  \\\"objects\\\": [\\n    {\\n      \\\"name\\\": \\\"CameraShakify.v3_Camera_0\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Plate Compactor\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        14.07,\\n        -4.1,\\n        1.21\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.037\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.038\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.039\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.041\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.043\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.044\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.055\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.056\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    }\\n  ],\\n  \\\"materials_count\\\": 89\\n}\"}],\"structuredContent\":{\"result\":\"{\\n  \\\"name\\\": \\\"Scene\\\",\\n  \\\"object_count\\\": 341,\\n  \\\"objects\\\": [\\n    {\\n      \\\"name\\\": \\\"CameraShakify.v3_Camera_0\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Plate Compactor\\\",\\n      \\\"type\\\": \\\"EMPTY\\\",\\n      \\\"location\\\": [\\n        14.07,\\n        -4.1,\\n        1.21\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.037\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.038\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.039\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.041\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.043\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.044\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.055\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Cube.056\\\",\\n      \\\"type\\\": \\\"MESH\\\",\\n      \\\"location\\\": [\\n        0.0,\\n        0.0,\\n        0.0\\n      ]\\n    }\\n  ],\\n  \\\"materials_count\\\": 89\\n}\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-get_scene_info"><details>
+<summary>Tool use: **mcp-blender-get_scene_info**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\nnames = ['rock_color', 'rock_color.002']\\nout = []\\nfor n in names:\\n    m = bpy.data.materials.get(n)\\n    if not m:\\n        out.append(f'{n}: NOT IN bpy.data.materials')\\n        continue\\n    out.append(f'=== {n} ===')\\n    out.append(f'  users: {m.users}')\\n    out.append(f'  use_fake_user: {m.use_fake_user}')\\n    out.append(f'  library: {m.library}')\\n    # slots referencing this material\\n    for obj in bpy.data.objects:\\n        for i, slot in enumerate(obj.material_slots):\\n            if slot.material == m:\\n                out.append(f'  slot: {obj.name}[{i}] type={obj.type}')\\n    # node tree users\\n    if m.node_tree:\\n        out.append(f'  node_tree.users: {m.node_tree.users}')\\nprint('\\\\n'.join(out))\",\"user_prompt\":\"rock_color material users diagnostic\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: === rock_color ===\\n  users: 2\\n  use_fake_user: False\\n  library: None\\n  node_tree.users: 0\\n=== rock_color.002 ===\\n  users: 1\\n  use_fake_user: False\\n  library: None\\n  node_tree.users: 0\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: === rock_color ===\\n  users: 2\\n  use_fake_user: False\\n  library: None\\n  node_tree.users: 0\\n=== rock_color.002 ===\\n  users: 1\\n  use_fake_user: False\\n  library: None\\n  node_tree.users: 0\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="semantic_search_full">
+<details>
+<summary>Tool use: **semantic_search_full**</summary>
+
+
+Parameters:
+
+```json
+{
+  "explanation": "",
+  "includePattern": "E:/atomic-data-manager",
+  "query": "Where are unused materials or cleanable materials determined for smart clean?",
+  "topK": 10
+}
+```
+Result:
+
+```json
+{
+  "codeResults": [
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 207,
+            "text": "def materials_deep():"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 208,
+            "text": "    # returns a list of keys of unused materials"
+          },
+          {
+            "lineNumber": 209
+          },
+          {
+            "lineNumber": 210,
+            "text": "    unused = []"
+          },
+          {
+            "lineNumber": 211
+          },
+          {
+            "lineNumber": 212,
+            "text": "    for material in bpy.data.materials:"
+          },
+          {
+            "lineNumber": 213,
+            "text": "        # Skip library-linked and override datablocks"
+          },
+          {
+            "lineNumber": 214,
+            "text": "        if compat.is_library_or_override(material):"
+          },
+          {
+            "lineNumber": 215,
+            "text": "            continue"
+          },
+          {
+            "lineNumber": 216,
+            "text": "        "
+          },
+          {
+            "lineNumber": 217,
+            "text": "        # Check if material is used by brushes - these should always be ignored"
+          },
+          {
+            "lineNumber": 218,
+            "text": "        if users.material_brushes(material.name):"
+          },
+          {
+            "lineNumber": 219,
+            "text": "            continue"
+          },
+          {
+            "lineNumber": 220,
+            "text": "        "
+          },
+          {
+            "lineNumber": 221,
+            "text": "        # First check: standard unused detection"
+          },
+          {
+            "lineNumber": 222,
+            "text": "        if not users.material_all(material.name):"
+          },
+          {
+            "lineNumber": 223,
+            "text": "            # check if material has a fake user or if ignore fake users"
+          },
+          {
+            "lineNumber": 224,
+            "text": "            # is enabled"
+          },
+          {
+            "lineNumber": 225,
+            "text": "            if not material.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 226,
+            "text": "                unused.append(material.name)"
+          },
+          {
+            "lineNumber": 227,
+            "text": "        else:"
+          },
+          {
+            "lineNumber": 228,
+            "text": "            # Second check: material is used, but check if it's ONLY used by unused objects"
+          },
+          {
+            "lineNumber": 229,
+            "text": "            # This fixes issue #5: materials used by unused objects should be marked as unused"
+          },
+          {
+            "lineNumber": 230,
+            "text": "            # Get all objects that use this material"
+          },
+          {
+            "lineNumber": 231,
+            "text": "            objects_using_material = []"
+          },
+          {
+            "lineNumber": 232,
+            "text": "            objects_using_material.extend(users.material_objects(material.name))"
+          },
+          {
+            "lineNumber": 233,
+            "text": "            objects_using_material.extend(users.material_geometry_nodes(material.name))"
+          },
+          {
+            "lineNumber": 234,
+            "text": "            "
+          },
+          {
+            "lineNumber": 235,
+            "text": "            # Remove duplicates"
+          },
+          {
+            "lineNumber": 236,
+            "text": "            objects_using_material = list(set(objects_using_material))"
+          },
+          {
+            "lineNumber": 237,
+            "text": "            "
+          },
+          {
+            "lineNumber": 238,
+            "text": "            # If material is only used by objects, and ALL those objects are unused, mark material as unused"
+          },
+          {
+            "lineNumber": 239,
+            "text": "            # Check each object individually to avoid recursion issues"
+          },
+          {
+            "lineNumber": 240,
+            "text": "            if objects_using_material:"
+          },
+          {
+            "lineNumber": 241,
+            "text": "                all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_material)"
+          },
+          {
+            "lineNumber": 242,
+            "text": "                if all_objects_unused:"
+          },
+          {
+            "lineNumber": 243,
+            "text": "                    # Check if material has a fake user or if ignore fake users is enabled"
+          },
+          {
+            "lineNumber": 244,
+            "text": "                    if not material.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 245,
+            "text": "                        unused.append(material.name)"
+          },
+          {
+            "lineNumber": 246
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 247,
+            "text": "    return unused"
+          },
+          {
+            "lineNumber": 248
+          },
+          {
+            "lineNumber": 249
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 250,
+            "text": "def materials_shallow():"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 251,
+            "text": "    # returns a list of keys of unused material that may be"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 252,
+            "text": "    # incomplete, but is significantly faster than doing a deep search"
+          },
+          {
+            "lineNumber": 253
+          },
+          {
+            "lineNumber": 254,
+            "text": "    "
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 262
+          },
+          "startPosition": {
+            "column": 35,
+            "line": 203
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "signatures": {}
+      },
+      "score": 0.4490835964679718
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 117,
+            "text": "def _has_any_unused_materials():"
+          },
+          {
+            "lineNumber": 118,
+            "text": "    \"\"\"Check if there are any unused materials (short-circuits early).\"\"\""
+          },
+          {
+            "lineNumber": 119,
+            "text": "    for material in bpy.data.materials:"
+          },
+          {
+            "lineNumber": 120,
+            "text": "        if compat.is_library_or_override(material):"
+          },
+          {
+            "lineNumber": 121,
+            "text": "            continue"
+          },
+          {
+            "lineNumber": 122,
+            "text": "        "
+          },
+          {
+            "lineNumber": 123,
+            "text": "        # Skip materials used by brushes - these should always be ignored"
+          },
+          {
+            "lineNumber": 124,
+            "text": "        if users.material_brushes(material.name):"
+          },
+          {
+            "lineNumber": 125,
+            "text": "            continue"
+          },
+          {
+            "lineNumber": 126,
+            "text": "        "
+          },
+          {
+            "lineNumber": 127,
+            "text": "        # First check: standard unused detection"
+          },
+          {
+            "lineNumber": 128,
+            "text": "        if not users.material_all(material.name):"
+          },
+          {
+            "lineNumber": 129,
+            "text": "            if not material.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 130,
+            "text": "                return True"
+          },
+          {
+            "lineNumber": 131,
+            "text": "        else:"
+          },
+          {
+            "lineNumber": 132,
+            "text": "            # Second check: material is used, but check if it's ONLY used by unused objects"
+          },
+          {
+            "lineNumber": 133,
+            "text": "            # This fixes issue #5: materials used by unused objects should be marked as unused"
+          },
+          {
+            "lineNumber": 134,
+            "text": "            objects_using_material = []"
+          },
+          {
+            "lineNumber": 135,
+            "text": "            objects_using_material.extend(users.material_objects(material.name))"
+          },
+          {
+            "lineNumber": 136,
+            "text": "            objects_using_material.extend(users.material_geometry_nodes(material.name))"
+          },
+          {
+            "lineNumber": 137,
+            "text": "            "
+          },
+          {
+            "lineNumber": 138,
+            "text": "            # Remove duplicates"
+          },
+          {
+            "lineNumber": 139,
+            "text": "            objects_using_material = list(set(objects_using_material))"
+          },
+          {
+            "lineNumber": 140,
+            "text": "            "
+          },
+          {
+            "lineNumber": 141,
+            "text": "            # If material is only used by objects, and ALL those objects are unused, mark material as unused"
+          },
+          {
+            "lineNumber": 142,
+            "text": "            if objects_using_material:"
+          },
+          {
+            "lineNumber": 143,
+            "text": "                all_objects_unused = all(not users.object_all(obj_name) for obj_name in objects_using_material)"
+          },
+          {
+            "lineNumber": 144,
+            "text": "                if all_objects_unused:"
+          },
+          {
+            "lineNumber": 145,
+            "text": "                    if not material.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 146,
+            "text": "                        return True"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 147,
+            "text": "    return False"
+          },
+          {
+            "lineNumber": 148
+          },
+          {
+            "lineNumber": 149
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 150,
+            "text": "def _has_any_unused_node_groups():"
+          },
+          {
+            "lineNumber": 151,
+            "text": "    \"\"\"Check if there are any unused node groups (short-circuits early).\"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 161
+          },
+          "startPosition": {
+            "column": 16,
+            "line": 113
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "signatures": {}
+      },
+      "score": 0.41523003578186035
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 75,
+            "text": "# Cache for unused data-blocks to avoid recalculation"
+          },
+          {
+            "lineNumber": 76,
+            "text": "# This is invalidated when undo steps occur or after cleaning"
+          },
+          {
+            "lineNumber": 77,
+            "text": "_unused_cache = None"
+          },
+          {
+            "lineNumber": 78,
+            "text": "_cache_valid = False"
+          },
+          {
+            "lineNumber": 79
+          },
+          {
+            "lineNumber": 80,
+            "text": "# Store reference to clean operator instance for dialog invocation"
+          },
+          {
+            "lineNumber": 81,
+            "text": "_clean_operator_instance = None"
+          },
+          {
+            "lineNumber": 82
+          },
+          {
+            "lineNumber": 83,
+            "text": "# Store scan results for dialog invocation (when operator instance is invalidated)"
+          },
+          {
+            "lineNumber": 84,
+            "text": "_clean_pending_results = None"
+          },
+          {
+            "lineNumber": 85,
+            "text": "_clean_pending_categories = None"
+          },
+          {
+            "lineNumber": 86
+          },
+          {
+            "lineNumber": 87,
+            "text": "# Module-level state for timer-based operations"
+          },
+          {
+            "lineNumber": 88,
+            "text": "_smart_select_state = {"
+          },
+          {
+            "lineNumber": 89,
+            "text": "    'current_category_index': 0,"
+          },
+          {
+            "lineNumber": 90,
+            "text": "    'unused_flags': {},"
+          },
+          {
+            "lineNumber": 91,
+            "text": "    'all_unused': None,"
+          },
+          {
+            "lineNumber": 92,
+            "text": "    'detected_categories': [],"
+          },
+          {
+            "lineNumber": 93,
+            "text": "    'counting_category_index': 0,  # For incremental counting in Step 2"
+          },
+          {
+            "lineNumber": 94,
+            "text": "    'counting_all_unused': {},  # For incremental counting results"
+          },
+          {
+            "lineNumber": 95,
+            "text": "    'counting_status_updated': False,  # Track if status was updated for current category"
+          },
+          {
+            "lineNumber": 96,
+            "text": "    'counting_images_list': None,  # List of images to check incrementally"
+          },
+          {
+            "lineNumber": 97,
+            "text": "    'counting_images_index': 0,  # Current image index"
+          },
+          {
+            "lineNumber": 98,
+            "text": "    'counting_images_unused': [],  # Unused images found so far"
+          },
+          {
+            "lineNumber": 99,
+            "text": "    'counting_images_executor': None,  # ThreadPoolExecutor for parallel processing"
+          },
+          {
+            "lineNumber": 100,
+            "text": "    'counting_images_futures': []  # List of futures for tracking parallel work"
+          },
+          {
+            "lineNumber": 101,
+            "text": "}"
+          },
+          {
+            "lineNumber": 102
+          },
+          {
+            "lineNumber": 103,
+            "text": "_clean_invoke_state = {"
+          },
+          {
+            "lineNumber": 104,
+            "text": "    'current_category_index': 0,"
+          },
+          {
+            "lineNumber": 105,
+            "text": "    'all_unused': None,"
+          },
+          {
+            "lineNumber": 106,
+            "text": "    'selected_categories': [],"
+          },
+          {
+            "lineNumber": 107,
+            "text": "    'found_items': {},"
+          },
+          {
+            "lineNumber": 108,
+            "text": "    'current_world_index': 0,  # For incremental world scanning"
+          },
+          {
+            "lineNumber": 109,
+            "text": "    'worlds_list': None,  # Cache of worlds to scan"
+          },
+          {
+            "lineNumber": 110,
+            "text": "    'status_updated': False  # Track if status was updated for current category"
+          },
+          {
+            "lineNumber": 111,
+            "text": "}"
+          },
+          {
+            "lineNumber": 112
+          },
+          {
+            "lineNumber": 113,
+            "text": "_clean_execute_state = {"
+          },
+          {
+            "lineNumber": 114,
+            "text": "    'categories_to_clean': [],"
+          },
+          {
+            "lineNumber": 115,
+            "text": "    'total_items': 0,"
+          },
+          {
+            "lineNumber": 116,
+            "text": "    'current_category_index': 0,"
+          },
+          {
+            "lineNumber": 117,
+            "text": "    'current_item_index': 0,"
+          },
+          {
+            "lineNumber": 118,
+            "text": "    'deleted_count': 0"
+          },
+          {
+            "lineNumber": 119,
+            "text": "}"
+          },
+          {
+            "lineNumber": 120
+          },
+          {
+            "lineNumber": 121,
+            "text": "# Unified scanning state for both Smart Select and Clean"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "column": 56,
+            "line": 120
+          },
+          "startPosition": {
+            "column": 20,
+            "line": 71
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.4009433090686798
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 114,
+            "text": "def materials(cached_list=None):"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 115,
+            "text": "    # removes all unused materials from the project"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 116,
+            "text": "    # If cached_list is provided, use it instead of recalculating"
+          },
+          {
+            "lineNumber": 117,
+            "text": "    if cached_list is not None:"
+          },
+          {
+            "lineNumber": 118,
+            "text": "        material_keys = cached_list"
+          },
+          {
+            "lineNumber": 119,
+            "text": "    else:"
+          },
+          {
+            "lineNumber": 120,
+            "text": "        material_keys = unused.materials_deep()"
+          },
+          {
+            "lineNumber": 121,
+            "text": "    "
+          },
+          {
+            "lineNumber": 122,
+            "text": "    for material_key in material_keys:"
+          },
+          {
+            "lineNumber": 123,
+            "text": "        if material_key in bpy.data.materials:"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 124,
+            "text": "            bpy.data.materials.remove(bpy.data.materials[material_key])"
+          },
+          {
+            "lineNumber": 125
+          },
+          {
+            "lineNumber": 126
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 127,
+            "text": "def node_groups(cached_list=None):"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 128,
+            "text": "    # removes all unused node groups from the project"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 129,
+            "text": "    # If cached_list is provided, use it instead of recalculating"
+          },
+          {
+            "lineNumber": 130,
+            "text": "    "
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 136
+          },
+          "startPosition": {
+            "column": 62,
+            "line": 110
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\utils\\clean.py",
+        "signatures": {}
+      },
+      "score": 0.3987807035446167
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 233,
+            "text": "# Category order for progress tracking"
+          },
+          {
+            "lineNumber": 234,
+            "text": "CATEGORIES = ['collections', 'images', 'lights', 'materials', 'node_groups', "
+          },
+          {
+            "lineNumber": 235,
+            "text": "              'objects', 'particles', 'textures', 'armatures', 'worlds']"
+          },
+          {
+            "lineNumber": 236
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 237,
+            "text": "def get_unused_for_smart_select():"
+          },
+          {
+            "lineNumber": 238,
+            "text": "    \"\"\""
+          },
+          {
+            "lineNumber": 239,
+            "text": "    Get unused data for smart select operation (returns booleans)."
+          },
+          {
+            "lineNumber": 240,
+            "text": "    Optimized to short-circuit early - stops checking each category"
+          },
+          {
+            "lineNumber": 241,
+            "text": "    as soon as unused data is found. This is much faster than computing"
+          },
+          {
+            "lineNumber": 242,
+            "text": "    the full list of unused items."
+          },
+          {
+            "lineNumber": 243,
+            "text": "    "
+          },
+          {
+            "lineNumber": 244,
+            "text": "    Returns a dictionary with boolean values indicating if each category"
+          },
+          {
+            "lineNumber": 245,
+            "text": "    has unused data-blocks."
+          },
+          {
+            "lineNumber": 246,
+            "text": "    \"\"\""
+          },
+          {
+            "lineNumber": 247,
+            "text": "    # Use optimized short-circuit versions that stop as soon as"
+          },
+          {
+            "lineNumber": 248,
+            "text": "    # they find ONE unused item, rather than computing the full list"
+          },
+          {
+            "lineNumber": 249,
+            "text": "    result = {}"
+          },
+          {
+            "lineNumber": 250,
+            "text": "    for category in CATEGORIES:"
+          },
+          {
+            "lineNumber": 251,
+            "text": "        if category == 'collections':"
+          },
+          {
+            "lineNumber": 252,
+            "text": "            result[category] = _has_any_unused_collections()"
+          },
+          {
+            "lineNumber": 253,
+            "text": "        elif category == 'images':"
+          },
+          {
+            "lineNumber": 254,
+            "text": "            result[category] = _has_any_unused_images()"
+          },
+          {
+            "lineNumber": 255,
+            "text": "        elif category == 'lights':"
+          },
+          {
+            "lineNumber": 256,
+            "text": "            result[category] = _has_any_unused_lights()"
+          },
+          {
+            "lineNumber": 257,
+            "text": "        elif category == 'materials':"
+          },
+          {
+            "lineNumber": 258,
+            "text": "            result[category] = _has_any_unused_materials()"
+          },
+          {
+            "lineNumber": 259,
+            "text": "        elif category == 'node_groups':"
+          },
+          {
+            "lineNumber": 260,
+            "text": "            result[category] = _has_any_unused_node_groups()"
+          },
+          {
+            "lineNumber": 261,
+            "text": "        elif category == 'objects':"
+          },
+          {
+            "lineNumber": 262,
+            "text": "            result[category] = _has_any_unused_objects()"
+          },
+          {
+            "lineNumber": 263,
+            "text": "        elif category == 'particles':"
+          },
+          {
+            "lineNumber": 264,
+            "text": "            result[category] = _has_any_unused_particles()"
+          },
+          {
+            "lineNumber": 265,
+            "text": "        elif category == 'textures':"
+          },
+          {
+            "lineNumber": 266,
+            "text": "            result[category] = _has_any_unused_textures()"
+          },
+          {
+            "lineNumber": 267,
+            "text": "        elif category == 'armatures':"
+          },
+          {
+            "lineNumber": 268,
+            "text": "            result[category] = _has_any_unused_armatures()"
+          },
+          {
+            "lineNumber": 269,
+            "text": "        elif category == 'worlds':"
+          },
+          {
+            "lineNumber": 270,
+            "text": "            result[category] = _has_any_unused_worlds()"
+          },
+          {
+            "lineNumber": 271,
+            "text": "    "
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 272,
+            "text": "    return result"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "column": 17,
+            "line": 271
+          },
+          "startPosition": {
+            "column": 16,
+            "line": 229
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\unused_parallel.py",
+        "signatures": {}
+      },
+      "score": 0.3986920118331909
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 250,
+            "text": "def materials_shallow():"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 251,
+            "text": "    # returns a list of keys of unused material that may be"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 252,
+            "text": "    # incomplete, but is significantly faster than doing a deep search"
+          },
+          {
+            "lineNumber": 253
+          },
+          {
+            "lineNumber": 254,
+            "text": "    unused_materials = shallow(bpy.data.materials)"
+          },
+          {
+            "lineNumber": 255
+          },
+          {
+            "lineNumber": 256,
+            "text": "    # Filter out materials used by brushes - these should always be ignored"
+          },
+          {
+            "lineNumber": 257,
+            "text": "    filtered = []"
+          },
+          {
+            "lineNumber": 258,
+            "text": "    for key in unused_materials:"
+          },
+          {
+            "lineNumber": 259,
+            "text": "        material = bpy.data.materials.get(key)"
+          },
+          {
+            "lineNumber": 260,
+            "text": "        if material and not users.material_brushes(key):"
+          },
+          {
+            "lineNumber": 261,
+            "text": "            filtered.append(key)"
+          },
+          {
+            "lineNumber": 262
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 263,
+            "text": "    return filtered"
+          },
+          {
+            "lineNumber": 264
+          },
+          {
+            "lineNumber": 265
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 266,
+            "text": "def _is_compositor_node_tree(node_group):"
+          },
+          {
+            "lineNumber": 267,
+            "text": "    \"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 299
+          },
+          "startPosition": {
+            "column": 17,
+            "line": 246
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "signatures": {}
+      },
+      "score": 0.3930842876434326
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 1020,
+            "text": "def _on_smart_select_full_scan_complete(results, **kwargs):"
+          },
+          {
+            "lineNumber": 1021,
+            "text": "    \"\"\"Callback for Smart Select full scan completion."
+          },
+          {
+            "lineNumber": 1022,
+            "text": "    Processes full scan results, caches them, and updates UI toggles.\"\"\""
+          },
+          {
+            "lineNumber": 1023,
+            "text": "    global _smart_select_state, _unused_cache, _cache_valid"
+          },
+          {
+            "lineNumber": 1024,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1025,
+            "text": "    # Store results"
+          },
+          {
+            "lineNumber": 1026,
+            "text": "    _smart_select_state['all_unused'] = results"
+          },
+          {
+            "lineNumber": 1027,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1028,
+            "text": "    # Cache the results"
+          },
+          {
+            "lineNumber": 1029,
+            "text": "    _unused_cache = results"
+          },
+          {
+            "lineNumber": 1030,
+            "text": "    _cache_valid = True"
+          },
+          {
+            "lineNumber": 1031,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1032,
+            "text": "    atom = bpy.context.scene.atomic"
+          },
+          {
+            "lineNumber": 1033,
+            "text": "    _safe_set_atom_property(atom, 'operation_progress', 75.0)"
+          },
+          {
+            "lineNumber": 1034,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1035,
+            "text": "    # Update UI toggles"
+          },
+          {
+            "lineNumber": 1036,
+            "text": "    _safe_set_atom_property(atom, 'operation_status', \"Updating selection...\")"
+          },
+          {
+            "lineNumber": 1037,
+            "text": "    atom.collections = _smart_select_state['unused_flags'].get('collections', False)"
+          },
+          {
+            "lineNumber": 1038,
+            "text": "    atom.images = _smart_select_state['unused_flags'].get('images', False)"
+          },
+          {
+            "lineNumber": 1039,
+            "text": "    atom.lights = _smart_select_state['unused_flags'].get('lights', False)"
+          },
+          {
+            "lineNumber": 1040,
+            "text": "    atom.materials = _smart_select_state['unused_flags'].get('materials', False)"
+          },
+          {
+            "lineNumber": 1041,
+            "text": "    atom.node_groups = _smart_select_state['unused_flags'].get('node_groups', False)"
+          },
+          {
+            "lineNumber": 1042,
+            "text": "    atom.objects = _smart_select_state['unused_flags'].get('objects', False)"
+          },
+          {
+            "lineNumber": 1043,
+            "text": "    atom.particles = _smart_select_state['unused_flags'].get('particles', False)"
+          },
+          {
+            "lineNumber": 1044,
+            "text": "    atom.textures = _smart_select_state['unused_flags'].get('textures', False)"
+          },
+          {
+            "lineNumber": 1045,
+            "text": "    atom.armatures = _smart_select_state['unused_flags'].get('armatures', False)"
+          },
+          {
+            "lineNumber": 1046,
+            "text": "    atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)"
+          },
+          {
+            "lineNumber": 1047,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1048,
+            "text": "    # Operation complete"
+          },
+          {
+            "lineNumber": 1049,
+            "text": "    _safe_set_atom_property(atom, 'is_operation_running', False)"
+          },
+          {
+            "lineNumber": 1050,
+            "text": "    _safe_set_atom_property(atom, 'operation_progress', 100.0)"
+          },
+          {
+            "lineNumber": 1051,
+            "text": "    _safe_set_atom_property(atom, 'operation_status', f\"Complete! Found unused items in {len(_smart_select_state['detected_categories'])} categories\")"
+          },
+          {
+            "lineNumber": 1052,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1053,
+            "text": "    # Clear state"
+          },
+          {
+            "lineNumber": 1054,
+            "text": "    _smart_select_state = None"
+          },
+          {
+            "lineNumber": 1055,
+            "text": "    "
+          },
+          {
+            "lineNumber": 1056,
+            "text": "    # Force UI update"
+          },
+          {
+            "lineNumber": 1057,
+            "text": "    for area in bpy.context.screen.areas:"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 1058,
+            "text": "        area.tag_redraw()"
+          },
+          {
+            "lineNumber": 1059
+          },
+          {
+            "lineNumber": 1060
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 1061,
+            "text": "def _on_clean_scan_complete(results, **kwargs):"
+          },
+          {
+            "lineNumber": 1062,
+            "text": "    \"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 1144
+          },
+          "startPosition": {
+            "column": 72,
+            "line": 1016
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.38972795009613037
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 699,
+            "text": "def execute(self, context):"
+          },
+          {
+            "lineNumber": 806
+          },
+          {
+            "lineNumber": 807,
+            "text": "        "
+          },
+          {
+            "lineNumber": 808,
+            "text": "        return {'FINISHED'}"
+          },
+          {
+            "lineNumber": 809
+          },
+          {
+            "lineNumber": 810,
+            "text": "    def invoke(self, context, event):"
+          },
+          {
+            "lineNumber": 811,
+            "text": "        atom = context.scene.atomic"
+          },
+          {
+            "lineNumber": 812,
+            "text": "        "
+          },
+          {
+            "lineNumber": 813,
+            "text": "        # Store operator instance for dialog invocation"
+          },
+          {
+            "lineNumber": 814,
+            "text": "        global _clean_operator_instance, _clean_pending_results, _clean_pending_categories"
+          },
+          {
+            "lineNumber": 815,
+            "text": "        _clean_operator_instance = self"
+          },
+          {
+            "lineNumber": 816,
+            "text": "        "
+          },
+          {
+            "lineNumber": 817,
+            "text": "        # Check if there are pending results from a completed scan"
+          },
+          {
+            "lineNumber": 818,
+            "text": "        if _clean_pending_results is not None:"
+          },
+          {
+            "lineNumber": 819,
+            "text": "            # Populate from pending results and show dialog"
+          },
+          {
+            "lineNumber": 820,
+            "text": "            _populate_unused_lists(self, atom, _clean_pending_results)"
+          },
+          {
+            "lineNumber": 821,
+            "text": "            # Clear pending results"
+          },
+          {
+            "lineNumber": 822,
+            "text": "            _clean_pending_results = None"
+          },
+          {
+            "lineNumber": 823,
+            "text": "            _clean_pending_categories = None"
+          },
+          {
+            "lineNumber": 824,
+            "text": "            return context.window_manager.invoke_props_dialog(self, width=1000)"
+          },
+          {
+            "lineNumber": 825,
+            "text": "        "
+          },
+          {
+            "lineNumber": 826,
+            "text": "        # Determine which categories are selected"
+          },
+          {
+            "lineNumber": 827,
+            "text": "        selected_categories = []"
+          },
+          {
+            "lineNumber": 828,
+            "text": "        if atom.collections:"
+          },
+          {
+            "lineNumber": 829,
+            "text": "            selected_categories.append('collections')"
+          },
+          {
+            "lineNumber": 830,
+            "text": "        if atom.images:"
+          },
+          {
+            "lineNumber": 831,
+            "text": "            selected_categories.append('images')"
+          },
+          {
+            "lineNumber": 832,
+            "text": "        if atom.lights:"
+          },
+          {
+            "lineNumber": 833,
+            "text": "            selected_categories.append('lights')"
+          },
+          {
+            "lineNumber": 834,
+            "text": "        if atom.materials:"
+          },
+          {
+            "lineNumber": 835,
+            "text": "            selected_categories.append('materials')"
+          },
+          {
+            "lineNumber": 836,
+            "text": "        if atom.node_groups:"
+          },
+          {
+            "lineNumber": 837,
+            "text": "            selected_categories.append('node_groups')"
+          },
+          {
+            "lineNumber": 838,
+            "text": "        if atom.objects:"
+          },
+          {
+            "lineNumber": 839,
+            "text": "            selected_categories.append('objects')"
+          },
+          {
+            "lineNumber": 840,
+            "text": "        if atom.particles:"
+          },
+          {
+            "lineNumber": 841,
+            "text": "            selected_categories.append('particles')"
+          },
+          {
+            "lineNumber": 842,
+            "text": "        if atom.textures:"
+          },
+          {
+            "lineNumber": 843,
+            "text": "            selected_categories.append('textures')"
+          },
+          {
+            "lineNumber": 844,
+            "text": "        if atom.armatures:"
+          },
+          {
+            "lineNumber": 845,
+            "text": "            selected_categories.append('armatures')"
+          },
+          {
+            "lineNumber": 846,
+            "text": "        if atom.worlds:"
+          },
+          {
+            "lineNumber": 847,
+            "text": "            selected_categories.append('worlds')"
+          },
+          {
+            "lineNumber": 848,
+            "text": "        "
+          },
+          {
+            "lineNumber": 849,
+            "text": "        # Check if cache is valid and contains all selected categories"
+          },
+          {
+            "lineNumber": 850,
+            "text": "        global _unused_cache, _cache_valid"
+          },
+          {
+            "lineNumber": 851,
+            "text": "        if _cache_valid and _unused_cache is not None:"
+          },
+          {
+            "lineNumber": 852,
+            "text": "            # Check if cache has all selected categories"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 875
+          },
+          "startPosition": {
+            "line": 561
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 563
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 562
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.37861359119415283
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 619,
+            "text": "# Atomic Data Manager Clean Materials Operator"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 620,
+            "text": "class ATOMIC_OT_clean_materials(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 621,
+            "text": "    \"\"\"Remove all unused materials from this project\"\"\""
+          },
+          {
+            "lineNumber": 622,
+            "text": "    bl_idname = \"atomic.clean_materials\""
+          },
+          {
+            "lineNumber": 623,
+            "text": "    bl_label = \"Clean Materials\""
+          },
+          {
+            "lineNumber": 624
+          },
+          {
+            "lineNumber": 625,
+            "text": "    unused_materials = []"
+          },
+          {
+            "lineNumber": 626
+          },
+          {
+            "lineNumber": 627,
+            "text": "    def draw(self, context):"
+          },
+          {
+            "lineNumber": 628,
+            "text": "        layout = self.layout"
+          },
+          {
+            "lineNumber": 629
+          },
+          {
+            "lineNumber": 630,
+            "text": "        row = layout.row()"
+          },
+          {
+            "lineNumber": 631,
+            "text": "        row.label(text=\"Remove the following data-blocks?\")"
+          },
+          {
+            "lineNumber": 632
+          },
+          {
+            "lineNumber": 633,
+            "text": "        ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 634,
+            "text": "            layout=layout,"
+          },
+          {
+            "lineNumber": 635,
+            "text": "            items=self.unused_materials,"
+          },
+          {
+            "lineNumber": 636,
+            "text": "            icon=\"MATERIAL\""
+          },
+          {
+            "lineNumber": 637,
+            "text": "        )"
+          },
+          {
+            "lineNumber": 638
+          },
+          {
+            "lineNumber": 639,
+            "text": "        row = layout.row()  # extra space"
+          },
+          {
+            "lineNumber": 640
+          },
+          {
+            "lineNumber": 641,
+            "text": "    def execute(self, context):"
+          },
+          {
+            "lineNumber": 642,
+            "text": "        clean.materials()"
+          },
+          {
+            "lineNumber": 643,
+            "text": "        return {'FINISHED'}"
+          },
+          {
+            "lineNumber": 644
+          },
+          {
+            "lineNumber": 645,
+            "text": "    def invoke(self, context, event):"
+          },
+          {
+            "lineNumber": 646,
+            "text": "        wm = context.window_manager"
+          },
+          {
+            "lineNumber": 647,
+            "text": "        self.unused_materials = unused.materials_deep()"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 648,
+            "text": "        return wm.invoke_props_dialog(self)"
+          },
+          {
+            "lineNumber": 649
+          },
+          {
+            "lineNumber": 650
+          },
+          {
+            "lineNumber": 651,
+            "text": "# Atomic Data Manager Clean Node Groups Operator"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 652,
+            "text": "class ATOMIC_OT_clean_node_groups(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 653,
+            "text": "    \"\"\"Remove all unused node groups from this project\"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 679
+          },
+          "startPosition": {
+            "column": 43,
+            "line": 615
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\direct_use_ops.py",
+        "signatures": {}
+      },
+      "score": 0.37048983573913574
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 906,
+            "text": "def analyze_unused_from_graph(graph, category, include_fake_users=None):"
+          },
+          {
+            "lineNumber": 907,
+            "text": "    \"\"\""
+          },
+          {
+            "lineNumber": 908,
+            "text": "    Determine unused items using the dependency graph."
+          },
+          {
+            "lineNumber": 909,
+            "text": "    "
+          },
+          {
+            "lineNumber": 910,
+            "text": "    Args:"
+          },
+          {
+            "lineNumber": 911,
+            "text": "        graph: Dependency graph from build_dependency_graph()"
+          },
+          {
+            "lineNumber": 912,
+            "text": "        category: Category to analyze ('images', 'materials', etc.)"
+          },
+          {
+            "lineNumber": 913,
+            "text": "        include_fake_users: Whether to treat fake users as used (defaults to config.include_fake_users)"
+          },
+          {
+            "lineNumber": 914,
+            "text": "    "
+          },
+          {
+            "lineNumber": 915,
+            "text": "    Returns:"
+          },
+          {
+            "lineNumber": 916,
+            "text": "        List of unused item names for the specified category"
+          },
+          {
+            "lineNumber": 917,
+            "text": "    \"\"\""
+          },
+          {
+            "lineNumber": 918,
+            "text": "    from . import users"
+          },
+          {
+            "lineNumber": 919
+          },
+          {
+            "lineNumber": 920,
+            "text": "    if include_fake_users is None:"
+          },
+          {
+            "lineNumber": 921,
+            "text": "        include_fake_users = config.include_fake_users"
+          },
+          {
+            "lineNumber": 922,
+            "text": "    "
+          },
+          {
+            "lineNumber": 923,
+            "text": "    config.debug_print(f\"[Atomic Debug] RNA Analysis: Analyzing unused {category}...\")"
+          },
+          {
+            "lineNumber": 924,
+            "text": "    "
+          },
+          {
+            "lineNumber": 925,
+            "text": "    if category not in _DATA_BLOCK_TYPE_NAMES:"
+          },
+          {
+            "lineNumber": 926,
+            "text": "        config.debug_print(f\"[Atomic Warning] RNA Analysis: Unknown category '{category}'\")"
+          },
+          {
+            "lineNumber": 927,
+            "text": "        return []"
+          },
+          {
+            "lineNumber": 928,
+            "text": "    "
+          },
+          {
+            "lineNumber": 929,
+            "text": "    # Mark all items as unused initially"
+          },
+          {
+            "lineNumber": 930,
+            "text": "    used = set()"
+          },
+          {
+            "lineNumber": 931,
+            "text": "    "
+          },
+          {
+            "lineNumber": 932,
+            "text": "    # Find root items (those that are directly used in scenes/view layers)"
+          },
+          {
+            "lineNumber": 933,
+            "text": "    roots = []"
+          },
+          {
+            "lineNumber": 934,
+            "text": "    "
+          },
+          {
+            "lineNumber": 935,
+            "text": "    # Debug: Check if graph has any data"
+          },
+          {
+            "lineNumber": 936,
+            "text": "    if config.enable_debug_prints:"
+          },
+          {
+            "lineNumber": 937,
+            "text": "        total_nodes = sum(len(items) for items in graph.values())"
+          },
+          {
+            "lineNumber": 938,
+            "text": "        config.debug_print(f\"[Atomic Debug] RNA Analysis: Graph has {total_nodes} total nodes\")"
+          },
+          {
+            "lineNumber": 939,
+            "text": "        # Check if collections have object references"
+          },
+          {
+            "lineNumber": 940,
+            "text": "        collection_count = 0"
+          },
+          {
+            "lineNumber": 941,
+            "text": "        for coll_name, coll_data in graph.get('collections', {}).items():"
+          },
+          {
+            "lineNumber": 942,
+            "text": "            refs = coll_data.get('references', set())"
+          },
+          {
+            "lineNumber": 943,
+            "text": "            obj_refs = [r for r in refs if r[0] == 'objects']"
+          },
+          {
+            "lineNumber": 944,
+            "text": "            if obj_refs and collection_count \u003c 3:"
+          },
+          {
+            "lineNumber": 945,
+            "text": "                config.debug_print(f\"[Atomic Debug] RNA Analysis: Collection '{coll_name}' references {len(obj_refs)} objects (sample: {[r[1] for r in list(obj_refs)[:3]]})\")"
+          },
+          {
+            "lineNumber": 946,
+            "text": "                collection_count += 1"
+          },
+          {
+            "lineNumber": 947,
+            "text": "    "
+          },
+          {
+            "lineNumber": 948,
+            "text": "    # Helper function to get all collections in a scene hierarchy"
+          },
+          {
+            "lineNumber": 949,
+            "text": "    def get_all_scene_collections(root_collection):"
+          },
+          {
+            "lineNumber": 950,
+            "text": "        \"\"\"Recursively get all collections in the scene hierarchy.\"\"\""
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 1202
+          },
+          "startPosition": {
+            "column": 16,
+            "line": 902
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\rna_analysis.py",
+        "signatures": {}
+      },
+      "score": 0.3558453321456909
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 122,
+            "text": "- Fixed Clean operator not showing dialog when invoked programmatically (#8)"
+          },
+          {
+            "lineNumber": 123,
+            "text": "- Improved material detection in inspection tools (brushes, node groups)"
+          },
+          {
+            "lineNumber": 124
+          },
+          {
+            "lineNumber": 125,
+            "text": "### Internal"
+          },
+          {
+            "lineNumber": 126
+          },
+          {
+            "lineNumber": 127,
+            "text": "- Refactored scanning architecture for maintainability"
+          },
+          {
+            "lineNumber": 128,
+            "text": "- Added comprehensive debug output for troubleshooting"
+          },
+          {
+            "lineNumber": 129
+          },
+          {
+            "lineNumber": 130,
+            "text": "## [v2.1.0] - 2025-12-18"
+          },
+          {
+            "lineNumber": 131
+          },
+          {
+            "lineNumber": 132,
+            "text": "### Features"
+          },
+          {
+            "lineNumber": 133
+          },
+          {
+            "lineNumber": 134,
+            "text": "- Added support for detecting unused objects and armatures (#1)"
+          },
+          {
+            "lineNumber": 135,
+            "text": "  - Objects not present in any scene collections are now detected as unused"
+          },
+          {
+            "lineNumber": 136,
+            "text": "  - Armatures not used by any objects in scenes (including direct use, modifiers, and constraints like \"Child Of\") are detected as unused"
+          },
+          {
+            "lineNumber": 137,
+            "text": "  - Smart Select and Clean operations now support objects and armatures"
+          },
+          {
+            "lineNumber": 138
+          },
+          {
+            "lineNumber": 139,
+            "text": "### Fixes"
+          },
+          {
+            "lineNumber": 140
+          },
+          {
+            "lineNumber": 141,
+            "text": "- Fixed material detection in Geometry Nodes Set Material nodes"
+          },
+          {
+            "lineNumber": 142,
+            "text": "  - Materials used in Geometry Nodes' \"Set Material\" nodes are now correctly detected as used"
+          },
+          {
+            "lineNumber": 143,
+            "text": "  - Fixed legacy issue where materials in node groups (e.g., \"outline-highlight\" in \"box-highlight\" node group) were incorrectly flagged as unused"
+          },
+          {
+            "lineNumber": 144,
+            "text": "  - This was a hangover from Atomic never being developed past Blender 2.93, where Geometry Nodes Set Material nodes use input sockets rather than direct material properties"
+          },
+          {
+            "lineNumber": 145,
+            "text": "- Performance optimizations for Smart Select and Clean operations (#3)"
+          },
+          {
+            "lineNumber": 146,
+            "text": "  - Removed inefficient threading implementation that was causing poor performance"
+          },
+          {
+            "lineNumber": 147,
+            "text": "  - Implemented short-circuiting logic in Smart Select to exit early when unused items are found"
+          },
+          {
+            "lineNumber": 148,
+            "text": "  - Fixed UI operators to use cached values instead of recalculating on every draw call"
+          },
+          {
+            "lineNumber": 149,
+            "text": "  - Note: Further performance improvements are limited by Blender's Python API being single-threaded and requiring sequential access to &#96;bpy.data&#96; collections, making true parallelization impossible without risking data corruption"
+          },
+          {
+            "lineNumber": 150
+          },
+          {
+            "lineNumber": 151,
+            "text": "### Internal"
+          },
+          {
+            "lineNumber": 152
+          },
+          {
+            "lineNumber": 153,
+            "text": "- Removed incorrect \"Remington Creative\" copyright notices from newly created files"
+          },
+          {
+            "lineNumber": 154,
+            "text": "- Updated repository configuration in manifest"
+          },
+          {
+            "lineNumber": 155
+          },
+          {
+            "lineNumber": 156,
+            "text": "## [v2.0.3] - 2025-12-17"
+          },
+          {
+            "lineNumber": 157
+          },
+          {
+            "lineNumber": 158,
+            "text": "### Fixes"
+          },
+          {
+            "lineNumber": 159
+          },
+          {
+            "lineNumber": 160,
+            "text": "- Fixed missing import error in missing file detection"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 161
+          },
+          "startPosition": {
+            "line": 121
+          }
+        },
+        "relativeWorkspacePath": ".\\CHANGELOG.md",
+        "signatures": {}
+      },
+      "score": 0.3510833978652954
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 85,
+            "text": "def images_deep():"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 86,
+            "text": "    # returns a full list of keys of unused images"
+          },
+          {
+            "lineNumber": 107
+          },
+          {
+            "lineNumber": 108,
+            "text": "        if not users.image_all(image.name):"
+          },
+          {
+            "lineNumber": 109,
+            "text": "            config.debug_print(f\"[Atomic Debug] images_deep(): Image '{image.name}' is unused (first check)\")"
+          },
+          {
+            "lineNumber": 110,
+            "text": "            # check if image has a fake user or if ignore fake users"
+          },
+          {
+            "lineNumber": 111,
+            "text": "            # is enabled"
+          },
+          {
+            "lineNumber": 112,
+            "text": "            if not image.use_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 113,
+            "text": "                # if image is not in our do not flag list"
+          },
+          {
+            "lineNumber": 114,
+            "text": "                if image.name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 115,
+            "text": "                    unused.append(image.name)"
+          },
+          {
+            "lineNumber": 116,
+            "text": "        else:"
+          },
+          {
+            "lineNumber": 117,
+            "text": "            # Second check: image is used, but check if it's ONLY used by unused objects"
+          },
+          {
+            "lineNumber": 118,
+            "text": "            # This fixes issue #5: images used by unused objects should be marked as unused"
+          },
+          {
+            "lineNumber": 119,
+            "text": "            # Get all objects that use this image (directly or indirectly)"
+          },
+          {
+            "lineNumber": 120,
+            "text": "            objects_using_image = []"
+          },
+          {
+            "lineNumber": 121,
+            "text": "            "
+          },
+          {
+            "lineNumber": 122,
+            "text": "            # Check materials that use the image"
+          },
+          {
+            "lineNumber": 123,
+            "text": "            config.debug_print(f\"[Atomic Debug] images_deep(): Getting materials for '{image.name}'...\")"
+          },
+          {
+            "lineNumber": 124,
+            "text": "            mat_names = users.image_materials(image.name)"
+          },
+          {
+            "lineNumber": 125,
+            "text": "            config.debug_print(f\"[Atomic Debug] images_deep(): Found {len(mat_names)} materials using '{image.name}'\")"
+          },
+          {
+            "lineNumber": 126,
+            "text": "            for mat_name in mat_names:"
+          },
+          {
+            "lineNumber": 127,
+            "text": "                # Get objects using this material"
+          },
+          {
+            "lineNumber": 128,
+            "text": "                config.debug_print(f\"[Atomic Debug] images_deep(): Getting objects for material '{mat_name}'...\")"
+          },
+          {
+            "lineNumber": 129,
+            "text": "                objects_using_image.extend(users.material_objects(mat_name))"
+          },
+          {
+            "lineNumber": 130,
+            "text": "                # Also check Geometry Nodes usage"
+          },
+          {
+            "lineNumber": 131,
+            "text": "                config.debug_print(f\"[Atomic Debug] images_deep(): Getting Geometry Nodes objects for material '{mat_name}'...\")"
+          },
+          {
+            "lineNumber": 132,
+            "text": "                objects_using_image.extend(users.material_geometry_nodes(mat_name))"
+          },
+          {
+            "lineNumber": 133,
+            "text": "            "
+          },
+          {
+            "lineNumber": 134,
+            "text": "            # Check Geometry Nodes directly"
+          },
+          {
+            "lineNumber": 135,
+            "text": "            config.debug_print(f\"[Atomic Debug] images_deep(): Getting Geometry Nodes objects for '{image.name}'...\")"
+          },
+          {
+            "lineNumber": 136,
+            "text": "            objects_using_image.extend(users.image_geometry_nodes(image.name))"
+          },
+          {
+            "lineNumber": 137,
+            "text": "            "
+          },
+          {
+            "lineNumber": 138,
+            "text": "            # Remove duplicates"
+          },
+          {
+            "lineNumber": 139,
+            "text": "            objects_using_image"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 159
+          },
+          "startPosition": {
+            "line": 84
+          }
+        },
+        "relativeWorkspacePath": ".\\stats\\unused.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 88
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 85
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.34979909658432007
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 561,
+            "text": "# Atomic Data Manager Clean Operator"
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 562,
+            "text": "class ATOMIC_OT_clean(bpy.types.Operator):"
+          },
+          {
+            "lineNumber": 563,
+            "text": "    \"\"\"Remove all unused data-blocks from the selected categories\"\"\""
+          },
+          {
+            "lineNumber": 564,
+            "text": "    bl_idname = \"atomic.clean\""
+          },
+          {
+            "lineNumber": 565,
+            "text": "    bl_label = \"Clean\""
+          },
+          {
+            "lineNumber": 566
+          },
+          {
+            "lineNumber": 567,
+            "text": "    # Use None as sentinel to indicate \"not yet calculated\""
+          },
+          {
+            "lineNumber": 568,
+            "text": "    # Empty lists [] indicate \"calculated and found nothing\""
+          },
+          {
+            "lineNumber": 569,
+            "text": "    unused_collections = None"
+          },
+          {
+            "lineNumber": 570,
+            "text": "    unused_images = None"
+          },
+          {
+            "lineNumber": 571,
+            "text": "    unused_lights = None"
+          },
+          {
+            "lineNumber": 572,
+            "text": "    unused_materials = None"
+          },
+          {
+            "lineNumber": 573,
+            "text": "    unused_node_groups = None"
+          },
+          {
+            "lineNumber": 574,
+            "text": "    unused_objects = None"
+          },
+          {
+            "lineNumber": 575,
+            "text": "    unused_particles = None"
+          },
+          {
+            "lineNumber": 576,
+            "text": "    unused_textures = None"
+          },
+          {
+            "lineNumber": 577,
+            "text": "    unused_armatures = None"
+          },
+          {
+            "lineNumber": 578,
+            "text": "    unused_worlds = None"
+          },
+          {
+            "lineNumber": 579
+          },
+          {
+            "lineNumber": 580,
+            "text": "    def draw(self, context):"
+          },
+          {
+            "lineNumber": 581,
+            "text": "        atom = bpy.context.scene.atomic"
+          },
+          {
+            "lineNumber": 582,
+            "text": "        layout = self.layout"
+          },
+          {
+            "lineNumber": 583
+          },
+          {
+            "lineNumber": 584,
+            "text": "        col = layout.column()"
+          },
+          {
+            "lineNumber": 585,
+            "text": "        col.label(text=\"Remove the following data-blocks?\")"
+          },
+          {
+            "lineNumber": 586
+          },
+          {
+            "lineNumber": 587,
+            "text": "        # display if no main panel properties are toggled"
+          },
+          {
+            "lineNumber": 588,
+            "text": "        if not (atom.collections or atom.images or atom.lights or"
+          },
+          {
+            "lineNumber": 589,
+            "text": "                atom.materials or atom.node_groups or atom.objects or"
+          },
+          {
+            "lineNumber": 590,
+            "text": "                atom.particles or atom.textures or atom.armatures or"
+          },
+          {
+            "lineNumber": 591,
+            "text": "                atom.worlds):"
+          },
+          {
+            "lineNumber": 592
+          },
+          {
+            "lineNumber": 593,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 594,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 595,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 596
+          },
+          {
+            "lineNumber": 597,
+            "text": "        # display when the main panel collections property is toggled"
+          },
+          {
+            "lineNumber": 598,
+            "text": "        if atom.collections:"
+          },
+          {
+            "lineNumber": 599,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 600,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 601,
+            "text": "                title=\"Collections\","
+          },
+          {
+            "lineNumber": 602,
+            "text": "                items=self.unused_collections,"
+          },
+          {
+            "lineNumber": 603,
+            "text": "                icon=\"OUTLINER_OB_GROUP_INSTANCE\","
+          },
+          {
+            "lineNumber": 604,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 605,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 606
+          },
+          {
+            "lineNumber": 607,
+            "text": "        # display when the main panel images property is toggled"
+          },
+          {
+            "lineNumber": 608,
+            "text": "        if atom.images:"
+          },
+          {
+            "lineNumber": 609,
+            "text": "            ui_layouts.box_list("
+          },
+          {
+            "lineNumber": 610,
+            "text": "                layout=layout,"
+          },
+          {
+            "lineNumber": 611,
+            "text": "                title=\"Images\","
+          },
+          {
+            "lineNumber": 612,
+            "text": "                items=self.unused_images,"
+          },
+          {
+            "lineNumber": 613,
+            "text": "                icon=\"IMAGE_DATA\","
+          },
+          {
+            "lineNumber": 614,
+            "text": "                columns=4"
+          },
+          {
+            "lineNumber": 615,
+            "text": "            )"
+          },
+          {
+            "lineNumber": 616
+          },
+          {
+            "lineNumber": 617,
+            "text": "        # display when the main panel lights property is toggled"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 875
+          },
+          "startPosition": {
+            "column": 55,
+            "line": 557
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.34367480874061584
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "isSignature": true,
+            "lineNumber": 879,
+            "text": "def _process_clean_execute_step():"
+          },
+          {
+            "lineNumber": 897
+          },
+          {
+            "lineNumber": 898,
+            "text": "        category, unused_list = _clean_execute_state['categories_to_clean'][_clean_execute_state['current_category_index']]"
+          },
+          {
+            "lineNumber": 899,
+            "text": "        "
+          },
+          {
+            "lineNumber": 900,
+            "text": "        if unused_list and _clean_execute_state['current_item_index'] \u003c len(unused_list):"
+          },
+          {
+            "lineNumber": 901,
+            "text": "            # Delete current item"
+          },
+          {
+            "lineNumber": 902,
+            "text": "            item_key = unused_list[_clean_execute_state['current_item_index']]"
+          },
+          {
+            "lineNumber": 903,
+            "text": "            _safe_set_atom_property(atom, 'operation_status', f\"Removing {category}: {item_key}...\")"
+          },
+          {
+            "lineNumber": 904,
+            "text": "            "
+          },
+          {
+            "lineNumber": 905,
+            "text": "            try:"
+          },
+          {
+            "lineNumber": 906,
+            "text": "                if category == 'collections':"
+          },
+          {
+            "lineNumber": 907,
+            "text": "                    if item_key in bpy.data.collections:"
+          },
+          {
+            "lineNumber": 908,
+            "text": "                        bpy.data.collections.remove(bpy.data.collections[item_key])"
+          },
+          {
+            "lineNumber": 909,
+            "text": "                elif category == 'images':"
+          },
+          {
+            "lineNumber": 910,
+            "text": "                    if item_key in bpy.data.images:"
+          },
+          {
+            "lineNumber": 911,
+            "text": "                        bpy.data.images.remove(bpy.data.images[item_key])"
+          },
+          {
+            "lineNumber": 912,
+            "text": "                elif category == 'lights':"
+          },
+          {
+            "lineNumber": 913,
+            "text": "                    if item_key in bpy.data.lights:"
+          },
+          {
+            "lineNumber": 914,
+            "text": "                        bpy.data.lights.remove(bpy.data.lights[item_key])"
+          },
+          {
+            "lineNumber": 915,
+            "text": "                elif category == 'materials':"
+          },
+          {
+            "lineNumber": 916,
+            "text": "                    if item_key in bpy.data.materials:"
+          },
+          {
+            "lineNumber": 917,
+            "text": "                        bpy.data.materials.remove(bpy.data.materials[item_key])"
+          },
+          {
+            "lineNumber": 918,
+            "text": "                elif category == 'node_groups':"
+          },
+          {
+            "lineNumber": 919,
+            "text": "                    if item_key in bpy.data.node_groups:"
+          },
+          {
+            "lineNumber": 920,
+            "text": "                        bpy.data.node_groups.remove(bpy.data.node_groups[item_key])"
+          },
+          {
+            "lineNumber": 921,
+            "text": "                elif category == 'objects':"
+          },
+          {
+            "lineNumber": 922,
+            "text": "                    if item_key in bpy.data.objects:"
+          },
+          {
+            "lineNumber": 923,
+            "text": "                        bpy.data.objects.remove(bpy.data.objects[item_key])"
+          },
+          {
+            "lineNumber": 924,
+            "text": "                elif category == 'particles':"
+          },
+          {
+            "lineNumber": 925,
+            "text": "                    if item_key in bpy.data.particles:"
+          },
+          {
+            "lineNumber": 926,
+            "text": "                        bpy.data.particles.remove(bpy.data.particles[item_key])"
+          },
+          {
+            "lineNumber": 927,
+            "text": "                elif category == 'textures':"
+          },
+          {
+            "lineNumber": 928,
+            "text": "                    if item_key in bpy.data.textures:"
+          },
+          {
+            "lineNumber": 929,
+            "text": "                        bpy.data.textures.remove(bpy.data.textures[item_key])"
+          },
+          {
+            "lineNumber": 930,
+            "text": "                elif category == 'armatures':"
+          },
+          {
+            "lineNumber": 931,
+            "text": "                    if item_key in bpy.data.armatures:"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 974
+          },
+          "startPosition": {
+            "line": 878
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {
+          "ranges": [
+            {
+              "endPosition": {
+                "column": 5,
+                "line": 880
+              },
+              "startPosition": {
+                "column": 1,
+                "line": 879
+              }
+            }
+          ]
+        }
+      },
+      "score": 0.3436116874217987
+    },
+    {
+      "codeBlock": {
+        "detailedLines": [
+          {
+            "lineNumber": 281,
+            "text": "# Worker process system removed - now using RNA-based analysis"
+          },
+          {
+            "lineNumber": 282
+          },
+          {
+            "lineNumber": 283
+          },
+          {
+            "isSignature": true,
+            "lineNumber": 284,
+            "text": "def _check_single_image(image):"
+          },
+          {
+            "lineNumber": 285,
+            "text": "    \"\"\"Check if a single image is unused. Returns True if unused, False otherwise."
+          },
+          {
+            "lineNumber": 286,
+            "text": "    Uses caching to avoid redundant expensive scans.\"\"\""
+          },
+          {
+            "lineNumber": 287,
+            "text": "    from ..stats import users"
+          },
+          {
+            "lineNumber": 288,
+            "text": "    "
+          },
+          {
+            "lineNumber": 289,
+            "text": "    do_not_flag = [\"Render Result\", \"Viewer Node\", \"D-NOISE Export\"]"
+          },
+          {
+            "lineNumber": 290,
+            "text": "    "
+          },
+          {
+            "lineNumber": 291,
+            "text": "    # Skip library-linked and override datablocks"
+          },
+          {
+            "lineNumber": 292,
+            "text": "    if compat.is_library_or_override(image):"
+          },
+          {
+            "lineNumber": 293,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 294,
+            "text": "    "
+          },
+          {
+            "lineNumber": 295,
+            "text": "    # Fast early check: Use Blender's built-in users count"
+          },
+          {
+            "lineNumber": 296,
+            "text": "    # This is much faster than scanning the entire scene"
+          },
+          {
+            "lineNumber": 297,
+            "text": "    image_users = image.users"
+          },
+          {
+            "lineNumber": 298,
+            "text": "    has_fake_user = image.use_fake_user"
+          },
+          {
+            "lineNumber": 299,
+            "text": "    "
+          },
+          {
+            "lineNumber": 300,
+            "text": "    # Fast path 1: Image has no users at all → definitely unused"
+          },
+          {
+            "lineNumber": 301,
+            "text": "    if image_users == 0:"
+          },
+          {
+            "lineNumber": 302,
+            "text": "        if image.name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 303,
+            "text": "            return True"
+          },
+          {
+            "lineNumber": 304,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 305,
+            "text": "    "
+          },
+          {
+            "lineNumber": 306,
+            "text": "    # Fast path 2: Only fake user and we're ignoring fake users → unused"
+          },
+          {
+            "lineNumber": 307,
+            "text": "    if image_users == 1 and has_fake_user and config.include_fake_users:"
+          },
+          {
+            "lineNumber": 308,
+            "text": "        if image.name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 309,
+            "text": "            return True"
+          },
+          {
+            "lineNumber": 310,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 311,
+            "text": "    "
+          },
+          {
+            "lineNumber": 312,
+            "text": "    # Fast path 3: Only fake user and we're NOT ignoring fake users → used (skip deep check)"
+          },
+          {
+            "lineNumber": 313,
+            "text": "    if image_users == 1 and has_fake_user and not config.include_fake_users:"
+          },
+          {
+            "lineNumber": 314,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 315,
+            "text": "    "
+          },
+          {
+            "lineNumber": 316,
+            "text": "    image_name = image.name"
+          },
+          {
+            "lineNumber": 317,
+            "text": "    "
+          },
+          {
+            "lineNumber": 318,
+            "text": "    # Deep check: standard unused detection (use cache)"
+          },
+          {
+            "lineNumber": 319,
+            "text": "    if image_name not in _image_scan_cache['image_all_results']:"
+          },
+          {
+            "lineNumber": 320,
+            "text": "        # Cache the result of image_all() - this is expensive"
+          },
+          {
+            "lineNumber": 321,
+            "text": "        _image_scan_cache['image_all_results'][image_name] = bool(users.image_all(image_name))"
+          },
+          {
+            "lineNumber": 322,
+            "text": "    "
+          },
+          {
+            "lineNumber": 323,
+            "text": "    if not _image_scan_cache['image_all_results'][image_name]:"
+          },
+          {
+            "lineNumber": 324,
+            "text": "        # check if image has a fake user or if ignore fake users is enabled"
+          },
+          {
+            "lineNumber": 325,
+            "text": "        if not has_fake_user or config.include_fake_users:"
+          },
+          {
+            "lineNumber": 326,
+            "text": "            # if image is not in our do not flag list"
+          },
+          {
+            "lineNumber": 327,
+            "text": "            if image_name not in do_not_flag:"
+          },
+          {
+            "lineNumber": 328,
+            "text": "                return True"
+          },
+          {
+            "lineNumber": 329,
+            "text": "        return False"
+          },
+          {
+            "lineNumber": 330,
+            "text": "    "
+          },
+          {
+            "lineNumber": 331,
+            "text": "    # Second check: image is used, but check if it's ONLY used by unused objects"
+          }
+        ],
+        "range": {
+          "endPosition": {
+            "line": 372
+          },
+          "startPosition": {
+            "column": 20,
+            "line": 277
+          }
+        },
+        "relativeWorkspacePath": ".\\ops\\main_ops.py",
+        "signatures": {}
+      },
+      "score": 0.3412424325942993
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="semantic_search_full"><details>
+<summary>Tool use: **semantic_search_full**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Materials report `users > 0` but no object slots matched — usage is likely via Geometry Nodes or another path. Tracing references and inspecting `users.material_all`.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef refs(mat):\\n    r = []\\n    for obj in bpy.data.objects:\\n        for i, slot in enumerate(obj.material_slots):\\n            if slot.material == mat:\\n                r.append(f'obj_slot {obj.name}[{i}]')\\n        if obj.type == 'MESH' and obj.data:\\n            for i, slot in enumerate(obj.data.materials):\\n                if slot == mat:\\n                    r.append(f'mesh_slot {obj.name} data={obj.data.name}[{i}]')\\n        for mod in obj.modifiers:\\n            if mod.type == 'NODES' and getattr(mod, 'node_group', None):\\n                ng = mod.node_group\\n                if ng:\\n                    for n in ng.nodes:\\n                        for inp in n.inputs:\\n                            if getattr(inp, 'default_value', None) == mat:\\n                                r.append(f'GN {obj.name}.{mod.name} node={n.name} input={inp.name}')\\n                        for out in n.outputs:\\n                            if getattr(out, 'default_value', None) == mat:\\n                                r.append(f'GN_out {obj.name}.{mod.name}')\\n    return r\\n\\nfor n in ['rock_color', 'rock_color.002']:\\n    m = bpy.data.materials.get(n)\\n    print(n, 'users', m.users if m else None)\\n    if m:\\n        print(' refs:', refs(m))\\n\",\"user_prompt\":\"trace material refs\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: rock_color users 2\\n refs: []\\nrock_color.002 users 1\\n refs: []\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: rock_color users 2\\n refs: []\\nrock_color.002 users 1\\n refs: []\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "E:/atomic-data-manager/stats/users.py",
+  "pattern": "def material_all|def material_objects|def material_geometry"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/stats/users.py",
+  "pattern": "def material_all|def material_objects|def material_geometry",
+  "topFiles": [
+    {
+      "matchCount": 3,
+      "uri": "stats/users.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 3
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef find_refs(name):\\n    mat = bpy.data.materials.get(name)\\n    if not mat:\\n        return 'missing'\\n    lines = []\\n    # id.user_map style: who uses this id\\n    try:\\n        um = mat.user_map()\\n        lines.append('user_map keys: ' + str(list(um.keys())[:30]))\\n        for k, v in list(um.items())[:20]:\\n            lines.append(f'  {k} -\u003e {len(v)} refs')\\n    except Exception as e:\\n        lines.append('user_map err: ' + str(e))\\n    # bpy path walk\\n    import bpy\\n    for datablock_type in (bpy.data.materials, bpy.data.node_groups, bpy.data.objects, bpy.data.meshes, bpy.data.lights, bpy.data.worlds, bpy.data.linestyles):\\n        try:\\n            for item in datablock_type:\\n                if item == mat:\\n                    continue\\n                if hasattr(item, 'material') and item.material == mat:\\n                    lines.append(f'{datablock_type.rna_type.identifier}.{item.name}.material')\\n                if hasattr(item, 'materials'):\\n                    try:\\n                        for i, mm in enumerate(item.materials):\\n                            if mm == mat:\\n                                lines.append(f'{item.name}.materials[{i}]')\\n                    except Exception:\\n                        pass\\n        except Exception:\\n            pass\\n    return '\\\\n'.join(lines)\\n\\nfor n in ['rock_color', 'rock_color.002']:\\n    print('====', n)\\n    print(find_refs(n))\\n\",\"user_prompt\":\"material user_map\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Error executing code: Communication error with Blender: Code execution error: cannot access local variable 'bpy' where it is not associated with a value\"}],\"structuredContent\":{\"result\":\"Error executing code: Communication error with Blender: Code execution error: cannot access local variable 'bpy' where it is not associated with a value\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef find_refs(name):\\n    mat = bpy.data.materials.get(name)\\n    if not mat:\\n        return 'missing'\\n    lines = []\\n    try:\\n        um = mat.user_map()\\n        lines.append('user_map: ' + str({str(k): len(v) for k, v in um.items()}))\\n        for k, v in um.items():\\n            for ref in v[:5]:\\n                lines.append(f'  used by {k} -\u003e {ref}')\\n    except Exception as e:\\n        lines.append('user_map err: ' + str(e))\\n    return '\\\\n'.join(lines[:40])\\n\\nfor n in ['rock_color', 'rock_color.002']:\\n    print('====', n)\\n    print(find_refs(n))\\n\",\"user_prompt\":\"material user_map\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: ==== rock_color\\nuser_map err: 'Material' object has no attribute 'user_map'\\n==== rock_color.002\\nuser_map err: 'Material' object has no attribute 'user_map'\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: ==== rock_color\\nuser_map err: 'Material' object has no attribute 'user_map'\\n==== rock_color.002\\nuser_map err: 'Material' object has no attribute 'user_map'\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef who_uses(mat):\\n    out = []\\n    um = bpy.data.user_map()\\n    for owner, refs in um.items():\\n        if mat in refs:\\n            out.append(f'{owner.__class__.__name__} {getattr(owner, \\\"name\\\", \\\"?\\\")}')\\n    return out\\n\\nfor n in ['rock_color', 'rock_color.002']:\\n    m = bpy.data.materials.get(n)\\n    print('====', n, 'users', m.users)\\n    print(who_uses(m))\\n\",\"user_prompt\":\"reverse user map materials\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: ==== rock_color users 2\\n[]\\n==== rock_color.002 users 1\\n[]\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: ==== rock_color users 2\\n[]\\n==== rock_color.002 users 1\\n[]\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef walk_nt(nt, path, mat, hits):\\n    if not nt:\\n        return\\n    for n in nt.nodes:\\n        for sock in list(n.inputs) + list(n.outputs):\\n            try:\\n                if getattr(sock, 'default_value', None) == mat:\\n                    hits.append(path + f'/{n.name}.{sock.identifier}')\\n            except Exception:\\n                pass\\n            try:\\n                if hasattr(sock, 'default_value') and hasattr(sock, 'type'):\\n                    dv = sock.default_value\\n                    if dv == mat:\\n                        hits.append(path + f'/{n.name}.{sock.identifier} dv')\\n            except Exception:\\n                pass\\n        for k in dir(n):\\n            if k.startswith('_'):\\n                continue\\n            try:\\n                v = getattr(n, k)\\n                if v == mat:\\n                    hits.append(path + f'/{n.name}.{k}==mat')\\n            except Exception:\\n                pass\\n        if hasattr(n, 'node_tree') and n.node_tree:\\n            walk_nt(n.node_tree, path + f'/{n.name}\u003egroup', mat, hits)\\n\\nmat = bpy.data.materials.get('rock_color')\\nhits = []\\nfor ng in bpy.data.node_groups:\\n    walk_nt(ng, ng.name, mat, hits)\\nfor m in bpy.data.materials:\\n    if m.node_tree:\\n        walk_nt(m.node_tree, 'MAT:'+m.name, mat, hits)\\nprint('hits', len(hits))\\nfor h in hits[:30]:\\n    print(h)\\n\",\"user_prompt\":\"walk node trees for material ref\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: hits 0\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: hits 0\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Searching material references**
+
+I'm searching for material references in curve splines and other object data types. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\nTARGETS = {'rock_color', 'rock_color.002'}\\nfor me in bpy.data.meshes:\\n    for i, m in enumerate(me.materials):\\n        if m and m.name in TARGETS:\\n            print('MESH', me.name, i, m.name)\\nfor cu in getattr(bpy.data, 'curves', []):\\n    for i, m in enumerate(cu.materials):\\n        if m and m.name in TARGETS:\\n            print('CURVE', cu.name, i, m.name)\\nfor lat in getattr(bpy.data, 'lattices', []):\\n    for i, m in enumerate(lat.materials):\\n        if m and m.name in TARGETS:\\n            print('LAT', lat.name, i, m.name)\\nfor mb in bpy.data.metaballs:\\n    for e in mb.elements:\\n        if e.material and e.material.name in TARGETS:\\n            print('META', mb.name, e.material.name)\\nfor gp in getattr(bpy.data, 'grease_pencils', []):\\n    print('GP', gp.name)\\n\",\"user_prompt\":\"mesh materials rock_color\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: MESH Cube.002 0 rock_color\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: MESH Cube.002 0 rock_color\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking object names**
+
+I need to verify if the object name in the script matches the actual object name in the scene. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Checking how Atomic classifies `Cube.002` and whether `material_all` misses mesh-level assignments:
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/users.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n# mesh materials for targets\\nTARGETS = {'rock_color', 'rock_color.002'}\\nfor me in bpy.data.meshes:\\n    for i, m in enumerate(me.materials):\\n        if m and m.name in TARGETS:\\n            users = [o.name for o in bpy.data.objects if o.data == me]\\n            print('MESH', me.name, 'slot', i, m.name, 'objects', users)\\n\",\"user_prompt\":\"which objects use mesh with rock_color\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: MESH Cube.002 slot 0 rock_color objects ['Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056', 'Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056']\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: MESH Cube.002 slot 0 rock_color objects ['Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056', 'Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056']\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\nfor oname in ['Cube.037', 'Cube.002']:\\n    o = bpy.data.objects.get(oname)\\n    if not o:\\n        print(oname, 'missing'); continue\\n    print('===', oname, 'type', o.type, 'data', o.data.name if o.data else None)\\n    for i, s in enumerate(o.material_slots):\\n        print('  slot', i, s.material.name if s.material else None)\\n    if o.data and hasattr(o.data, 'materials'):\\n        print('  mesh materials:', [m.name if m else None for m in o.data.materials])\\n\",\"user_prompt\":\"Cube.037 material slots vs mesh\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: === Cube.037 type MESH data Cube.002\\n  slot 0 rock_color\\n  mesh materials: ['rock_color']\\n=== Cube.002 type MESH data Cube.006\\n  slot 0 Roof wood.001\\n  mesh materials: ['Roof wood.001']\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: === Cube.037 type MESH data Cube.002\\n  slot 0 rock_color\\n  mesh materials: ['rock_color']\\n=== Cube.002 type MESH data Cube.006\\n  slot 0 Roof wood.001\\n  mesh materials: ['Roof wood.001']\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-get_viewport_screenshot">
+<details>
+<summary>Tool use: **mcp-blender-get_viewport_screenshot**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "get_viewport_screenshot",
+      "parameters": "{\"max_size\":900,\"user_prompt\":\"scene viewport rock materials\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Error executing tool get_viewport_screenshot: Screenshot failed: Connection to Blender lost: [WinError 10054] An existing connection was forcibly closed by the remote host\"}]}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-get_viewport_screenshot"><details>
+<summary>Tool use: **mcp-blender-get_viewport_screenshot**</summary>
+
+</details></tool-use>
+
+---
+
+_**User**_
+
+@c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt you crashed it
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+Sorry about that.
+
+**What happened:** The failure was almost certainly from **`get_viewport_screenshot`** — it errored with *Connection to Blender lost / connection forcibly closed*, which usually means the Blender side of the MCP link died (sometimes the screenshot path is fragile). The Python checks run **before** that (`get_scene_info`, `execute_blender_code`) completed normally.
+
+**What I won’t do again without you asking:** I won’t call the viewport screenshot tool against your live session.
+
+**What you can do:** Restart Blender (and the dev/MCP task if you use it) so the add-on and MCP reconnect. After that, we can keep using **`execute_blender_code`** only for scene queries — it’s much less likely to take the process down.
+
+If you want to continue the **rock_color / cleanable** investigation, say when Blender is back up and I’ll stick to small `execute_blender_code` snippets and the repo’s `users.material_*` logic only.
+
+---
+
+_**User**_
+
+ok, try again
+
+---
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Investigating materials**
+
+I'm tracing why rock_color materials are incorrectly marked as cleanable by examining the `materials_deep` logic. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Continuing the investigation with MCP code execution only (no screenshot). Tracing `object_all` vs material usage for `rock_color`.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "E:/atomic-data-manager/stats/users.py",
+  "pattern": "^def object_all"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/stats/users.py",
+  "pattern": "^def object_all",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "stats/users.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 1
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/users.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/users.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Analyzing object_all logic**
+
+I found that `object_all` returns empty array when object collections aren't in scene hierarchy. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Running Blender MCP (`execute_blender_code` only): verifying `users_collection`, scene membership, and whether Atomic would mark those materials unused.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef scene_for_obj(name):\\n    o = bpy.data.objects.get(name)\\n    if not o:\\n        return None, []\\n    cols = [c.name for c in o.users_collection]\\n    scenes = []\\n    for scene in bpy.data.scenes:\\n        def contains(root, target):\\n            if root == target:\\n                return True\\n            for ch in root.children:\\n                if contains(ch, target):\\n                    return True\\n            return False\\n        for c in o.users_collection:\\n            if contains(scene.collection, c):\\n                if scene.name not in scenes:\\n                    scenes.append(scene.name)\\n    return cols, scenes\\n\\nTARGETS = ('rock_color', 'rock_color.002')\\nfor mn in TARGETS:\\n    m = bpy.data.materials.get(mn)\\n    if not m:\\n        print(mn, 'missing'); continue\\n    print('===', mn, 'users', m.users)\\n    objs = set()\\n    for obj in bpy.data.objects:\\n        for slot in obj.material_slots:\\n            if slot.material == m:\\n                objs.add(obj.name)\\n    for obj in sorted(objs):\\n        cols, sc = scene_for_obj(obj)\\n        print(f'  {obj}: collections={cols} scenes={sc}')\\n\",\"user_prompt\":\"rock_color objects scene membership diagnostic\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: === rock_color users 2\\n=== rock_color.002 users 1\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: === rock_color users 2\\n=== rock_color.002 users 1\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n# find anything using rock_color materials\\nfor m in bpy.data.materials:\\n    if 'rock_color' not in m.name:\\n        continue\\n    print(m.name, 'users', m.users)\\n    users_obj = []\\n    for obj in bpy.data.objects:\\n        for slot in obj.material_slots:\\n            if slot.material == m:\\n                users_obj.append(obj.name)\\n    print('  slots:', users_obj)\\n    for me in bpy.data.meshes:\\n        for i, mm in enumerate(me.materials):\\n            if mm == m:\\n                print('  mesh', me.name, 'slot', i)\\n\",\"user_prompt\":\"enumerate rock_color materials usage\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: rock_color users 2\\n  slots: []\\nrock_color.002 users 1\\n  slots: []\\nrock_color users 4\\n  slots: ['Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056', 'Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056']\\n  mesh Cube.002 slot 0\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: rock_color users 2\\n  slots: []\\nrock_color.002 users 1\\n  slots: []\\nrock_color users 4\\n  slots: ['Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056', 'Cube.037', 'Cube.038', 'Cube.039', 'Cube.041', 'Cube.043', 'Cube.044', 'Cube.055', 'Cube.056']\\n  mesh Cube.002 slot 0\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking materials**
+
+Found duplicate material names in bpy.data.materials, but Blender should prevent this - investigating discrepancy. Found that substring matching in material names causes false positives - 'rock_color' incorrectly matches 'rock_color.002'. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\nfor m in bpy.data.materials:\\n    if 'rock' in m.name.lower():\\n        print(repr(m.name), 'users', m.users)\\n        n = sum(1 for o in bpy.data.objects for s in o.material_slots if s.material == m)\\n        print('  material_slot_refs', n)\\n\",\"user_prompt\":\"exact material names rock\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: 'rock_color' users 2\\n  material_slot_refs 0\\n'rock_color.002' users 1\\n  material_slot_refs 0\\n'Procedural river rocks' users 1\\n  material_slot_refs 2\\n'Procedural Rock Material.001' users 1\\n  material_slot_refs 0\\n'rock_color' users 4\\n  material_slot_refs 16\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: 'rock_color' users 2\\n  material_slot_refs 0\\n'rock_color.002' users 1\\n  material_slot_refs 0\\n'Procedural river rocks' users 1\\n  material_slot_refs 2\\n'Procedural Rock Material.001' users 1\\n  material_slot_refs 0\\n'rock_color' users 4\\n  material_slot_refs 16\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\nseen = {}\\nfor m in bpy.data.materials:\\n    if m.name not in seen:\\n        seen[m.name] = []\\n    seen[m.name].append((m.users, m.library.name if m.library else None, id(m)))\\nfor name, rows in sorted(seen.items()):\\n    if 'rock' in name.lower() or name == 'rock_color':\\n        if len(rows) \u003e 1:\\n            print('DUP NAME', repr(name), rows)\\n        else:\\n            print(repr(name), rows[0])\\n\",\"user_prompt\":\"duplicate material names libraries\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: 'Procedural Rock Material.001' (1, 'Backyard.blend', 2140770480320)\\n'Procedural river rocks' (1, 'Backyard.blend', 2140770480192)\\nDUP NAME 'rock_color' [(2, None, 2140770473408), (4, 'Backyard.blend', 2140770480832)]\\n'rock_color.002' (1, None, 2140770473664)\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: 'Procedural Rock Material.001' (1, 'Backyard.blend', 2140770480320)\\n'Procedural river rocks' (1, 'Backyard.blend', 2140770480192)\\nDUP NAME 'rock_color' [(2, None, 2140770473408), (4, 'Backyard.blend', 2140770480832)]\\n'rock_color.002' (1, None, 2140770473664)\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Identifying duplicate**
+
+I found a duplicate `rock_color` name with local users but no material slots. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef find_pointer_users(mat):\\n    hits = []\\n    um = bpy.data.user_map()\\n    for owner, refs in um.items():\\n        if mat in refs:\\n            hits.append(f'{type(owner).__name__} {getattr(owner, \\\"name\\\", \\\"?\\\")}')\\n    return hits\\n\\nfor label, lib in [('local rock_color', None), ('linked rock_color', 'Backyard.blend')]:\\n    mats = [m for m in bpy.data.materials if m.name == 'rock_color' and (m.library.name if m.library else None) == lib]\\n    if not mats:\\n        print(label, 'not found'); continue\\n    m = mats[0]\\n    print('===', label, 'id', id(m), 'users', m.users)\\n    print(' user_map:', find_pointer_users(m))\\n\",\"user_prompt\":\"who references local vs linked rock_color\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: === local rock_color id 2140770473408 users 2\\n user_map: []\\n=== linked rock_color id 2140770480832 users 4\\n user_map: []\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: === local rock_color id 2140770473408 users 2\\n user_map: []\\n=== linked rock_color id 2140770480832 users 4\\n user_map: []\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n# local rock_color only\\nmat = [m for m in bpy.data.materials if m.name=='rock_color' and not m.library][0]\\nprint('local rock_color', mat, 'users', mat.users)\\n# every bpy.data collection search for pointer to mat\\nhits = []\\nfor coll_name in dir(bpy.data):\\n    if coll_name.startswith('_'):\\n        continue\\n    coll = getattr(bpy.data, coll_name, None)\\n    if not coll or not hasattr(coll, '__iter__'):\\n        continue\\n    try:\\n        for item in coll:\\n            if item == mat:\\n                continue\\n            # shallow: check common pointer attrs\\n            for attr in ('material', 'active_material', 'stroke_material'):\\n                if hasattr(item, attr) and getattr(item, attr, None) == mat:\\n                    hits.append(f'{coll_name}.{item.name}.{attr}')\\n    except Exception:\\n        pass\\nprint('pointer attrs', hits[:20])\\n# node trees: material input sockets\\nimport bpy\\nfrom bpy.types import Material\\n\\ndef walk(nt, path):\\n    if not nt:\\n        return\\n    for node in nt.nodes:\\n        for sock in node.inputs:\\n            try:\\n                if sock.type == 'MATERIAL' and sock.default_value == mat:\\n                    walk.hits.append(path + '/' + node.name)\\n            except Exception:\\n                pass\\nwalk.hits = []\\nfor m2 in bpy.data.materials:\\n    if m2.node_tree:\\n        walk(m2.node_tree, m2.name)\\nfor ng in bpy.data.node_groups:\\n    walk(ng, ng.name)\\nprint('GN/MAT nodes', walk.hits[:30])\\n\",\"user_prompt\":\"find refs to local rock_color\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: local rock_color \u003cbpy_struct, Material(\\\"rock_color\\\") at 0x000001F27D06CE20\u003e users 2\\npointer attrs []\\nGN/MAT nodes []\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: local rock_color \u003cbpy_struct, Material(\\\"rock_color\\\") at 0x000001F27D06CE20\u003e users 2\\npointer attrs []\\nGN/MAT nodes []\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Identifying the issue: two materials named `rock_color` — a local copy (users 2, no slot refs) and a linked copy from `Backyard.blend` (users 4, slots). Atomic's `material_all` only finds slot refs; the local datablock matches nothing but Blender still reports `users > 0`. Adding a conservative guard: if `material.users > 0` and `material_all` is empty, don't mark the material as unused.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/unused.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/unused_parallel.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Handling material references**
+
+I'm adding a check to skip materials with users>0 in materials_deep to avoid counting Blender's internal references. I'm adjusting the cleanup logic to properly handle fake users and avoid skipping materials that are truly orphaned. I'm adding a new guard condition to ensure fake user cleanup works correctly when include_fake_users is enabled. 
+
+I'm implementing a guard condition to skip cleanup only when material has real users and isn't using fake users. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/blender_manifest.toml</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "E:/atomic-data-manager/stats/rna_analysis.py",
+  "pattern": "materials_deep|material_all|category.*material"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/stats/rna_analysis.py",
+  "pattern": "materials_deep|material_all|category.*material",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "stats/rna_analysis.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 1
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Fixing materials_deep**
+
+I'm implementing a guard in both files to fix the RNA path issue, avoiding duplication by extracting a helper function. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Identifying root cause: duplicate material names — a local `rock_color` (users 2, no slot refs) vs a linked `rock_color` from `Backyard.blend` (users 4, 16 slot refs). Atomic matches by name, so `material_all` conflates them; the local datablock isn't in slots but Blender still reports `users > 0`. Adding a conservative guard: if `material.users > 0` and there's no fake user, don't mark as unused when `material_all` is empty.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/stats/unused.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/stats/unused_parallel.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/CHANGELOG.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Checking material lookup**
+
+I'm verifying that material lookup uses names and not IDs, as the code accesses materials by name with `bpy.data.materials[material_key]`. I found that `bpy.data.materials[material_key]` may return linked materials instead of local ones, causing incorrect material assignment. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: python -m py_compile "E:/atomic-data-manager/stats/unused.py" "E:/atomic-data-manager/stats/unused_parallel.py"</summary>
+
+```bash
+python -m py_compile "E:/atomic-data-manager/stats/unused.py" "E:/atomic-data-manager/stats/unused_parallel.py"
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "E:/atomic-data-manager/stats/unused.py",
+    "E:/atomic-data-manager/stats/unused_parallel.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "E:/atomic-data-manager/stats/unused.py"
+    },
+    {
+      "relativeWorkspacePath": "E:/atomic-data-manager/stats/unused_parallel.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints"><details>
+<summary>Tool use: **read_lints**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what we did on the **second pass** (MCP **`execute_blender_code` only** — no screenshot).
+
+### What was going on
+Your file has **two** `Material` IDs named `rock_color`:
+
+| Datablock | Library | `users` | Object material slots |
+|-----------|---------|---------|-------------------------|
+| Local | — | 2 | **0** (nothing points at *this* block) |
+| Linked | `Backyard.blend` | 4 | **16** (the cubes use *this* one) |
+
+Atomic resolves usage with **`bpy.data.materials['rock_color']`** inside `material_*` helpers. That name can resolve to **one** of the two blocks; slot checks use **reference** equality. The **local** copy keeps **`users > 0`** (Blender still counts something), but **`material_all()`** can come back **empty** for that local block — so it was wrongly marked **unused / cleanable**.
+
+`rock_color.002` was the same kind of case: **users** with **no** slot hits from our scan.
+
+### Code change
+In **`materials_deep`** and **`_has_any_unused_materials`**: if **`material_all()`** is empty but **`material.users > 0`** and it’s **not** only a **fake user**, we **do not** treat the material as unused. Fake-user cleanup behavior is unchanged.
+
+**CHANGELOG** (v2.6.1) updated with a short note.
+
+Reload the add-on and re-run **Clean / unused**; those materials should no longer be flagged incorrectly. A fuller long-term improvement would be to key usage by **material datablock identity**, not only `name`, when multiple IDs share a name — say if you want that refactored next.
+
+---
+
+_**User**_
+
+@c:\Users\Nathan\.cursor\projects\e-atomic-data-manager\terminals\3.txt it's still detecting these materials.
+
+---
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Investigating materials**
+
+I'm investigating why materials are still flagged as unused despite our guard logic. The linked material issue occurs when `bpy.data.materials['rock_color']` resolves to a linked material, causing it to be skipped by `is_library_or_override` at the start. Linked materials are skipped in the loop, so only local materials are processed. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Tracing all code paths that mark materials as unused and fixing name-based lookup so local vs linked materials aren't conflated.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "E:/atomic-data-manager",
+  "pattern": "materials_deep|materials_shallow|unused\\.materials|analyze_unused"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager",
+  "pattern": "materials_deep|materials_shallow|unused\\.materials|analyze_unused",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "ops/utils/clean.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "stats/unused_parallel.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "stats\\unused_parallel.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "stats/unused.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "ops/direct_use_ops.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "stats/count.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "stats/rna_analysis.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "ops/main_ops.py"
+    },
+    {
+      "matchCount": 2,
+      "uri": "stats\\unused.py"
+    }
+  ],
+  "totalFiles": 9,
+  "totalMatches": 12
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/unused.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/users.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Investigating material lookup**
+
+I'm investigating how `bpy.data.materials['rock_color']` resolves duplicates in Blender 4.x, as it may prioritize local materials over linked ones. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/ops/main_ops.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Fixing clean smart select**
+
+I found that the clean/smart select flow uses `analyze_unused_from_graph` which checks for duplicate material names and appends unused materials based on category/item_name tuples. I discovered that linked materials are skipped during iteration, so only local materials are processed, and the graph traversal may only mark one instance of a material as used. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Investigating the RNA graph path (unified scanner uses it, not `materials_deep`). Checking how materials are keyed and marked used.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.py",
+  "path": "E:/atomic-data-manager/stats/rna_analysis.py",
+  "pattern": "materials|Material"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "E:/atomic-data-manager/stats/rna_analysis.py",
+  "pattern": "materials|Material",
+  "topFiles": [
+    {
+      "matchCount": 15,
+      "uri": "stats/rna_analysis.py"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 15
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Analyzing data overwrite**
+
+I found that duplicate material names cause overwrites in rna_data, leaving only the last encountered entry for materials like 'rock_color'. I'm implementing a fix for material name collisions by using `material.as_pointer()` to distinguish duplicates in the graph. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Adding the same conservative guard to `analyze_unused_from_graph`: Smart Select/Clean use the RNA unified scanner, not `materials_deep()` — our earlier fix didn't apply.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/stats/rna_analysis.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: E:/atomic-data-manager/CHANGELOG.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: python -m py_compile "E:/atomic-data-manager/stats/rna_analysis.py"</summary>
+
+```bash
+python -m py_compile "E:/atomic-data-manager/stats/rna_analysis.py"
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "E:/atomic-data-manager/stats/rna_analysis.py"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "E:/atomic-data-manager/stats/rna_analysis.py"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints"><details>
+<summary>Tool use: **read_lints**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what was wrong:
+
+### Why the first fix didn’t help
+**Smart Select / Clean** use the **unified RNA scanner** (`analyze_unused_from_graph` in `stats/rna_analysis.py`), **not** `materials_deep()` from `stats/unused.py`. The `material.users` guard was only in `materials_deep` / `_has_any_unused_materials`, so the UI still marked those materials as unused.
+
+### What we changed
+In **`analyze_unused_from_graph`**, for **`category == 'materials'`**, we now mirror the same rule: if **`datablock.users > 0`** and it’s **not** only a **fake user**, we **don’t** add that material to the unused list (even when the RNA graph says it’s unreachable). That covers **same-name local vs linked** IDs (one collapsed graph node) and other cases where Blender still counts users but the graph doesn’t reach that datablock.
+
+**CHANGELOG** is updated to say this applies to the RNA / Smart Select path as well.
+
+Reload the add-on and run a full scan again; `rock_color` / `rock_color.002` should drop off the cleanable list if they still report real users. If anything is still wrong, say whether **`Material.users`** in the outliner is **0** or **> 0** for those slots.
+
+---
+
+_**User**_
+
+connect again. where is object `Cylinder.021` and its mesh `Mesh.005` ? should this be cleanable considering our "must trace back to scene" philosophy?
+
+---
+
+_**Agent (composer-2-fast)**_
+
+
+Querying the Blender session for `Cylinder.021` and `Mesh.005` and how they relate to scenes and Atomic's `object_all` logic.
+
+
+
+_**Agent (composer-2-fast)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code">
+<details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+
+Parameters:
+
+```json
+{
+  "tools": [
+    {
+      "name": "execute_blender_code",
+      "parameters": "{\"code\":\"import bpy\\n\\ndef scene_contains_collection(scene, coll):\\n    if scene.collection == coll:\\n        return True\\n    stack = list(scene.collection.children)\\n    while stack:\\n        c = stack.pop()\\n        if c == coll:\\n            return True\\n        stack.extend(c.children)\\n    return False\\n\\no = bpy.data.objects.get('Cylinder.021')\\nme = bpy.data.meshes.get('Mesh.005')\\nlines = []\\nlines.append('=== Cylinder.021 ===')\\nif o:\\n    lines.append(f'type: {o.type}')\\n    lines.append(f'data: {o.data.name if o.data else None}')\\n    lines.append(f'library: {o.library}')\\n    lines.append(f'users: {o.users}')\\n    lines.append(f'users_collection: {[c.name for c in o.users_collection]}')\\n    for s in bpy.data.scenes:\\n        in_sc = [c.name for c in o.users_collection if scene_contains_collection(s, c)]\\n        if in_sc:\\n            lines.append(f'  scene {s.name}: via collections {in_sc}')\\n    if not any(scene_contains_collection(s, c) for s in bpy.data.scenes for c in o.users_collection):\\n        lines.append('  NOT under any scene hierarchy (via users_collection)')\\nelse:\\n    lines.append('MISSING')\\n\\nlines.append('=== Mesh.005 ===')\\nif me:\\n    lines.append(f'library: {me.library}')\\n    lines.append(f'users: {me.users}')\\n    objs = [ob.name for ob in bpy.data.objects if ob.data == me]\\n    lines.append(f'objects using this mesh: {objs}')\\nelse:\\n    lines.append('MISSING')\\n\\nprint('\\\\n'.join(lines))\\n\",\"user_prompt\":\"Cylinder.021 Mesh.005 scene trace\"}",
+      "serverName": "blender"
+    }
+  ]
+}
+```
+Additional data:
+
+```json
+{
+  "status": "success"
+}
+```
+Result:
+
+```json
+{
+  "result": "{\"content\":[{\"type\":\"text\",\"text\":\"Code executed successfully: === Cylinder.021 ===\\ntype: MESH\\ndata: Mesh.005\\nlibrary: None\\nusers: 0\\nusers_collection: []\\n  NOT under any scene hierarchy (via users_collection)\\n=== Mesh.005 ===\\nlibrary: None\\nusers: 1\\nobjects using this mesh: ['Cylinder.021']\\n\"}],\"structuredContent\":{\"result\":\"Code executed successfully: === Cylinder.021 ===\\ntype: MESH\\ndata: Mesh.005\\nlibrary: None\\nusers: 0\\nusers_collection: []\\n  NOT under any scene hierarchy (via users_collection)\\n=== Mesh.005 ===\\nlibrary: None\\nusers: 1\\nobjects using this mesh: ['Cylinder.021']\\n\"}}"
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp-blender-execute_blender_code"><details>
+<summary>Tool use: **mcp-blender-execute_blender_code**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+<think><details><summary>Thought Process</summary>
+**Investigating orphaned objects**
+
+I found that Cylinder.021 is orphaned because it's not in any collection, while Mesh.005 is properly referenced by the cylinder. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what the live Blender session reports:
+
+### Where they are
+- **`Cylinder.021`**: Mesh object, **`Mesh.005`**, local, **`users_collection` is empty** — it is **not** in any collection, so it is **not** under `Scene Collection` (or any collection that hangs off the scene).
+- **`Mesh.005`**: Local mesh **`users == 1`**, only referenced by **`Cylinder.021`**.
+
+So **`Cylinder.021` is not placed in the scene graph at all** (no collection membership). The mesh only exists to serve that floating object.
+
+### “Must trace back to scene”
+Atomic’s **`object_all`** treats an object as used only if it can reach a scene via **`obj.users_collection`** (and the collection-instance logic). With **`users_collection == []`**, there is **no** path from any `bpy.data.scenes[*].collection` to this object, so **`object_all('Cylinder.021')` is empty** — i.e. **unused** in that model.
+
+So **yes**: under that philosophy, **`Cylinder.021` is exactly the kind of thing that should be cleanable** (orphan object). **`Mesh.005`** becomes unused once **`Cylinder.021`** is removed (or should be picked up as unused mesh when nothing in-scene uses it, depending on how you run Clean).
+
+### Practical note
+If you **expect** this cylinder to be “in the scene” visually, it’s likely a mistake: it was never added to a collection (or was removed from all collections). **Put it in a collection** that’s under the scene if you want it kept and counted as used.
