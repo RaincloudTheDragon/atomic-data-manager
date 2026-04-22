@@ -28,6 +28,7 @@ import json
 import os
 from .. import config
 from ..utils import compat
+from . import ghost_users
 
 
 # Data-block types we care about for dependency analysis
@@ -1197,7 +1198,9 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
                     if category == 'materials':
                         try:
                             if datablock.users > 0 and not datablock.use_fake_user:
-                                continue
+                                if not ghost_users.material_blender_users_fully_cc3_ghosts(
+                                        datablock):
+                                    continue
                         except (AttributeError, RuntimeError, ReferenceError):
                             pass
                     unused.append(item_name)

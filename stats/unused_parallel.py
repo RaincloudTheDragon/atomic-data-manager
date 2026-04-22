@@ -1,6 +1,7 @@
 import bpy
 from ..stats import unused
 from ..stats import users
+from . import ghost_users
 from .. import config
 from ..utils import compat
 
@@ -128,7 +129,8 @@ def _has_any_unused_materials():
         if not users.material_all(material.name):
             if not material.use_fake_user or config.include_fake_users:
                 if material.users > 0 and not material.use_fake_user:
-                    continue
+                    if not ghost_users.material_blender_users_fully_cc3_ghosts(material):
+                        continue
                 return True
         else:
             # Second check: material is used, but check if it's ONLY used by unused objects

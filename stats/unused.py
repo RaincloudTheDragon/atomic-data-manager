@@ -28,6 +28,7 @@ from .. import config
 from ..utils import compat
 from ..utils import version
 from . import users
+from . import ghost_users
 
 
 def shallow(data):
@@ -223,10 +224,10 @@ def materials_deep():
             # check if material has a fake user or if ignore fake users
             # is enabled
             if not material.use_fake_user or config.include_fake_users:
-                # If Blender still counts users but we found none, don't flag (name collisions
-                # with linked IDs, drivers, or refs we don't traverse). Fake-user purge unchanged.
                 if material.users > 0 and not material.use_fake_user:
-                    continue
+                    # CC3 / iClone import_cache ID props keep bpy.users>0 with no object/world use.
+                    if not ghost_users.material_blender_users_fully_cc3_ghosts(material):
+                        continue
                 unused.append(material.name)
         else:
             # Second check: material is used, but check if it's ONLY used by unused objects
