@@ -1,3 +1,9 @@
+## [v2.6.3] - 2026-04-22
+
+### Fixes
+
+- **CC3 / iClone import caches**: `Scene['CC3ImportProps']` (e.g. `pbr_material_cache`) no longer blocks unused detection—when `material_all()` is empty, cache-only refs (including Blender’s 2× `users` per cell) are ignored for clean and RNA material scans (`stats/ghost_users.py`).
+
 ## [v2.6.2] - 2026-04-06
 
 ### Fixes
