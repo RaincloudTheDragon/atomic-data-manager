@@ -27,6 +27,20 @@ Atomic Data Manager offers Blender artists an intelligent data management soluti
 Pie Menu Controls, Advanced Fake User Options, Mass Delete Categories, Undo Accidental Deletions, Save Data-Blocks, Delete Data-Blocks, Replace Data-Blocks, Rename Data-Blocks, Reload Missing Files, Remove Missing Files, Replace Missing Files, and Search for Missing Files.
 
 
+## Stats → Storage
+
+**Stats for Nerds → Storage** lists local datablocks ranked by estimated footprint inside the current `.blend`. Library-linked IDs from other files are excluded.
+
+| What | Notes |
+|------|--------|
+| **Packed total** | Exact bytes embedded in the file (packed images, fonts, sounds, GeoNodes bakes). |
+| **Row sizes** | Most types are estimates; disk compression may differ. Physics point caches (cloth, soft body, particles, rigid body, dynamic paint) are in-blend estimates when baked with disk cache off. |
+| **GeoNodes bakes** | Packed bake data, not the node group. Icons: geometry nodes, then package (packed). |
+| **Mantaflow / fluid** | Disk-only caches are not indexed. |
+| **Icons** | Type icon(s), then library-override emblem when applicable. |
+| **Click a row name** | Selects and activates a scene user (material → Shader Editor, action → Dope Sheet). Optional **Frame View on Storage Navigate** in add-on preferences. |
+
+
 ## TAKE A VIDEO TOUR
 [![video-thumb](https://remington.pro/wp-content/uploads/2019/08/atomic_addon_tour_play_button-min.jpg)](https://remington.pro/software/blender/atomic/#tour)
 

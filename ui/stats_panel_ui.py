@@ -39,7 +39,6 @@ from ..utils.compat import (
     storage_override_icon,
     storage_type_icon,
 )
-from .utils import ui_layouts
 
 
 # Atomic Data Manager Statistics SubPanel
@@ -140,32 +139,6 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             rep = storage_report
 
             col = box.column(align=True)
-            ui_layouts.label_wrapped(
-                col,
-                "IDs linked from another .blend (library) are excluded.",
-                icon="INFO",
-            )
-            ui_layouts.label_wrapped(col, "Packed = exact bytes stored inside this .blend.")
-            ui_layouts.label_wrapped(
-                col,
-                "Includes packed GeoNodes bakes; physics caches are estimates.",
-            )
-            ui_layouts.label_wrapped(
-                col,
-                "Other sizes are estimates; disk file may compress.",
-            )
-            ui_layouts.label_wrapped(
-                col,
-                "GeoNodes bakes: geometry-nodes then packed icons (not the node group).",
-            )
-            ui_layouts.label_wrapped(
-                col,
-                "Click a name to select and activate its user.",
-            )
-            ui_layouts.label_wrapped(
-                col,
-                "Last icon = library override (when applicable).",
-            )
 
             row = col.row()
             row.label(
