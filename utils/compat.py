@@ -611,6 +611,8 @@ def _append_geonodes_bake_rows(rows, is_override):
                         "size_bytes": emb,
                         "is_lib_override": io,
                         "kind": "packed",
+                        "owner_object": ob.name,
+                        "modifier_name": mod.name,
                     }
                 )
 
@@ -667,7 +669,9 @@ def _object_mesh_vert_count(ob):
         return 1
 
 
-def _append_physics_cache_row(rows, name, cache, point_count, is_lib_override):
+def _append_physics_cache_row(
+    rows, name, cache, point_count, is_lib_override, owner_object="", owner_scene=""
+):
     if not _point_cache_in_blend(cache):
         return
     sz = _physics_cache_size_bytes(cache, point_count)
@@ -677,16 +681,19 @@ def _append_physics_cache_row(rows, name, cache, point_count, is_lib_override):
     sz = max(64, int(sz * ow))
     cname = getattr(cache, "name", "") or ""
     display = "%s (%s)" % (name, cname) if cname else name
-    rows.append(
-        {
-            "type": "PhysicsCache",
-            "name": display,
-            "embedded": 0,
-            "size_bytes": sz,
-            "is_lib_override": is_lib_override,
-            "kind": "override" if is_lib_override else "local",
-        }
-    )
+    row = {
+        "type": "PhysicsCache",
+        "name": display,
+        "embedded": 0,
+        "size_bytes": sz,
+        "is_lib_override": is_lib_override,
+        "kind": "override" if is_lib_override else "local",
+    }
+    if owner_object:
+        row["owner_object"] = owner_object
+    if owner_scene:
+        row["owner_scene"] = owner_scene
+    rows.append(row)
 
 
 def _append_physics_cache_rows(rows, is_override):
@@ -706,13 +713,13 @@ def _append_physics_cache_rows(rows, is_override):
                 pc = getattr(mod, "point_cache", None)
                 for item in _iter_point_cache_items(pc):
                     _append_physics_cache_row(
-                        rows, "%s / Cloth" % ob.name, item, verts, io
+                        rows, "%s / Cloth" % ob.name, item, verts, io, owner_object=ob.name
                     )
             elif mtype == "SOFT_BODY":
                 pc = getattr(mod, "point_cache", None)
                 for item in _iter_point_cache_items(pc):
                     _append_physics_cache_row(
-                        rows, "%s / Soft Body" % ob.name, item, verts, io
+                        rows, "%s / Soft Body" % ob.name, item, verts, io, owner_object=ob.name
                     )
             elif mtype == "DYNAMIC_PAINT":
                 canvas = getattr(mod, "canvas_settings", None)
@@ -735,6 +742,7 @@ def _append_physics_cache_rows(rows, is_override):
                             item,
                             pts,
                             io,
+                            owner_object=ob.name,
                         )
         try:
             psystems = ob.particle_systems
@@ -752,7 +760,7 @@ def _append_physics_cache_rows(rows, is_override):
             ps_name = getattr(ps, "name", "Particles") or "Particles"
             for item in _iter_point_cache_items(pc):
                 _append_physics_cache_row(
-                    rows, "%s / %s" % (ob.name, ps_name), item, count, io
+                    rows, "%s / %s" % (ob.name, ps_name), item, count, io, owner_object=ob.name
                 )
 
     for sc in bpy.data.scenes:
@@ -772,7 +780,12 @@ def _append_physics_cache_rows(rows, is_override):
         io = is_override(sc)
         for item in _iter_point_cache_items(pc):
             _append_physics_cache_row(
-                rows, "%s / Rigid Body" % sc.name, item, nobj, io
+                rows,
+                "%s / Rigid Body" % sc.name,
+                item,
+                nobj,
+                io,
+                owner_scene=sc.name,
             )
 
 

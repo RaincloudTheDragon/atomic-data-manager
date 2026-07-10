@@ -1564,6 +1564,105 @@ def armature_all(armature_key):
     return distinct(users)
 
 
+def _obdata_viewport_objects(obdata_key, obj_type=None):
+    """Objects in a scene whose data block matches obdata_key."""
+    users = []
+    for obj in bpy.data.objects:
+        if compat.is_library_or_override(obj):
+            continue
+        data = getattr(obj, "data", None)
+        if data is None or getattr(data, "name", None) != obdata_key:
+            continue
+        if obj_type and obj.type != obj_type:
+            continue
+        if object_all(obj.name):
+            users.append(obj.name)
+    return distinct(users)
+
+
+def mesh_objects(mesh_key):
+    return _obdata_viewport_objects(mesh_key, "MESH")
+
+
+def curve_objects(curve_key):
+    return _obdata_viewport_objects(curve_key, "CURVE")
+
+
+def volume_objects(volume_key):
+    return _obdata_viewport_objects(volume_key, "VOLUME")
+
+
+def pointcloud_objects(pointcloud_key):
+    return _obdata_viewport_objects(pointcloud_key, "POINTCLOUD")
+
+
+def action_objects(action_key):
+    users = []
+    try:
+        action = bpy.data.actions[action_key]
+    except (KeyError, AttributeError):
+        return []
+    for obj in bpy.data.objects:
+        if compat.is_library_or_override(obj):
+            continue
+        ad = getattr(obj, "animation_data", None)
+        if ad and ad.action == action and object_all(obj.name):
+            users.append(obj.name)
+    return distinct(users)
+
+
+def image_viewport_objects(image_key):
+    users = []
+    users.extend(image_geometry_nodes(image_key))
+    for mat_name in image_materials(image_key):
+        users.extend(material_objects(mat_name))
+    return distinct(users)
+
+
+def node_group_viewport_objects(node_group_key):
+    users = []
+    users.extend(node_group_objects(node_group_key))
+    for mat_name in node_group_materials(node_group_key):
+        users.extend(material_objects(mat_name))
+    return distinct(users)
+
+
+def collection_viewport_objects(collection_key):
+    users = []
+    users.extend(collection_meshes(collection_key))
+    users.extend(collection_lights(collection_key))
+    users.extend(collection_cameras(collection_key))
+    users.extend(collection_others(collection_key))
+    return distinct([name for name in users if object_all(name)])
+
+
+def sound_viewport_objects(sound_key):
+    users = []
+    try:
+        sound = bpy.data.sounds[sound_key]
+    except (KeyError, AttributeError):
+        return []
+    for obj in bpy.data.objects:
+        if obj.type != "SPEAKER":
+            continue
+        data = getattr(obj, "data", None)
+        if data and getattr(data, "sound", None) == sound and object_all(obj.name):
+            users.append(obj.name)
+    return distinct(users)
+
+
+def font_viewport_objects(font_key):
+    users = []
+    try:
+        font = bpy.data.fonts[font_key]
+    except (KeyError, AttributeError):
+        return []
+    for obj in bpy.data.objects:
+        if obj.type == "FONT" and obj.data == font and object_all(obj.name):
+            users.append(obj.name)
+    return distinct(users)
+
+
 def distinct(seq):
     # returns a list of distinct elements
 

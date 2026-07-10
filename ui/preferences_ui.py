@@ -139,6 +139,9 @@ def copy_prefs_to_config(self, context):
     config.enable_debug_prints = \
         atomic_preferences.enable_debug_prints
 
+    config.storage_navigate_frame_view = \
+        atomic_preferences.storage_navigate_frame_view
+
     # hidden atomic preferences
     config.pie_menu_type = \
         atomic_preferences.pie_menu_type
@@ -254,6 +257,14 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=False
     )
 
+    storage_navigate_frame_view: bpy.props.BoolProperty(
+        name="Frame View on Storage Navigate",
+        description="When clicking a storage index row, frame the user object "
+                    "in the 3D viewport (off by default: only selects and "
+                    "activates)",
+        default=False,
+    )
+
     # hidden atomic preferences
     pie_menu_type: bpy.props.StringProperty(
         default="D"
@@ -314,6 +325,13 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             self,
             "enable_debug_prints",
             text="Enable Debug Prints"
+        )
+
+        # storage navigation
+        col.prop(
+            self,
+            "storage_navigate_frame_view",
+            text="Frame View on Storage Navigate",
         )
 
         # pie menu settings

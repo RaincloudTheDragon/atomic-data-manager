@@ -33,6 +33,7 @@ enable_missing_file_warning = True
 include_fake_users = False
 enable_pie_menu_ui = True
 enable_debug_prints = False
+storage_navigate_frame_view = False
 
 # hidden atomic preferences
 pie_menu_type = "D"

@@ -26,6 +26,7 @@ from . import main_ops
 from . import inspect_ops
 from . import direct_use_ops
 from . import missing_file_ops
+from . import storage_navigate_ops
 
 
 def register():
@@ -33,6 +34,7 @@ def register():
     inspect_ops.register()
     direct_use_ops.register()
     missing_file_ops.register()
+    storage_navigate_ops.register()
 
 
 def unregister():
@@ -40,3 +42,4 @@ def unregister():
     inspect_ops.unregister()
     direct_use_ops.unregister()
     missing_file_ops.unregister()
+    storage_navigate_ops.unregister()

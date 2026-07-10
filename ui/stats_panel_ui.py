@@ -148,6 +148,7 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             col.label(text="Includes packed GeoNodes bakes; physics caches are estimates.")
             col.label(text="Other sizes are estimates; disk file may compress.")
             col.label(text="GeoNodes bakes: geometry-nodes then packed icons (not the node group).")
+            col.label(text="Click a name to select and activate its user.")
             col.label(text="Last icon = library override (when applicable).")
 
             row = col.row()
@@ -174,7 +175,16 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                     icon=storage_override_icon(r.get("is_lib_override", False)),
                     text="",
                 )
-                left.label(text=r["name"])
+                nav = left.operator(
+                    "atomic.storage_navigate",
+                    text=r["name"],
+                    emboss=False,
+                )
+                nav.storage_type = r["type"]
+                nav.id_name = r.get("id_name", r["name"])
+                nav.owner_object = r.get("owner_object", "")
+                nav.owner_scene = r.get("owner_scene", "")
+                nav.modifier_name = r.get("modifier_name", "")
                 split.label(text=format_bytes(r["size_bytes"]))
 
             if len(rep["rows"]) > 40:
