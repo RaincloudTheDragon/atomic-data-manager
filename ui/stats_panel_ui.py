@@ -140,16 +140,32 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             rep = storage_report
 
             col = box.column(align=True)
-            col.label(
-                text="IDs linked from another .blend (library) are excluded.",
-                icon='INFO',
+            ui_layouts.label_wrapped(
+                col,
+                "IDs linked from another .blend (library) are excluded.",
+                icon="INFO",
             )
-            col.label(text="Packed = exact bytes stored inside this .blend.")
-            col.label(text="Includes packed GeoNodes bakes; physics caches are estimates.")
-            col.label(text="Other sizes are estimates; disk file may compress.")
-            col.label(text="GeoNodes bakes: geometry-nodes then packed icons (not the node group).")
-            col.label(text="Click a name to select and activate its user.")
-            col.label(text="Last icon = library override (when applicable).")
+            ui_layouts.label_wrapped(col, "Packed = exact bytes stored inside this .blend.")
+            ui_layouts.label_wrapped(
+                col,
+                "Includes packed GeoNodes bakes; physics caches are estimates.",
+            )
+            ui_layouts.label_wrapped(
+                col,
+                "Other sizes are estimates; disk file may compress.",
+            )
+            ui_layouts.label_wrapped(
+                col,
+                "GeoNodes bakes: geometry-nodes then packed icons (not the node group).",
+            )
+            ui_layouts.label_wrapped(
+                col,
+                "Click a name to select and activate its user.",
+            )
+            ui_layouts.label_wrapped(
+                col,
+                "Last icon = library override (when applicable).",
+            )
 
             row = col.row()
             row.label(

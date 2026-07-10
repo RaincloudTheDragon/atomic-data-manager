@@ -24,6 +24,17 @@ used throughout the interface.
 """
 
 import bpy
+import textwrap
+
+
+def label_wrapped(layout, text, width=62, icon="NONE", translate=False):
+    """Draw label text wrapped across multiple lines (Blender has no label wrap API)."""
+    lines = textwrap.wrap(text, width=width) or [text]
+    for i, line in enumerate(lines):
+        if i == 0 and icon != "NONE":
+            layout.label(text=line, icon=icon, translate=translate)
+        else:
+            layout.label(text=line, translate=translate)
 
 
 def box_list(layout, title=None, items=None, columns=2, icon=None):
