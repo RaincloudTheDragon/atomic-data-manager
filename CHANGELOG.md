@@ -1,3 +1,21 @@
+## [v2.7.0] - 2026-07-10
+
+### Features
+
+- **Stats → Storage (#17)**: index **in-blend caches** — packed **GeoNodes bakes** (exact `bake_size` via DNA) and **physics point caches** (cloth, soft body, particles, rigid body, dynamic paint) when baked without disk/external storage; Mantaflow/fluid disk caches remain out of scope.
+- **Stats → Storage (#18)**: **click a row name** to find scene users and select/activate the object; materials open the Shader Editor, actions open the Dope Sheet. Multiple users show a picker popup.
+- **Preferences**: **Frame View on Storage Navigate** (off by default) — optionally frame the user in the 3D viewport after clicking a storage row.
+- **Storage row icons**: GeoNodes bakes show **geometry-nodes** then **package** (packed) icons to distinguish baked data from node groups.
+
+### Internal
+
+- **Dev fixtures**: `testdata/` storage test `.blend` files (cloth, dynpaint, GeoNodes bakes, Mantaflow, particles, rigid body, soft body).
+- **Release / LFS**: track `*.blend` via Git LFS; release workflow sparse-checkout and zip guard exclude `testdata/` from shipped builds.
+
+### Documentation
+
+- **README**: **Stats → Storage** section documents scope, icons, navigation, and exclusions (panel help text removed).
+
 ## [v2.6.3] - 2026-04-22
 
 ### Fixes
