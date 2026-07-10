@@ -15,6 +15,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Dev fixtures in testdata/ (.blend via Git LFS) — not shipped in releases
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !testdata
 
       - name: Get Version
         id: get_version
@@ -37,6 +43,8 @@ jobs:
           ADDON_DIR=addon_files/atomic_data_manager
           mkdir -p "$ADDON_DIR"
 
+          # testdata/ holds local .blend fixtures for development; never include in release zips
+
           # Copy top-level files if they exist
           for file in __init__.py rainys_repo_bootstrap.py blender_manifest.toml README.md CHANGELOG.md LICENSE.txt config.py; do
             if [ -f "$file" ]; then
@@ -58,6 +66,12 @@ jobs:
           # Create the zip from the temporary directory
           cd addon_files
           zip -r "../${{ steps.get_version.outputs.zip_name }}" ./*
+
+          # Guard: release artifact must not contain dev fixtures
+          if unzip -l "../${{ steps.get_version.outputs.zip_name }}" | grep -q 'testdata/'; then
+            echo "Release zip must not contain testdata/" >&2
+            exit 1
+          fi
 
       - name: Upload Release Asset
         env:
