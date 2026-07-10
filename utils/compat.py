@@ -4,6 +4,7 @@ between Blender 4.2 LTS, 4.5 LTS, and 5.0.
 
 """
 
+import ctypes
 import os
 import bpy
 from bpy.utils import register_class, unregister_class
@@ -220,6 +221,31 @@ def _mesh_vertex_sum_sample():
     return s
 
 
+def _cache_modifier_counts():
+    """Cheap counts so storage cache invalidates when physics/GeoNodes mods change."""
+    nodes = cloth = soft = dp = particles = 0
+    for ob in bpy.data.objects:
+        try:
+            for mod in ob.modifiers:
+                t = getattr(mod, "type", None)
+                if t == "NODES":
+                    nodes += 1
+                elif t == "CLOTH":
+                    cloth += 1
+                elif t == "SOFT_BODY":
+                    soft += 1
+                elif t == "DYNAMIC_PAINT":
+                    dp += 1
+            particles += len(getattr(ob, "particle_systems", []))
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
+    rb = 0
+    for sc in bpy.data.scenes:
+        if getattr(sc, "rigidbody_world", None):
+            rb += 1
+    return (nodes, cloth, soft, dp, particles, rb)
+
+
 def _light_fingerprint():
     fp = bpy.data.filepath
     try:
@@ -236,6 +262,7 @@ def _light_fingerprint():
         len(bpy.data.objects),
         len(bpy.data.armatures),
         len(bpy.data.collections),
+        _cache_modifier_counts(),
     )
 
 
@@ -499,6 +526,256 @@ def format_bytes(n):
     return _fmt_bytes(n)
 
 
+# DNA layout of blender::NodesModifierBake (64-bit). bake_size is not in RNA.
+# See source/blender/makesdna/DNA_modifier_types.h
+class _NodesModifierBakeDNA(ctypes.Structure):
+    _fields_ = [
+        ("id", ctypes.c_int32),
+        ("flag", ctypes.c_uint32),
+        ("bake_mode", ctypes.c_uint8),
+        ("bake_target", ctypes.c_int8),
+        ("_pad", ctypes.c_char * 6),
+        ("directory", ctypes.c_void_p),
+        ("frame_start", ctypes.c_int32),
+        ("frame_end", ctypes.c_int32),
+        ("data_blocks_num", ctypes.c_int32),
+        ("active_data_block", ctypes.c_int32),
+        ("data_blocks", ctypes.c_void_p),
+        ("packed", ctypes.c_void_p),
+        ("_pad2", ctypes.c_void_p),
+        ("bake_size", ctypes.c_int64),
+    ]
+
+
+_PHYS_BYTES_PER_POINT = 32
+
+
+def _geonodes_bake_dna_sizes(bake):
+    """
+    Read packed pointer and bake_size from NodesModifierBake DNA.
+    Returns (bake_size, is_packed) or None if unavailable.
+    """
+    if bake is None or ctypes.sizeof(ctypes.c_void_p) != 8:
+        return None
+    try:
+        ptr = bake.as_pointer()
+        if not ptr:
+            return None
+        dna = _NodesModifierBakeDNA.from_address(ptr)
+        size = int(dna.bake_size)
+        packed = bool(dna.packed)
+        if size < 0:
+            return None
+        return (size, packed)
+    except (AttributeError, TypeError, ValueError, OSError, RuntimeError):
+        return None
+
+
+def _append_geonodes_bake_rows(rows, is_override):
+    """Append rows for GeoNodes bakes packed into the .blend."""
+    # packed + bake_size DNA fields exist since Blender 4.3
+    if not version.is_version_at_least(4, 3):
+        return
+    for ob in bpy.data.objects:
+        if _skip_linked(ob):
+            continue
+        try:
+            mods = ob.modifiers
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+        io = is_override(ob)
+        ow = 0.08 if io else 1.0
+        for mod in mods:
+            if not is_geometry_nodes_modifier(mod):
+                continue
+            bakes = getattr(mod, "bakes", None)
+            if not bakes:
+                continue
+            for bake in bakes:
+                info = _geonodes_bake_dna_sizes(bake)
+                if info is None:
+                    continue
+                size, packed = info
+                if not packed or size <= 0:
+                    continue
+                node = getattr(bake, "node", None)
+                node_name = getattr(node, "name", None) if node else None
+                label = node_name or ("Bake %s" % getattr(bake, "bake_id", "?"))
+                name = "%s / %s / %s" % (ob.name, mod.name, label)
+                emb = max(1, int(size * ow))
+                rows.append(
+                    {
+                        "type": "GeoNodesBake",
+                        "name": name,
+                        "embedded": emb,
+                        "size_bytes": emb,
+                        "is_lib_override": io,
+                        "kind": "packed",
+                    }
+                )
+
+
+def _point_cache_in_blend(cache):
+    """True when a point cache is baked into the .blend (not disk/external)."""
+    if cache is None:
+        return False
+    try:
+        if not cache.is_baked:
+            return False
+        if getattr(cache, "use_disk_cache", False):
+            return False
+        if getattr(cache, "use_external", False):
+            return False
+        return True
+    except (AttributeError, RuntimeError, ReferenceError):
+        return False
+
+
+def _iter_point_cache_items(pc):
+    if pc is None:
+        return
+    items = getattr(pc, "point_caches", None)
+    try:
+        if items is not None and len(items) > 0:
+            for item in items:
+                yield item
+            return
+    except (AttributeError, RuntimeError, TypeError):
+        pass
+    yield pc
+
+
+def _physics_cache_size_bytes(cache, point_count):
+    try:
+        fs = int(cache.frame_start)
+        fe = int(cache.frame_end)
+        step = max(1, int(getattr(cache, "frame_step", 1) or 1))
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return None
+    frames = max(1, (fe - fs) // step + 1)
+    pts = max(1, int(point_count) if point_count else 1)
+    return max(64, frames * pts * _PHYS_BYTES_PER_POINT)
+
+
+def _object_mesh_vert_count(ob):
+    data = getattr(ob, "data", None)
+    if data is None:
+        return 1
+    try:
+        return max(1, len(data.vertices))
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return 1
+
+
+def _append_physics_cache_row(rows, name, cache, point_count, is_lib_override):
+    if not _point_cache_in_blend(cache):
+        return
+    sz = _physics_cache_size_bytes(cache, point_count)
+    if sz is None:
+        return
+    ow = 0.08 if is_lib_override else 1.0
+    sz = max(64, int(sz * ow))
+    cname = getattr(cache, "name", "") or ""
+    display = "%s (%s)" % (name, cname) if cname else name
+    rows.append(
+        {
+            "type": "PhysicsCache",
+            "name": display,
+            "embedded": 0,
+            "size_bytes": sz,
+            "is_lib_override": is_lib_override,
+            "kind": "override" if is_lib_override else "local",
+        }
+    )
+
+
+def _append_physics_cache_rows(rows, is_override):
+    """Append rows for physics point caches stored inside the .blend."""
+    for ob in bpy.data.objects:
+        if _skip_linked(ob):
+            continue
+        io = is_override(ob)
+        verts = _object_mesh_vert_count(ob)
+        try:
+            mods = ob.modifiers
+        except (AttributeError, RuntimeError, ReferenceError):
+            mods = []
+        for mod in mods:
+            mtype = getattr(mod, "type", None)
+            if mtype == "CLOTH":
+                pc = getattr(mod, "point_cache", None)
+                for item in _iter_point_cache_items(pc):
+                    _append_physics_cache_row(
+                        rows, "%s / Cloth" % ob.name, item, verts, io
+                    )
+            elif mtype == "SOFT_BODY":
+                pc = getattr(mod, "point_cache", None)
+                for item in _iter_point_cache_items(pc):
+                    _append_physics_cache_row(
+                        rows, "%s / Soft Body" % ob.name, item, verts, io
+                    )
+            elif mtype == "DYNAMIC_PAINT":
+                canvas = getattr(mod, "canvas_settings", None)
+                surfaces = getattr(canvas, "canvas_surfaces", None) if canvas else None
+                if not surfaces:
+                    continue
+                for surf in surfaces:
+                    pc = getattr(surf, "point_cache", None)
+                    fmt = getattr(surf, "surface_format", None)
+                    if fmt == "IMAGE":
+                        res = int(getattr(surf, "image_resolution", 256) or 256)
+                        pts = max(1, res * res)
+                    else:
+                        pts = verts
+                    sname = getattr(surf, "name", "Surface") or "Surface"
+                    for item in _iter_point_cache_items(pc):
+                        _append_physics_cache_row(
+                            rows,
+                            "%s / Dynamic Paint / %s" % (ob.name, sname),
+                            item,
+                            pts,
+                            io,
+                        )
+        try:
+            psystems = ob.particle_systems
+        except (AttributeError, RuntimeError, ReferenceError):
+            psystems = []
+        for ps in psystems:
+            pc = getattr(ps, "point_cache", None)
+            settings = getattr(ps, "settings", None)
+            count = 1
+            if settings is not None:
+                try:
+                    count = max(1, int(getattr(settings, "count", 1) or 1))
+                except (TypeError, ValueError):
+                    count = 1
+            ps_name = getattr(ps, "name", "Particles") or "Particles"
+            for item in _iter_point_cache_items(pc):
+                _append_physics_cache_row(
+                    rows, "%s / %s" % (ob.name, ps_name), item, count, io
+                )
+
+    for sc in bpy.data.scenes:
+        if _skip_linked(sc):
+            continue
+        rbw = getattr(sc, "rigidbody_world", None)
+        if not rbw:
+            continue
+        pc = getattr(rbw, "point_cache", None)
+        coll = getattr(rbw, "collection", None)
+        nobj = 1
+        if coll is not None:
+            try:
+                nobj = max(1, len(coll.objects))
+            except (AttributeError, RuntimeError, ReferenceError):
+                nobj = 1
+        io = is_override(sc)
+        for item in _iter_point_cache_items(pc):
+            _append_physics_cache_row(
+                rows, "%s / Rigid Body" % sc.name, item, nobj, io
+            )
+
+
 _STORAGE_TYPE_ICONS = {
     "Mesh": "MESH_DATA",
     "Image": "IMAGE_DATA",
@@ -514,6 +791,8 @@ _STORAGE_TYPE_ICONS = {
     "Sound": "SOUND",
     "Font": "FONT_DATA",
     "Collection": "OUTLINER_COLLECTION",
+    "GeoNodesBake": "GEOMETRY_NODES",
+    "PhysicsCache": "PHYSICS",
 }
 
 
@@ -522,8 +801,13 @@ def storage_type_icon(type_name):
     return _STORAGE_TYPE_ICONS.get(type_name, "BLANK1")
 
 
+def storage_packed_icon(type_name):
+    """Packed-in-blend indicator (GeoNodes bake rows only)."""
+    return "PACKAGE" if type_name == "GeoNodesBake" else "BLANK1"
+
+
 def storage_override_icon(is_lib_override):
-    """Second column: library override emblem vs empty spacer."""
+    """Library override emblem vs empty spacer."""
     return "LIBRARY_DATA_OVERRIDE" if is_lib_override else "BLANK1"
 
 
@@ -757,6 +1041,9 @@ def build_report():
                     "kind": "override" if io else "local",
                 }
             )
+
+    _append_geonodes_bake_rows(rows, _ov)
+    _append_physics_cache_rows(rows, _ov)
 
     rows.sort(key=lambda r: r["size_bytes"], reverse=True)
 

@@ -35,6 +35,7 @@ from ..utils.compat import (
     format_bytes,
     format_embedded_total,
     get_report,
+    storage_packed_icon,
     storage_override_icon,
     storage_type_icon,
 )
@@ -144,8 +145,10 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 icon='INFO',
             )
             col.label(text="Packed = exact bytes stored inside this .blend.")
+            col.label(text="Includes packed GeoNodes bakes; physics caches are estimates.")
             col.label(text="Other sizes are estimates; disk file may compress.")
-            col.label(text="Second icon = library override (when applicable).")
+            col.label(text="GeoNodes bakes: geometry-nodes then packed icons (not the node group).")
+            col.label(text="Last icon = library override (when applicable).")
 
             row = col.row()
             row.label(
@@ -166,6 +169,7 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 split = col.split(factor=0.68)
                 left = split.row(align=True)
                 left.label(icon=storage_type_icon(r["type"]), text="")
+                left.label(icon=storage_packed_icon(r["type"]), text="")
                 left.label(
                     icon=storage_override_icon(r.get("is_lib_override", False)),
                     text="",
