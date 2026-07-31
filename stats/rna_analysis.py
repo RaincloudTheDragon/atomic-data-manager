@@ -265,12 +265,158 @@ def _extract_references_from_datablock(datablock, depth=0, max_depth=5):
     return references
 
 
+def _id_ref_from_value(value, property_name, skip_library_types=None):
+    """
+    Build a dependency-graph reference dict from an ID pointer value.
+
+    Args:
+        value: Candidate ID data-block (Object, Collection, Material, etc.)
+        property_name: Graph edge label for this reference
+        skip_library_types: Optional set of mapped type names to skip when linked/override
+            (e.g. {'Material', 'Image'}). Object/Collection refs are kept even when linked
+            so local deps reachable through them stay marked used.
+    """
+    if value is None or not hasattr(value, 'name') or not hasattr(value, 'bl_rna'):
+        return None
+
+    if skip_library_types is None:
+        skip_library_types = {'Material', 'Image'}
+
+    try:
+        type_id = value.bl_rna.identifier
+    except (AttributeError, RuntimeError, ReferenceError):
+        return None
+
+    # Normalize Blender RNA type identifiers to graph type labels
+    type_map = {
+        'Object': 'Object',
+        'Collection': 'Collection',
+        'Material': 'Material',
+        'Image': 'Image',
+        'Texture': 'Texture',
+        'NodeTree': 'NodeTree',
+        'GeometryNodeTree': 'NodeTree',
+        'ShaderNodeTree': 'NodeTree',
+        'CompositorNodeTree': 'NodeTree',
+        'Armature': 'Armature',
+        'Mesh': 'Mesh',
+        'World': 'World',
+        'Light': 'Light',
+        'ParticleSettings': 'ParticleSettings',
+        'Scene': 'Scene',
+    }
+    mapped = type_map.get(type_id)
+    if mapped is None:
+        if 'NodeTree' in type_id or 'NodeGroup' in type_id:
+            mapped = 'NodeTree'
+        else:
+            return None
+
+    try:
+        if mapped in skip_library_types and compat.is_library_or_override(value):
+            return None
+        return {
+            'property': property_name,
+            'type': mapped,
+            'name': value.name,
+        }
+    except (AttributeError, RuntimeError, ReferenceError):
+        return None
+
+
+def _extract_geometry_nodes_modifier_input_refs(modifier):
+    """
+    Extract Object/Collection/Material/Image refs from Geometry Nodes modifier inputs.
+
+    Blender 5.x stores overrides on modifier.properties.inputs.<Socket_N>.value.
+    Older builds may expose socket IDProperties on the modifier itself.
+    """
+    references = []
+
+    # Blender 5.x GeometryNodesModifierInterface inputs
+    try:
+        props = getattr(modifier, 'properties', None)
+        inputs = getattr(props, 'inputs', None) if props is not None else None
+        if inputs is not None and hasattr(inputs, 'bl_rna'):
+            for prop in inputs.bl_rna.properties:
+                if prop.identifier in ('rna_type', 'name') or prop.type != 'POINTER':
+                    continue
+                try:
+                    sock = getattr(inputs, prop.identifier, None)
+                    if sock is None:
+                        continue
+                    val = getattr(sock, 'value', None)
+                    ref = _id_ref_from_value(
+                        val,
+                        f'modifiers.properties.inputs.{prop.identifier}',
+                    )
+                    if ref:
+                        references.append(ref)
+                except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
+                    continue
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        pass
+
+    # Legacy: modifier IDProperties keyed by socket identifier (Input_*/Socket_*)
+    try:
+        keys = modifier.keys()
+    except (AttributeError, TypeError, RuntimeError):
+        keys = []
+
+    for key in keys:
+        if not isinstance(key, str):
+            continue
+        if not (key.startswith('Input_') or key.startswith('Socket_')):
+            continue
+        try:
+            val = modifier.get(key)
+            ref = _id_ref_from_value(val, f'modifiers["{key}"]')
+            if ref:
+                references.append(ref)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
+            continue
+
+    return references
+
+
+def _extract_node_tree_interface_refs(node_tree):
+    """Extract ID defaults from a node group interface (Object/Collection/etc.)."""
+    references = []
+    if not node_tree or not hasattr(node_tree, 'interface'):
+        return references
+
+    try:
+        items = _safe_snapshot(node_tree.interface.items_tree)
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return references
+
+    for item in items:
+        if item is None:
+            continue
+        try:
+            # Only input defaults feed runtime usage
+            if getattr(item, 'in_out', None) == 'OUTPUT':
+                continue
+            if not hasattr(item, 'default_value'):
+                continue
+            ref = _id_ref_from_value(item.default_value, 'interface.default_value')
+            if ref:
+                references.append(ref)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
+            continue
+
+    return references
+
+
 def _extract_node_tree_references(node_tree):
-    """Extract references from a node tree (materials, compositor, etc.)."""
+    """Extract references from a node tree (materials, compositor, geometry nodes, etc.)."""
     references = []
     
     if not node_tree:
         return references
+
+    # Group interface defaults (Collection/Object sockets, etc.)
+    references.extend(_extract_node_tree_interface_refs(node_tree))
     
     try:
         # Create a snapshot of nodes to avoid iteration issues
@@ -315,24 +461,25 @@ def _extract_node_tree_references(node_tree):
                     except (AttributeError, RuntimeError, ReferenceError):
                         pass
                 
-                # Special handling for nodes with material input sockets (Menu Switch, Set Material, etc.)
+                # ID input sockets: Material, Object, Collection, Image
+                # (Object Info, Collection Info, Set Material, Menu Switch, etc.)
                 if hasattr(node, 'inputs'):
                     try:
                         for input_socket in node.inputs:
                             try:
-                                # Check socket type - material sockets are typically 'MATERIAL' type
-                                socket_type = getattr(input_socket, 'type', '')
-                                if socket_type == 'MATERIAL' or 'material' in str(socket_type).lower():
-                                    # Check if this socket has a default_value that is a material
-                                    if hasattr(input_socket, 'default_value') and input_socket.default_value:
-                                        socket_material = input_socket.default_value
-                                        # Check if it's a material datablock
-                                        if socket_material and hasattr(socket_material, 'name') and not compat.is_library_or_override(socket_material):
-                                            references.append({
-                                                'property': 'inputs.material',
-                                                'type': 'Material',
-                                                'name': socket_material.name
-                                            })
+                                socket_type = str(getattr(input_socket, 'type', '')).upper()
+                                if socket_type not in (
+                                    'MATERIAL', 'OBJECT', 'COLLECTION', 'IMAGE', 'TEXTURE'
+                                ):
+                                    continue
+                                if not hasattr(input_socket, 'default_value'):
+                                    continue
+                                ref = _id_ref_from_value(
+                                    input_socket.default_value,
+                                    f'inputs.{socket_type.lower()}',
+                                )
+                                if ref:
+                                    references.append(ref)
                             except (AttributeError, ReferenceError, RuntimeError, TypeError, KeyError):
                                 continue  # Skip this socket if we can't access it
                     except (AttributeError, RuntimeError, ReferenceError):
@@ -488,7 +635,7 @@ def dump_rna_references(output_path=None):
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
-                # Special handling for collections (objects property)
+                # Special handling for collections (objects + child collections)
                 try:
                     if data_type == 'collections':
                         # Collections have an 'objects' property that contains objects
@@ -511,12 +658,41 @@ def dump_rna_references(output_path=None):
                                     })
                                 except (AttributeError, RuntimeError, ReferenceError):
                                     continue
+
+                        # Child collections (needed so collection-instance sources reach nested GEO_* trees)
+                        if hasattr(datablock, 'children'):
+                            for child in _safe_snapshot(datablock.children):
+                                if child is None:
+                                    continue
+                                try:
+                                    references.append({
+                                        'property': 'children',
+                                        'type': 'Collection',
+                                        'name': child.name
+                                    })
+                                except (AttributeError, RuntimeError, ReferenceError):
+                                    continue
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
                 # Special handling for objects (modifiers with node groups, material slots)
                 try:
                     if data_type == 'objects':
+                        # Collection instances: Empty/object → instanced Collection
+                        # (source collections are often outside the scene hierarchy)
+                        try:
+                            if getattr(datablock, 'instance_type', None) == 'COLLECTION':
+                                inst_col = getattr(datablock, 'instance_collection', None)
+                                ref = _id_ref_from_value(
+                                    inst_col,
+                                    'instance_collection',
+                                    skip_library_types=set(),
+                                )
+                                if ref:
+                                    references.append(ref)
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+
                         # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
                         if hasattr(datablock, 'modifiers'):
                             # Create a snapshot to avoid iteration issues
@@ -539,6 +715,10 @@ def dump_rna_references(output_path=None):
                                                 'type': 'NodeTree',
                                                 'name': ng.name
                                             })
+                                        # Object/Collection/Material inputs on the modifier interface
+                                        references.extend(
+                                            _extract_geometry_nodes_modifier_input_refs(modifier)
+                                        )
                                 except (AttributeError, RuntimeError, ReferenceError):
                                     # Geometry nodes modifier access may fail
                                     pass
@@ -640,6 +820,27 @@ def dump_rna_references(output_path=None):
                                         })
                                 except (AttributeError, RuntimeError, ReferenceError):
                                     continue
+
+                        # Pose-bone custom shapes (rig widgets often live outside the scene)
+                        try:
+                            pose = getattr(datablock, 'pose', None)
+                            if pose is not None and hasattr(pose, 'bones'):
+                                for pose_bone in _safe_snapshot(pose.bones):
+                                    if pose_bone is None:
+                                        continue
+                                    try:
+                                        shape = getattr(pose_bone, 'custom_shape', None)
+                                        ref = _id_ref_from_value(
+                                            shape,
+                                            'pose.bones.custom_shape',
+                                            skip_library_types=set(),
+                                        )
+                                        if ref:
+                                            references.append(ref)
+                                    except (AttributeError, RuntimeError, ReferenceError):
+                                        continue
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
