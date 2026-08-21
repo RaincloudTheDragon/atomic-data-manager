@@ -1,3 +1,16 @@
+## [v2.8.0] - 2026-08-21
+
+### Features
+
+- **Actions (#19)**: Smart Select / Clean / Inspect for unused actions (object, NLA, shape-key, and scene animation refs).
+- **Safe Clean**: optional empty-scene wrapper (on by default) to avoid viewport crashes during bulk Clean/Nuke deletes.
+
+### Fixes
+
+- **RNA**: collection instances, Geometry Nodes Object/Collection inputs, and pose custom shapes stay marked used.
+- **Storage navigate**: library overrides count as action/mesh/armature users (pure linked objects still skipped).
+- **Materials (issue #5)**: unused detection follows scene reachability—orphan/ghost `users` no longer block cleanable materials.
+
 ## [v2.7.0] - 2026-07-10
 
 ### Features
