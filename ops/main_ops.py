@@ -40,6 +40,7 @@ from ..stats import unused_parallel
 from .. import config
 from .utils import clean
 from .utils import nuke
+from .utils import safe_delete
 from ..ui.utils import ui_layouts
 
 
@@ -115,7 +116,8 @@ _clean_execute_state = {
     'total_items': 0,
     'current_category_index': 0,
     'current_item_index': 0,
-    'deleted_count': 0
+    'deleted_count': 0,
+    'safe_clean_active': False,
 }
 
 # Unified scanning state for both Smart Select and Clean
@@ -525,29 +527,31 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
     def execute(self, context):
         atom = bpy.context.scene.atomic
 
-        if atom.collections:
-            nuke.collections()
+        # One empty-scene session for the whole Nuke (nuke.* helpers nest re-entrantly)
+        with safe_delete.safe_datablock_removal():
+            if atom.collections:
+                nuke.collections()
 
-        if atom.images:
-            nuke.images()
+            if atom.images:
+                nuke.images()
 
-        if atom.lights:
-            nuke.lights()
+            if atom.lights:
+                nuke.lights()
 
-        if atom.materials:
-            nuke.materials()
+            if atom.materials:
+                nuke.materials()
 
-        if atom.node_groups:
-            nuke.node_groups()
+            if atom.node_groups:
+                nuke.node_groups()
 
-        if atom.particles:
-            nuke.particles()
+            if atom.particles:
+                nuke.particles()
 
-        if atom.textures:
-            nuke.textures()
+            if atom.textures:
+                nuke.textures()
 
-        if atom.worlds:
-            nuke.worlds()
+            if atom.worlds:
+                nuke.worlds()
 
         bpy.ops.atomic.deselect_all()
 
@@ -747,64 +751,65 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             ):
                 self.report({'INFO'}, msg)
 
-        # Delete all items synchronously
+        # Delete all items synchronously (empty-scene Safe Clean wraps the purge)
         deleted_count = 0
-        for category, unused_list in categories_to_clean:
-            if not unused_list:
-                continue
-                
-            for item_key in unused_list:
-                try:
-                    if category == 'collections':
-                        if item_key in bpy.data.collections:
-                            bpy.data.collections.remove(bpy.data.collections[item_key])
-                            deleted_count += 1
-                    elif category == 'images':
-                        if item_key in bpy.data.images:
-                            bpy.data.images.remove(bpy.data.images[item_key])
-                            deleted_count += 1
-                    elif category == 'lights':
-                        if item_key in bpy.data.lights:
-                            bpy.data.lights.remove(bpy.data.lights[item_key])
-                            deleted_count += 1
-                    elif category == 'materials':
-                        if item_key in bpy.data.materials:
-                            bpy.data.materials.remove(bpy.data.materials[item_key])
-                            deleted_count += 1
-                    elif category == 'node_groups':
-                        if item_key in bpy.data.node_groups:
-                            bpy.data.node_groups.remove(bpy.data.node_groups[item_key])
-                            deleted_count += 1
-                    elif category == 'objects':
-                        if item_key in bpy.data.objects:
-                            bpy.data.objects.remove(bpy.data.objects[item_key])
-                            deleted_count += 1
-                    elif category == 'particles':
-                        if item_key in bpy.data.particles:
-                            bpy.data.particles.remove(bpy.data.particles[item_key])
-                            deleted_count += 1
-                    elif category == 'textures':
-                        if item_key in bpy.data.textures:
-                            bpy.data.textures.remove(bpy.data.textures[item_key])
-                            deleted_count += 1
-                    elif category == 'armatures':
-                        if item_key in bpy.data.armatures:
-                            bpy.data.armatures.remove(bpy.data.armatures[item_key])
-                            deleted_count += 1
-                    elif category == 'worlds':
-                        if item_key in bpy.data.worlds:
-                            bpy.data.worlds.remove(bpy.data.worlds[item_key])
-                            deleted_count += 1
-                except:
-                    pass  # Item may have been deleted already or doesn't exist
-        
+        with safe_delete.safe_datablock_removal():
+            for category, unused_list in categories_to_clean:
+                if not unused_list:
+                    continue
+
+                for item_key in unused_list:
+                    try:
+                        if category == 'collections':
+                            if item_key in bpy.data.collections:
+                                bpy.data.collections.remove(bpy.data.collections[item_key])
+                                deleted_count += 1
+                        elif category == 'images':
+                            if item_key in bpy.data.images:
+                                bpy.data.images.remove(bpy.data.images[item_key])
+                                deleted_count += 1
+                        elif category == 'lights':
+                            if item_key in bpy.data.lights:
+                                bpy.data.lights.remove(bpy.data.lights[item_key])
+                                deleted_count += 1
+                        elif category == 'materials':
+                            if item_key in bpy.data.materials:
+                                bpy.data.materials.remove(bpy.data.materials[item_key])
+                                deleted_count += 1
+                        elif category == 'node_groups':
+                            if item_key in bpy.data.node_groups:
+                                bpy.data.node_groups.remove(bpy.data.node_groups[item_key])
+                                deleted_count += 1
+                        elif category == 'objects':
+                            if item_key in bpy.data.objects:
+                                bpy.data.objects.remove(bpy.data.objects[item_key])
+                                deleted_count += 1
+                        elif category == 'particles':
+                            if item_key in bpy.data.particles:
+                                bpy.data.particles.remove(bpy.data.particles[item_key])
+                                deleted_count += 1
+                        elif category == 'textures':
+                            if item_key in bpy.data.textures:
+                                bpy.data.textures.remove(bpy.data.textures[item_key])
+                                deleted_count += 1
+                        elif category == 'armatures':
+                            if item_key in bpy.data.armatures:
+                                bpy.data.armatures.remove(bpy.data.armatures[item_key])
+                                deleted_count += 1
+                        elif category == 'worlds':
+                            if item_key in bpy.data.worlds:
+                                bpy.data.worlds.remove(bpy.data.worlds[item_key])
+                                deleted_count += 1
+                    except Exception:
+                        pass  # Item may have been deleted already or doesn't exist
+
         # Invalidate cache after cleaning (data has changed)
         global _cache_valid
         _cache_valid = False
-        
+
         # Deselect all
         bpy.ops.atomic.deselect_all()
-        
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -878,30 +883,53 @@ class ATOMIC_OT_clean(bpy.types.Operator):
 
 def _process_clean_execute_step():
     """Process Clean execute (deletion) in steps to avoid blocking the UI"""
-    atom = bpy.context.scene.atomic
     global _clean_execute_state
-    
+
+    # Enter empty-scene session once; remember which scene owns Atomic UI state
+    if _clean_execute_state and not _clean_execute_state.get('safe_clean_active'):
+        try:
+            _clean_execute_state['atom_scene_name'] = bpy.context.scene.name
+        except (AttributeError, ReferenceError, RuntimeError):
+            _clean_execute_state['atom_scene_name'] = None
+        safe_delete.begin_safe_datablock_removal()
+        _clean_execute_state['safe_clean_active'] = True
+
+    # Prefer the user's scene for progress/cancel (not the throwaway empty scene)
+    atom_scene_name = (
+        _clean_execute_state.get('atom_scene_name') if _clean_execute_state else None
+    )
+    atom_scene = (
+        bpy.data.scenes.get(atom_scene_name) if atom_scene_name else None
+    )
+    atom = (
+        atom_scene.atomic
+        if atom_scene is not None and hasattr(atom_scene, 'atomic')
+        else bpy.context.scene.atomic
+    )
+
     # Check for cancellation
     if atom.cancel_operation:
+        # Leave empty-scene session if we had entered it
+        if _clean_execute_state and _clean_execute_state.get('safe_clean_active'):
+            safe_delete.end_safe_datablock_removal()
+            _clean_execute_state['safe_clean_active'] = False
         _safe_set_atom_property(atom, 'is_operation_running', False)
         _safe_set_atom_property(atom, 'operation_progress', 0.0)
         _safe_set_atom_property(atom, 'operation_status', "Operation cancelled")
         _safe_set_atom_property(atom, 'cancel_operation', False)
         _clean_execute_state = None
-        # Force UI update
-        for area in bpy.context.screen.areas:
-            area.tag_redraw()
+        safe_delete.tag_atomic_ui_redraw()
         return None
-    
+
     # Process categories one by one
     if _clean_execute_state['current_category_index'] < len(_clean_execute_state['categories_to_clean']):
         category, unused_list = _clean_execute_state['categories_to_clean'][_clean_execute_state['current_category_index']]
-        
+
         if unused_list and _clean_execute_state['current_item_index'] < len(unused_list):
             # Delete current item
             item_key = unused_list[_clean_execute_state['current_item_index']]
             _safe_set_atom_property(atom, 'operation_status', f"Removing {category}: {item_key}...")
-            
+
             try:
                 if category == 'collections':
                     if item_key in bpy.data.collections:
@@ -933,45 +961,44 @@ def _process_clean_execute_step():
                 elif category == 'worlds':
                     if item_key in bpy.data.worlds:
                         bpy.data.worlds.remove(bpy.data.worlds[item_key])
-                
+
                 _clean_execute_state['deleted_count'] += 1
-            except:
+            except Exception:
                 pass  # Item may have been deleted already or doesn't exist
-            
+
             _clean_execute_state['current_item_index'] += 1
             progress = (_clean_execute_state['deleted_count'] / _clean_execute_state['total_items']) * 100.0
             _safe_set_atom_property(atom, 'operation_progress', progress)
-            
-            # Force UI update
-            for area in bpy.context.screen.areas:
-                area.tag_redraw()
-            
+
+            # Do not blanket tag_redraw here — forces View3D sync mid-purge
             return 0.01  # Continue processing
         else:
             # Move to next category
             _clean_execute_state['current_category_index'] += 1
             _clean_execute_state['current_item_index'] = 0
             return 0.01  # Continue to next category
-    
-    # All items deleted
+
+    # All items deleted — leave empty-scene session before UI/redraw
+    if _clean_execute_state.get('safe_clean_active'):
+        safe_delete.end_safe_datablock_removal()
+        _clean_execute_state['safe_clean_active'] = False
+
     deleted_count = _clean_execute_state['deleted_count']
     _safe_set_atom_property(atom, 'is_operation_running', False)
     _safe_set_atom_property(atom, 'operation_progress', 100.0)
     _safe_set_atom_property(atom, 'operation_status', f"Complete! Removed {deleted_count} unused data-blocks")
-    
+
     # Clear state
     _clean_execute_state = None
-    
+
     # Invalidate cache after cleaning (data has changed)
     _invalidate_cache()
-    
+
     # Deselect all
     bpy.ops.atomic.deselect_all()
-    
-    # Force UI update
-    for area in bpy.context.screen.areas:
-        area.tag_redraw()
-    
+
+    safe_delete.tag_atomic_ui_redraw()
+
     return None  # Stop timer
 
 

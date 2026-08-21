@@ -36,6 +36,7 @@ from ..stats import unused
 from ..stats import unused_parallel
 from .utils import nuke
 from .utils import clean
+from .utils import safe_delete
 from ..ui.utils import ui_layouts
 
 
@@ -131,14 +132,15 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
 
     def execute(self, context):
 
-        nuke.collections()
-        nuke.images()
-        nuke.lights()
-        nuke.materials()
-        nuke.node_groups()
-        nuke.particles()
-        nuke.textures()
-        nuke.worlds()
+        with safe_delete.safe_datablock_removal():
+            nuke.collections()
+            nuke.images()
+            nuke.lights()
+            nuke.materials()
+            nuke.node_groups()
+            nuke.particles()
+            nuke.textures()
+            nuke.worlds()
 
         return {'FINISHED'}
 
@@ -245,18 +247,19 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
 
     def execute(self, context):
 
-        clean.collections()
-        clean.images()
-        clean.lights()
-        clean.materials()
-        clean.node_groups()
-        for msg in clean.detach_scene_objects_from_removal_targets(set(self.unused_objects)):
-            self.report({'INFO'}, msg)
-        clean.objects(cached_list=self.unused_objects)
-        clean.particles()
-        clean.textures()
-        clean.armatures()
-        clean.worlds()
+        with safe_delete.safe_datablock_removal():
+            clean.collections()
+            clean.images()
+            clean.lights()
+            clean.materials()
+            clean.node_groups()
+            for msg in clean.detach_scene_objects_from_removal_targets(set(self.unused_objects)):
+                self.report({'INFO'}, msg)
+            clean.objects(cached_list=self.unused_objects)
+            clean.particles()
+            clean.textures()
+            clean.armatures()
+            clean.worlds()
 
         return {'FINISHED'}
 

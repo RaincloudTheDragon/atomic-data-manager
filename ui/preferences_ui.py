@@ -142,6 +142,9 @@ def copy_prefs_to_config(self, context):
     config.storage_navigate_frame_view = \
         atomic_preferences.storage_navigate_frame_view
 
+    config.safe_clean_empty_scene = \
+        atomic_preferences.safe_clean_empty_scene
+
     # hidden atomic preferences
     config.pie_menu_type = \
         atomic_preferences.pie_menu_type
@@ -265,6 +268,15 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=False,
     )
 
+    safe_clean_empty_scene: bpy.props.BoolProperty(
+        name="Safe Clean (Empty Scene)",
+        description="During Clean/Nuke, switch all windows to an empty "
+                    "temporary scene before removing data-blocks, then "
+                    "restore. Avoids Blender viewport draw crashes on heavy "
+                    "files after mass deletes (recommended; default on)",
+        default=True,
+    )
+
     # hidden atomic preferences
     pie_menu_type: bpy.props.StringProperty(
         default="D"
@@ -332,6 +344,13 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             self,
             "storage_navigate_frame_view",
             text="Frame View on Storage Navigate",
+        )
+
+        # Safe Clean: empty-scene shield for bulk deletes
+        col.prop(
+            self,
+            "safe_clean_empty_scene",
+            text="Safe Clean (Empty Scene)",
         )
 
         # pie menu settings

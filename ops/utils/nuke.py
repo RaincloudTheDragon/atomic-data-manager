@@ -25,6 +25,7 @@ data categories.
 
 import bpy
 from ...utils import compat
+from . import safe_delete
 
 
 def nuke_data(data):
@@ -35,8 +36,9 @@ def nuke_data(data):
         datablock = data[key]
         if not compat.is_library_or_override(datablock):
             keys_to_remove.append(key)
-    for key in keys_to_remove:
-        data.remove(data[key])
+    with safe_delete.safe_datablock_removal():
+        for key in keys_to_remove:
+            data.remove(data[key])
 
 
 def collections():

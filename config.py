@@ -34,6 +34,8 @@ include_fake_users = False
 enable_pie_menu_ui = True
 enable_debug_prints = False
 storage_navigate_frame_view = False
+# Switch windows to an empty scene during Clean/Nuke bulk removes (default on)
+safe_clean_empty_scene = True
 
 # hidden atomic preferences
 pie_menu_type = "D"
