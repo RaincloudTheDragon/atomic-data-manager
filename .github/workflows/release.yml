@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (e.g., v2.0.0)'
-        required: true
+        description: 'Optional override (default: v{version} from blender_manifest.toml)'
+        required: false
         type: string
+        default: ''
 
 jobs:
   build:
@@ -24,6 +25,8 @@ jobs:
 
       - name: Get Version
         id: get_version
+        env:
+          TAG_OVERRIDE: ${{ inputs.release_tag }}
         run: |
           python - <<'PY'
           import os
@@ -31,18 +34,25 @@ jobs:
           from pathlib import Path
 
           data = tomllib.loads(Path("blender_manifest.toml").read_text(encoding="utf-8"))
-          version = data["version"]
+          version = data["version"].strip()
+          bare = version.lstrip("v")
+          override = (os.environ.get("TAG_OVERRIDE") or "").strip()
+          tag = override or f"v{bare}"
+
+          print(f"version={version}")
+          print(f"tag={tag}")
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
-              fh.write(f"version={version}\n")
-              fh.write(f"zip_name=Atomic_Data_Manager.v{version}.zip\n")
+              fh.write(f"version={bare}\n")
+              fh.write(f"tag={tag}\n")
+              fh.write(f"zip_name=Atomic_Data_Manager.v{bare}.zip\n")
           PY
 
       - name: Extract latest CHANGELOG section
         id: changelog
         env:
           VERSION: ${{ steps.get_version.outputs.version }}
-          TAG: ${{ inputs.release_tag }}
+          TAG: ${{ steps.get_version.outputs.tag }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python - <<'PY'
@@ -148,7 +158,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.get_version.outputs.zip_name }}
-          tag_name: ${{ inputs.release_tag }}
+          tag_name: ${{ steps.get_version.outputs.tag }}
           name: Atomic Data Manager ${{ steps.get_version.outputs.version }}
           draft: true
           # Latest CHANGELOG section for this version; append if the draft already has notes
