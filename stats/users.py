@@ -201,8 +201,8 @@ def collection_instances(collection_key):
     collection = bpy.data.collections[collection_key]
 
     for obj in bpy.data.objects:
-        # Skip library-linked and override objects
-        if compat.is_library_or_override(obj):
+        # Include overrides that instance collections; skip purely linked.
+        if compat.is_object_linked_without_override(obj):
             continue
         
         # Check if object is a collection instance
@@ -1523,9 +1523,9 @@ def armature_all(armature_key):
 
     # Check all objects - but only count those that are in scene collections
     for obj in bpy.data.objects:
-        # Skip library-linked and override objects
+        # Include library overrides (in-file); skip purely linked objects.
         from ..utils import compat
-        if compat.is_library_or_override(obj):
+        if compat.is_object_linked_without_override(obj):
             continue
 
         # Check if object is in any scene collection (reuse object_all logic)
@@ -1565,10 +1565,14 @@ def armature_all(armature_key):
 
 
 def _obdata_viewport_objects(obdata_key, obj_type=None):
-    """Objects in a scene whose data block matches obdata_key."""
+    """Objects in a scene whose data block matches obdata_key.
+
+    Library overrides are included so storage navigate can jump to override
+    meshes/curves/etc.; purely linked (non-override) objects are skipped.
+    """
     users = []
     for obj in bpy.data.objects:
-        if compat.is_library_or_override(obj):
+        if compat.is_object_linked_without_override(obj):
             continue
         data = getattr(obj, "data", None)
         if data is None or getattr(data, "name", None) != obdata_key:
