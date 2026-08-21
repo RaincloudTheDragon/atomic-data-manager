@@ -211,3 +211,17 @@ def armatures(cached_list=None):
         for armature_key in armature_keys:
             if armature_key in bpy.data.armatures:
                 bpy.data.armatures.remove(bpy.data.armatures[armature_key])
+
+
+def actions(cached_list=None):
+    # removes all unused actions from the project
+    # If cached_list is provided, use it instead of recalculating
+    if cached_list is not None:
+        action_keys = cached_list
+    else:
+        action_keys = unused.actions_deep()
+
+    with safe_delete.safe_datablock_removal():
+        for action_key in action_keys:
+            if hasattr(bpy.data, "actions") and action_key in bpy.data.actions:
+                bpy.data.actions.remove(bpy.data.actions[action_key])

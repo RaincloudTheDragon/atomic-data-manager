@@ -579,6 +579,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     unused_particles = None
     unused_textures = None
     unused_armatures = None
+    unused_actions = None
     unused_worlds = None
 
     def draw(self, context):
@@ -592,7 +593,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         if not (atom.collections or atom.images or atom.lights or
                 atom.materials or atom.node_groups or atom.objects or
                 atom.particles or atom.textures or atom.armatures or
-                atom.worlds):
+                atom.actions or atom.worlds):
 
             ui_layouts.box_list(
                 layout=layout,
@@ -688,6 +689,16 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 columns=4
             )
 
+        # display when the main panel actions property is toggled
+        if atom.actions:
+            ui_layouts.box_list(
+                layout=layout,
+                title="Actions",
+                items=self.unused_actions,
+                icon="ACTION",
+                columns=4
+            )
+
         # display when the main panel worlds property is toggled
         if atom.worlds:
             ui_layouts.box_list(
@@ -734,6 +745,9 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         if atom.armatures and self.unused_armatures:
             total_items += len(self.unused_armatures)
             categories_to_clean.append(('armatures', self.unused_armatures))
+        if atom.actions and self.unused_actions:
+            total_items += len(self.unused_actions)
+            categories_to_clean.append(('actions', self.unused_actions))
         if atom.worlds and self.unused_worlds:
             total_items += len(self.unused_worlds)
             categories_to_clean.append(('worlds', self.unused_worlds))
@@ -796,6 +810,10 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                             if item_key in bpy.data.armatures:
                                 bpy.data.armatures.remove(bpy.data.armatures[item_key])
                                 deleted_count += 1
+                        elif category == 'actions':
+                            if hasattr(bpy.data, 'actions') and item_key in bpy.data.actions:
+                                bpy.data.actions.remove(bpy.data.actions[item_key])
+                                deleted_count += 1
                         elif category == 'worlds':
                             if item_key in bpy.data.worlds:
                                 bpy.data.worlds.remove(bpy.data.worlds[item_key])
@@ -848,6 +866,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             selected_categories.append('textures')
         if atom.armatures:
             selected_categories.append('armatures')
+        if atom.actions:
+            selected_categories.append('actions')
         if atom.worlds:
             selected_categories.append('worlds')
         
@@ -958,6 +978,9 @@ def _process_clean_execute_step():
                 elif category == 'armatures':
                     if item_key in bpy.data.armatures:
                         bpy.data.armatures.remove(bpy.data.armatures[item_key])
+                elif category == 'actions':
+                    if hasattr(bpy.data, 'actions') and item_key in bpy.data.actions:
+                        bpy.data.actions.remove(bpy.data.actions[item_key])
                 elif category == 'worlds':
                     if item_key in bpy.data.worlds:
                         bpy.data.worlds.remove(bpy.data.worlds[item_key])
@@ -1070,6 +1093,7 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     atom.particles = _smart_select_state['unused_flags'].get('particles', False)
     atom.textures = _smart_select_state['unused_flags'].get('textures', False)
     atom.armatures = _smart_select_state['unused_flags'].get('armatures', False)
+    atom.actions = _smart_select_state['unused_flags'].get('actions', False)
     atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)
     
     # Operation complete
@@ -1413,6 +1437,8 @@ def _populate_unused_lists(operator_instance, atom, all_unused):
         operator_instance.unused_textures = all_unused.get('textures', [])
     if atom.armatures:
         operator_instance.unused_armatures = all_unused.get('armatures', [])
+    if atom.actions:
+        operator_instance.unused_actions = all_unused.get('actions', [])
     if atom.worlds:
         operator_instance.unused_worlds = all_unused.get('worlds', [])
 
@@ -1638,6 +1664,7 @@ class ATOMIC_OT_select_all(bpy.types.Operator):
         bpy.context.scene.atomic.particles = True
         bpy.context.scene.atomic.textures = True
         bpy.context.scene.atomic.armatures = True
+        bpy.context.scene.atomic.actions = True
         bpy.context.scene.atomic.worlds = True
         return {'FINISHED'}
 
@@ -1658,6 +1685,7 @@ class ATOMIC_OT_deselect_all(bpy.types.Operator):
         bpy.context.scene.atomic.particles = False
         bpy.context.scene.atomic.textures = False
         bpy.context.scene.atomic.armatures = False
+        bpy.context.scene.atomic.actions = False
         bpy.context.scene.atomic.worlds = False
 
         return {'FINISHED'}

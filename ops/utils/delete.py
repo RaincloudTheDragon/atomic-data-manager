@@ -69,3 +69,8 @@ def texture(key):
 def world(key):
     # removes a specific world
     delete_datablock(bpy.data.worlds, key)
+
+
+def action(key):
+    # removes a specific action
+    delete_datablock(bpy.data.actions, key)

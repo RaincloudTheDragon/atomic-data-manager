@@ -20,6 +20,7 @@ def get_all_unused_parallel():
     - particles: list of unused particle names
     - textures: list of unused texture names
     - armatures: list of unused armature names
+    - actions: list of unused action names
     - worlds: list of unused world names
     """
     # Execute all checks sequentially but in a clean batch
@@ -46,6 +47,8 @@ def get_all_unused_parallel():
             result[category] = unused.textures_deep()
         elif category == 'armatures':
             result[category] = unused.armatures_deep()
+        elif category == 'actions':
+            result[category] = unused.actions_deep()
         elif category == 'worlds':
             config.debug_print(f"[Atomic Debug] get_all_unused_parallel: Calling unused.worlds()...")
             result[category] = unused.worlds()
@@ -234,9 +237,22 @@ def _has_any_unused_armatures():
     return False
 
 
+def _has_any_unused_actions():
+    """Check if there are any unused actions (short-circuits early)."""
+    if not hasattr(bpy.data, "actions"):
+        return False
+    for action in bpy.data.actions:
+        if compat.is_library_or_override(action):
+            continue
+        if not users.action_all(action.name):
+            if not action.use_fake_user or config.include_fake_users:
+                return True
+    return False
+
+
 # Category order for progress tracking
-CATEGORIES = ['collections', 'images', 'lights', 'materials', 'node_groups', 
-              'objects', 'particles', 'textures', 'armatures', 'worlds']
+CATEGORIES = ['collections', 'images', 'lights', 'materials', 'node_groups',
+              'objects', 'particles', 'textures', 'armatures', 'actions', 'worlds']
 
 def get_unused_for_smart_select():
     """
@@ -270,6 +286,8 @@ def get_unused_for_smart_select():
             result[category] = _has_any_unused_textures()
         elif category == 'armatures':
             result[category] = _has_any_unused_armatures()
+        elif category == 'actions':
+            result[category] = _has_any_unused_actions()
         elif category == 'worlds':
             result[category] = _has_any_unused_worlds()
     

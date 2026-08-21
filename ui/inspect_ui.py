@@ -846,6 +846,67 @@ class ATOMIC_OT_inspect_armatures(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+# Atomic Data Manager Inspect Actions UI Operator
+class ATOMIC_OT_inspect_actions(bpy.types.Operator):
+    """Inspect Actions"""
+    bl_idname = "atomic.inspect_actions"
+    bl_label = "Inspect Actions"
+
+    users_objects = []
+    users_scenes = []
+
+    def draw(self, context):
+        global inspection_update_trigger
+        atom = bpy.context.scene.atomic
+
+        layout = self.layout
+
+        ui_layouts.inspect_header(
+            layout=layout,
+            atom_prop="actions_field",
+            data="actions"
+        )
+
+        if inspection_update_trigger:
+            if hasattr(bpy.data, "actions") and atom.actions_field in bpy.data.actions.keys():
+                self.users_objects = users.action_objects(atom.actions_field)
+                # Scene users are returned by action_all but not action_objects
+                all_users = users.action_all(atom.actions_field)
+                self.users_scenes = [
+                    name for name in all_users if name in bpy.data.scenes
+                ]
+            else:
+                self.users_objects = []
+                self.users_scenes = []
+            inspection_update_trigger = False
+
+        ui_layouts.box_list(
+            layout=layout,
+            title="Objects",
+            items=self.users_objects,
+            icon="OBJECT_DATA"
+        )
+        ui_layouts.box_list(
+            layout=layout,
+            title="Scenes",
+            items=self.users_scenes,
+            icon="SCENE_DATA"
+        )
+
+        row = layout.row()
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        atom = bpy.context.scene.atomic
+        atom.active_inspection = "ACTIONS"
+        global inspection_update_trigger
+        inspection_update_trigger = True
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
 reg_list = [
     ATOMIC_OT_inspect_collections,
     ATOMIC_OT_inspect_images,
@@ -856,6 +917,7 @@ reg_list = [
     ATOMIC_OT_inspect_particles,
     ATOMIC_OT_inspect_textures,
     ATOMIC_OT_inspect_armatures,
+    ATOMIC_OT_inspect_actions,
     ATOMIC_OT_inspect_worlds
 ]
 

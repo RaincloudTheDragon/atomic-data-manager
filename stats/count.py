@@ -216,3 +216,20 @@ def worlds_unnamed():
     # returns the number of unnamed worlds in the project
 
     return len(unnamed.worlds())
+
+
+def actions():
+    # returns the number of actions in the project
+    if not hasattr(bpy.data, "actions"):
+        return 0
+    count = 0
+    for action in bpy.data.actions:
+        if not compat.is_library_or_override(action):
+            count += 1
+    return count
+
+
+def actions_unused():
+    # returns the number of unused actions in the project
+
+    return len(unused.actions_shallow())

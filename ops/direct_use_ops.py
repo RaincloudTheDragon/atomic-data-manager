@@ -164,6 +164,7 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
     unused_particles = []
     unused_textures = []
     unused_armatures = []
+    unused_actions = []
     unused_worlds = []
 
     def draw(self, context):
@@ -238,6 +239,13 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
 
         ui_layouts.box_list(
             layout=layout,
+            title="Actions",
+            items=sorted(self.unused_actions),
+            icon="ACTION"
+        )
+
+        ui_layouts.box_list(
+            layout=layout,
             title="Worlds",
             items=sorted(self.unused_worlds),
             icon="WORLD"
@@ -259,6 +267,7 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
             clean.particles()
             clean.textures()
             clean.armatures()
+            clean.actions()
             clean.worlds()
 
         return {'FINISHED'}
@@ -278,6 +287,7 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
         self.unused_particles = all_unused['particles']
         self.unused_textures = all_unused['textures']
         self.unused_armatures = all_unused['armatures']
+        self.unused_actions = all_unused.get('actions', [])
         self.unused_worlds = all_unused['worlds']
 
         return wm.invoke_props_dialog(self)

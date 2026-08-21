@@ -75,3 +75,8 @@ def texture(key):
 def world(key):
     # creates of copy of the specified world
     return duplicate_data(bpy.data.worlds, key)
+
+
+def action(key):
+    # creates a copy of the specified action
+    return duplicate_data(bpy.data.actions, key)

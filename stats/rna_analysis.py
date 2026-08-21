@@ -36,7 +36,8 @@ from . import ghost_users
 # after opening a new blend file
 _DATA_BLOCK_TYPE_NAMES = [
     'images', 'materials', 'objects', 'collections', 'node_groups',
-    'textures', 'lights', 'armatures', 'worlds', 'particles', 'meshes', 'scenes'
+    'textures', 'lights', 'armatures', 'actions', 'worlds', 'particles',
+    'meshes', 'scenes'
 ]
 
 
@@ -46,7 +47,7 @@ def _get_data_block_types():
     This must be called each time to avoid stale references after opening a new blend file.
     """
     try:
-        return {
+        raw = {
             'images': bpy.data.images,
             'materials': bpy.data.materials,
             'objects': bpy.data.objects,
@@ -55,11 +56,13 @@ def _get_data_block_types():
             'textures': bpy.data.textures,
             'lights': bpy.data.lights,
             'armatures': bpy.data.armatures,
+            'actions': getattr(bpy.data, 'actions', None),
             'worlds': bpy.data.worlds,
             'particles': bpy.data.particles,
             'meshes': bpy.data.meshes,
             'scenes': bpy.data.scenes,
         }
+        return {k: v for k, v in raw.items() if v is not None}
     except Exception:
         # If accessing bpy.data fails, return empty dict
         return {}
@@ -299,6 +302,7 @@ def _id_ref_from_value(value, property_name, skip_library_types=None):
         'ShaderNodeTree': 'NodeTree',
         'CompositorNodeTree': 'NodeTree',
         'Armature': 'Armature',
+        'Action': 'Action',
         'Mesh': 'Mesh',
         'World': 'World',
         'Light': 'Light',
@@ -493,6 +497,39 @@ def _extract_node_tree_references(node_tree):
     return references
 
 
+def _extract_animation_data_action_refs(anim_data, prop_prefix='animation_data'):
+    """Collect Action references from AnimationData (.action and NLA strips)."""
+    references = []
+    if anim_data is None:
+        return references
+    try:
+        action = getattr(anim_data, 'action', None)
+        if action is not None and hasattr(action, 'name'):
+            if not compat.is_library_or_override(action):
+                references.append({
+                    'property': f'{prop_prefix}.action',
+                    'type': 'Action',
+                    'name': action.name,
+                })
+        for track in list(getattr(anim_data, 'nla_tracks', []) or []):
+            if track is None:
+                continue
+            for strip in list(getattr(track, 'strips', []) or []):
+                if strip is None:
+                    continue
+                strip_action = getattr(strip, 'action', None)
+                if strip_action is not None and hasattr(strip_action, 'name'):
+                    if not compat.is_library_or_override(strip_action):
+                        references.append({
+                            'property': f'{prop_prefix}.nla_tracks.strips.action',
+                            'type': 'Action',
+                            'name': strip_action.name,
+                        })
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        pass
+    return references
+
+
 def dump_rna_references(output_path=None):
     """
     Dump all data-block references found via RNA introspection to JSON.
@@ -632,6 +669,16 @@ def dump_rna_references(output_path=None):
                                         })
                             except (AttributeError, RuntimeError, ReferenceError):
                                 pass
+
+                        # Scene animation (action + NLA)
+                        try:
+                            references.extend(
+                                _extract_animation_data_action_refs(
+                                    getattr(datablock, 'animation_data', None)
+                                )
+                            )
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
@@ -841,6 +888,30 @@ def dump_rna_references(output_path=None):
                                         continue
                         except (AttributeError, RuntimeError, ReferenceError):
                             pass
+
+                        # Object animation (active action + NLA strips)
+                        try:
+                            references.extend(
+                                _extract_animation_data_action_refs(
+                                    getattr(datablock, 'animation_data', None)
+                                )
+                            )
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+
+                        # Shape-key animation actions
+                        try:
+                            data = getattr(datablock, 'data', None)
+                            shape_keys = getattr(data, 'shape_keys', None) if data else None
+                            if shape_keys is not None:
+                                references.extend(
+                                    _extract_animation_data_action_refs(
+                                        getattr(shape_keys, 'animation_data', None),
+                                        'shape_keys.animation_data',
+                                    )
+                                )
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
@@ -917,6 +988,11 @@ def dump_rna_references(output_path=None):
                         ref_type_normalized = 'light'
                     elif 'armature' in ref_type and 'datablock' not in ref_type:
                         ref_type_normalized = 'armature'
+                    elif ref_type == 'action' or (
+                        'action' in ref_type and 'datablock' not in ref_type
+                        and 'faction' not in ref_type
+                    ):
+                        ref_type_normalized = 'action'
                     elif 'world' in ref_type and 'datablock' not in ref_type:
                         ref_type_normalized = 'world'
                     elif 'particlesettings' in ref_type or ('particle' in ref_type and 'settings' in ref_type):
@@ -936,6 +1012,7 @@ def dump_rna_references(output_path=None):
                         'texture': 'textures',
                         'light': 'lights',
                         'armature': 'armatures',
+                        'action': 'actions',
                         'world': 'worlds',
                         'particlesettings': 'particles',
                         'mesh': 'meshes',
@@ -1047,6 +1124,11 @@ def build_dependency_graph(rna_data):
                     ref_type_normalized = 'light'
                 elif 'armature' in ref_type and 'datablock' not in ref_type:
                     ref_type_normalized = 'armature'
+                elif ref_type == 'action' or (
+                    'action' in ref_type and 'datablock' not in ref_type
+                    and 'faction' not in ref_type
+                ):
+                    ref_type_normalized = 'action'
                 elif 'world' in ref_type and 'datablock' not in ref_type:
                     ref_type_normalized = 'world'
                 elif 'particlesettings' in ref_type or ('particle' in ref_type and 'settings' in ref_type):
@@ -1066,6 +1148,7 @@ def build_dependency_graph(rna_data):
                     'texture': 'textures',
                     'light': 'lights',
                     'armature': 'armatures',
+                    'action': 'actions',
                     'world': 'worlds',
                     'particlesettings': 'particles',
                     'mesh': 'meshes',
@@ -1393,6 +1476,13 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
                     if category == 'objects':
                         try:
                             if users.object_all(item_name):
+                                continue
+                        except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                            pass
+                    if category == 'actions':
+                        # Keep actions that still have scene/object users (NLA, shape keys, etc.)
+                        try:
+                            if users.action_all(item_name):
                                 continue
                         except (AttributeError, KeyError, RuntimeError, ReferenceError):
                             pass

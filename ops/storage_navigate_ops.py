@@ -56,7 +56,14 @@ class ATOMIC_OT_storage_navigate(bpy.types.Operator):
             modifier_name=self.modifier_name,
         )
         if not self._targets:
-            self.report({"WARNING"}, "No scene users found for '%s'" % self.id_name)
+            if self.storage_type == "Action":
+                self.report(
+                    {"WARNING"},
+                    "No scene users for '%s' — use Smart Select/Clean "
+                    "(Actions) to purge unused actions" % self.id_name,
+                )
+            else:
+                self.report({"WARNING"}, "No scene users found for '%s'" % self.id_name)
             return {"CANCELLED"}
         if len(self._targets) == 1:
             return self.execute(context)

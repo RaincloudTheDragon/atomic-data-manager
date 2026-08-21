@@ -54,6 +54,7 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             atom.particles,
             atom.textures,
             atom.armatures,
+            atom.actions,
             atom.worlds
         ]
 
@@ -231,6 +232,23 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
 
         splitcol.operator(
             "atomic.inspect_armatures",
+            icon='VIEWZOOM',
+            text=""
+        )
+
+        # actions buttons
+        splitcol = col.split(factor=0.8, align=True)
+
+        splitcol.prop(
+            atom,
+            "actions",
+            text="Actions",
+            icon='ACTION',
+            toggle=True
+        )
+
+        splitcol.operator(
+            "atomic.inspect_actions",
             icon='VIEWZOOM',
             text=""
         )

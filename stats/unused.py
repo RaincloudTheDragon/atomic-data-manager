@@ -551,3 +551,30 @@ def armatures_shallow():
     # incomplete, but is significantly faster than doing a deep search
 
     return shallow(bpy.data.armatures)
+
+
+def actions_deep():
+    # returns a list of keys of unused actions
+
+    unused_list = []
+
+    if not hasattr(bpy.data, "actions"):
+        return unused_list
+
+    for action in bpy.data.actions:
+        if compat.is_library_or_override(action):
+            continue
+        if not users.action_all(action.name):
+            if not action.use_fake_user or config.include_fake_users:
+                unused_list.append(action.name)
+
+    return unused_list
+
+
+def actions_shallow():
+    # returns a list of keys of unused actions that may be
+    # incomplete, but is significantly faster than doing a deep search
+
+    if not hasattr(bpy.data, "actions"):
+        return []
+    return shallow(bpy.data.actions)

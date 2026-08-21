@@ -1597,18 +1597,74 @@ def pointcloud_objects(pointcloud_key):
 
 
 def action_objects(action_key):
-    users = []
+    """
+    Object names in a scene that use this action (active action or NLA strip).
+    Also includes meshes whose shape-key animation uses the action.
+    """
+    users_list = []
     try:
         action = bpy.data.actions[action_key]
-    except (KeyError, AttributeError):
+    except (KeyError, AttributeError, TypeError):
         return []
+
     for obj in bpy.data.objects:
         if compat.is_library_or_override(obj):
             continue
-        ad = getattr(obj, "animation_data", None)
-        if ad and ad.action == action and object_all(obj.name):
-            users.append(obj.name)
-    return distinct(users)
+        if not object_all(obj.name):
+            continue
+
+        # Object-level animation_data (action + NLA)
+        if _animation_data_uses_action(getattr(obj, "animation_data", None), action):
+            users_list.append(obj.name)
+            continue
+
+        # Shape-key animation on mesh data
+        data = getattr(obj, "data", None)
+        shape_keys = getattr(data, "shape_keys", None) if data is not None else None
+        if shape_keys is not None:
+            if _animation_data_uses_action(
+                getattr(shape_keys, "animation_data", None), action
+            ):
+                users_list.append(obj.name)
+
+    return distinct(users_list)
+
+
+def action_all(action_key):
+    """
+    Keys that keep an action considered used for unused detection / inspection.
+    Includes scene objects (via action_objects) and scenes that reference the action.
+    """
+    users_list = list(action_objects(action_key))
+
+    try:
+        action = bpy.data.actions[action_key]
+    except (KeyError, AttributeError, TypeError):
+        return distinct(users_list)
+
+    for scene in bpy.data.scenes:
+        if compat.is_library_or_override(scene):
+            continue
+        if _animation_data_uses_action(getattr(scene, "animation_data", None), action):
+            users_list.append(scene.name)
+
+    return distinct(users_list)
+
+
+def _animation_data_uses_action(anim_data, action):
+    """True if AnimationData points at action via .action or any NLA strip."""
+    if anim_data is None or action is None:
+        return False
+    try:
+        if getattr(anim_data, "action", None) == action:
+            return True
+        for track in getattr(anim_data, "nla_tracks", []) or []:
+            for strip in getattr(track, "strips", []) or []:
+                if getattr(strip, "action", None) == action:
+                    return True
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return False
+    return False
 
 
 def image_viewport_objects(image_key):
