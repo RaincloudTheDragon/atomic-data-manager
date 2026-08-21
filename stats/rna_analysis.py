@@ -28,7 +28,6 @@ import json
 import os
 from .. import config
 from ..utils import compat
-from . import ghost_users
 
 
 # Data-block types we care about for dependency analysis
@@ -1487,12 +1486,20 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
                         except (AttributeError, KeyError, RuntimeError, ReferenceError):
                             pass
                     if category == 'materials':
+                        # Cleanability rule (issue #5 / materials_deep): if nothing
+                        # traces back to a scene, the material is cleanable — even
+                        # when bpy.users > 0 from orphan objects or ghost caches.
+                        # Only keep when a scene-reachable object still uses it
+                        # (RNA graph miss) or a brush owns it.
                         try:
-                            if datablock.users > 0 and not datablock.use_fake_user:
-                                if not ghost_users.material_blender_users_fully_cc3_ghosts(
-                                        datablock):
-                                    continue
-                        except (AttributeError, RuntimeError, ReferenceError):
+                            if users.material_brushes(item_name):
+                                continue
+                            slot_objs = users.material_objects(item_name)
+                            if any(users.object_all(obj_name) for obj_name in slot_objs):
+                                continue
+                            if users.material_geometry_nodes(item_name):
+                                continue
+                        except (AttributeError, KeyError, RuntimeError, ReferenceError):
                             pass
                     unused.append(item_name)
         except (AttributeError, RuntimeError, ReferenceError):
