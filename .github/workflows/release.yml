@@ -38,6 +38,75 @@ jobs:
               fh.write(f"zip_name=Atomic_Data_Manager.v{version}.zip\n")
           PY
 
+      - name: Extract latest CHANGELOG section
+        id: changelog
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+          TAG: ${{ inputs.release_tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          tag = os.environ["TAG"]
+          text = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          # Sections look like: ## [v2.8.0] - 2026-08-21
+          pattern = re.compile(r"(?m)^## \[([^\]]+)\][^\n]*\n")
+          matches = list(pattern.finditer(text))
+          if not matches:
+              raise SystemExit("CHANGELOG.md has no ## [version] sections")
+
+          def section_at(i: int) -> str:
+              start = matches[i].start()
+              end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+              return text[start:end].strip() + "\n"
+
+          bare = version.lstrip("v")
+          wanted = {version, f"v{version}", bare, f"v{bare}"}
+          chosen = None
+          label = None
+          for i, m in enumerate(matches):
+              if m.group(1).strip() in wanted:
+                  chosen = section_at(i)
+                  label = m.group(1).strip()
+                  break
+          if chosen is None:
+              chosen = section_at(0)
+              label = matches[0].group(1).strip()
+              print(
+                  f"Warning: no CHANGELOG section for version {version}; "
+                  f"using latest entry [{label}]"
+              )
+          else:
+              print(f"Using CHANGELOG section [{label}] for version {version}")
+
+          # Skip appending if this draft already contains the same section header
+          existing = ""
+          try:
+              raw = subprocess.check_output(
+                  ["gh", "release", "view", tag, "--json", "body,isDraft"],
+                  text=True,
+                  stderr=subprocess.DEVNULL,
+              )
+              data = json.loads(raw)
+              if data.get("isDraft"):
+                  existing = data.get("body") or ""
+          except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
+              pass
+
+          header = f"## [{label}]"
+          if existing and header in existing:
+              print(f"Draft {tag} already includes {header}; not appending again")
+              Path("RELEASE_NOTES.md").write_text("", encoding="utf-8")
+          else:
+              Path("RELEASE_NOTES.md").write_text(chosen, encoding="utf-8")
+          PY
+
       - name: Create ZIP
         run: |
           ADDON_DIR=addon_files/atomic_data_manager
@@ -76,9 +145,12 @@ jobs:
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.get_version.outputs.zip_name }}
           tag_name: ${{ inputs.release_tag }}
           name: Atomic Data Manager ${{ steps.get_version.outputs.version }}
           draft: true
+          # Latest CHANGELOG section for this version; append if the draft already has notes
+          body_path: RELEASE_NOTES.md
+          append_body: true
