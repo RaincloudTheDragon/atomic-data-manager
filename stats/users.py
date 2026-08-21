@@ -1600,6 +1600,10 @@ def action_objects(action_key):
     """
     Object names in a scene that use this action (active action or NLA strip).
     Also includes meshes whose shape-key animation uses the action.
+
+    Library overrides are included (same as RNA unused roots): Anim Layers / NLA
+    on override characters still count as scene users for storage navigate.
+    Purely linked (non-override) objects are skipped.
     """
     users_list = []
     try:
@@ -1608,12 +1612,13 @@ def action_objects(action_key):
         return []
 
     for obj in bpy.data.objects:
-        if compat.is_library_or_override(obj):
+        # Match RNA: override objects stay in-file and can own local NLA/action refs.
+        if compat.is_object_linked_without_override(obj):
             continue
         if not object_all(obj.name):
             continue
 
-        # Object-level animation_data (action + NLA)
+        # Object-level animation_data (action + NLA / Anim Layers tracks)
         if _animation_data_uses_action(getattr(obj, "animation_data", None), action):
             users_list.append(obj.name)
             continue
