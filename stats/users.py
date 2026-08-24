@@ -31,104 +31,167 @@ a material would be searching for the image_materials() function.
 """
 
 import bpy
+from .. import config
 from ..utils import compat
 
-# Built once per materials RNA scan; avoids O(materials × objects) rescans.
-_material_scan_caches = None
+# Session caches for RNA material fallback (issue #5); same results as
+# material_brushes / material_objects+object_all / material_geometry_nodes,
+# without rescanning the scene per material.
+_material_rna_session = None
 
 
 def clear_material_scan_caches():
-    """Drop cached material slot / GN / brush indices (call before each materials pass)."""
-    global _material_scan_caches
-    _material_scan_caches = None
+    """Drop RNA material fallback session caches (before each materials pass)."""
+    global _material_rna_session
+    _material_rna_session = None
+
+
+MATERIAL_SESSION_OBJECT_BATCH = 75
+
+
+def begin_material_session_build():
+    """Start incremental material fallback index build (yields between object batches)."""
+    return {
+        'phase': 'slots',
+        'object_names': [obj.name for obj in bpy.data.objects],
+        'materials': list(bpy.data.materials),
+        'obj_index': 0,
+        'gn_obj_index': 0,
+        'object_in_scene': {},
+        'slot_index': {},
+        'gn_material_names': set(),
+        'visited_gn_roots': set(),
+        'ng_has_material_memo': {},
+    }
+
+
+def _material_session_ng_has_material(state, ng_name, material):
+    """Memoized node_group_has_material_by_ref for incremental session build."""
+    key = (ng_name, id(material))
+    memo = state['ng_has_material_memo']
+    if key not in memo:
+        memo[key] = node_group_has_material_by_ref(ng_name, material)
+    return memo[key]
+
+
+def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH):
+    """
+    Advance material session build by one object batch.
+
+    Returns:
+        (done, progress_fraction)
+    """
+    global _material_rna_session
+
+    phase = state['phase']
+    object_names = state['object_names']
+    total_objects = max(len(object_names), 1)
+
+    if phase == 'slots':
+        start = state['obj_index']
+        end = min(start + batch_size, len(object_names))
+        object_in_scene = state['object_in_scene']
+        slot_index = state['slot_index']
+        for offset in range(start, end):
+            obj = bpy.data.objects.get(object_names[offset])
+            if obj is None or not hasattr(obj, 'material_slots'):
+                continue
+            for slot in obj.material_slots:
+                mat = slot.material
+                if mat is None:
+                    continue
+                slot_index.setdefault(id(mat), []).append(obj.name)
+        state['obj_index'] = end
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] material session slots: {end}/{len(object_names)}"
+            )
+        if end >= len(object_names):
+            state['phase'] = 'gn'
+        return False, 0.5 * end / total_objects
+
+    if phase == 'gn':
+        start = state['gn_obj_index']
+        end = min(start + batch_size, len(object_names))
+        object_in_scene = state['object_in_scene']
+        for offset in range(start, end):
+            obj = bpy.data.objects.get(object_names[offset])
+            if obj is None:
+                continue
+            if compat.is_object_linked_without_override(obj):
+                continue
+            if not _object_in_scene_cached(obj.name, object_in_scene):
+                continue
+            if not hasattr(obj, 'modifiers'):
+                continue
+            for modifier in obj.modifiers:
+                if not compat.is_geometry_nodes_modifier(modifier):
+                    continue
+                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                if ng is None or ng.name in state['visited_gn_roots']:
+                    continue
+                state['visited_gn_roots'].add(ng.name)
+                for material in state['materials']:
+                    if _material_session_ng_has_material(state, ng.name, material):
+                        state['gn_material_names'].add(material.name)
+        state['gn_obj_index'] = end
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] material session geometry nodes: {end}/{len(object_names)}"
+            )
+        if end >= len(object_names):
+            _material_rna_session = {
+                'object_in_scene': state['object_in_scene'],
+                'slot_index': state['slot_index'],
+                'gn_material_names': state['gn_material_names'],
+            }
+            return True, 1.0
+        gn_progress = 0.5 + (0.5 * end / total_objects)
+        return False, gn_progress
+
+    return True, 1.0
+
+
+def _get_material_rna_session():
+    global _material_rna_session
+    if _material_rna_session is None:
+        _material_rna_session = _build_material_rna_session()
+    return _material_rna_session
 
 
 def _object_in_scene_cached(object_key, object_in_scene):
-    """Memoized object_all() for a single RNA materials pass."""
+    """Memoized object_all() for one RNA materials pass."""
     if object_key not in object_in_scene:
         object_in_scene[object_key] = bool(object_all(object_key))
     return object_in_scene[object_key]
 
 
-def _material_refs_in_node_group(node_group_key, visited=None):
-    """Collect material datablocks referenced by a node group (directly or nested)."""
-    refs = set()
-    if visited is None:
-        visited = set()
-    if node_group_key in visited:
-        return refs
-    visited.add(node_group_key)
-    try:
-        node_group = bpy.data.node_groups[node_group_key]
-    except (KeyError, AttributeError, TypeError):
-        return refs
-
-    for node in node_group.nodes:
-        try:
-            if getattr(node, "bl_idname", "") == "GeometryNodeSetMaterial":
-                if hasattr(node, "inputs") and "Material" in node.inputs:
-                    default_value = getattr(node.inputs["Material"], "default_value", None)
-                    if isinstance(default_value, bpy.types.Material):
-                        refs.add(default_value)
-            if hasattr(node, "material") and node.material:
-                refs.add(node.material)
-            for input_socket in getattr(node, "inputs", []) or []:
-                try:
-                    socket_type = getattr(input_socket, "type", "")
-                    if socket_type == "MATERIAL" or "material" in str(socket_type).lower():
-                        default_value = getattr(input_socket, "default_value", None)
-                        if isinstance(default_value, bpy.types.Material):
-                            refs.add(default_value)
-                except (AttributeError, ReferenceError, RuntimeError, TypeError):
-                    continue
-            if hasattr(node, "node_tree") and node.node_tree:
-                refs.update(
-                    _material_refs_in_node_group(node.node_tree.name, visited)
-                )
-        except (AttributeError, ReferenceError, RuntimeError, TypeError):
-            continue
-    return refs
-
-
-def _build_material_scan_caches():
-    """One-pass indices for material cleanability checks during RNA analysis."""
+def _build_material_rna_session():
+    """
+    One-pass indices equivalent to repeated material_objects / object_all /
+    material_geometry_nodes calls (reference-based GN checks preserved).
+    """
     object_in_scene = {}
     slot_index = {}
-    brush_material_refs = set()
+    gn_material_names = set()
+    ng_has_material_memo = {}
+
+    def _ng_has_material(ng_name, material):
+        key = (ng_name, id(material))
+        if key not in ng_has_material_memo:
+            ng_has_material_memo[key] = node_group_has_material_by_ref(
+                ng_name, material
+            )
+        return ng_has_material_memo[key]
 
     for obj in bpy.data.objects:
-        if not hasattr(obj, "material_slots"):
-            continue
-        for slot in obj.material_slots:
-            mat = slot.material
-            if mat is None:
-                continue
-            slot_index.setdefault(id(mat), []).append(obj.name)
+        if hasattr(obj, "material_slots"):
+            for slot in obj.material_slots:
+                mat = slot.material
+                if mat is None:
+                    continue
+                slot_index.setdefault(id(mat), []).append(obj.name)
 
-    if hasattr(bpy.data, "brushes"):
-        for brush in bpy.data.brushes:
-            if hasattr(brush, "gpencil_settings") and brush.gpencil_settings:
-                gp_settings = brush.gpencil_settings
-                if hasattr(gp_settings, "material") and gp_settings.material:
-                    brush_material_refs.add(gp_settings.material)
-                if hasattr(gp_settings, "material_index"):
-                    mat_idx = gp_settings.material_index
-                    for gp_obj in bpy.data.objects:
-                        if gp_obj.type != "GPENCIL" or not gp_obj.data:
-                            continue
-                        gp_data = gp_obj.data
-                        if not hasattr(gp_data, "materials") or not gp_data.materials:
-                            continue
-                        if 0 <= mat_idx < len(gp_data.materials):
-                            gp_mat = gp_data.materials[mat_idx]
-                            if gp_mat:
-                                brush_material_refs.add(gp_mat)
-            if hasattr(brush, "stroke_material") and brush.stroke_material:
-                brush_material_refs.add(brush.stroke_material)
-            if hasattr(brush, "material") and brush.material:
-                brush_material_refs.add(brush.material)
-
-    gn_material_refs_in_scene = set()
     visited_gn_roots = set()
     for obj in bpy.data.objects:
         if compat.is_object_linked_without_override(obj):
@@ -144,41 +207,36 @@ def _build_material_scan_caches():
             if ng is None or ng.name in visited_gn_roots:
                 continue
             visited_gn_roots.add(ng.name)
-            gn_material_refs_in_scene.update(_material_refs_in_node_group(ng.name))
+            for material in bpy.data.materials:
+                if _ng_has_material(ng.name, material):
+                    gn_material_names.add(material.name)
 
     return {
         "object_in_scene": object_in_scene,
         "slot_index": slot_index,
-        "brush_material_refs": brush_material_refs,
-        "gn_material_refs_in_scene": gn_material_refs_in_scene,
+        "gn_material_names": gn_material_names,
     }
-
-
-def _get_material_scan_caches():
-    global _material_scan_caches
-    if _material_scan_caches is None:
-        _material_scan_caches = _build_material_scan_caches()
-    return _material_scan_caches
 
 
 def material_has_scene_reachable_user(material_key):
     """
-    True when a material is used by a brush or by scene-reachable objects
-    (slots or Geometry Nodes). Uses scan-session caches — call
-    clear_material_scan_caches() before each materials RNA pass.
+    True when issue #5 fallback would keep this material (brush, scene-reachable
+    slot, or scene-reachable Geometry Nodes). Matches pre-2.8.1 behavior.
     """
+    if material_brushes(material_key):
+        return True
+
     try:
         material = bpy.data.materials[material_key]
     except (KeyError, AttributeError, TypeError):
         return False
 
-    caches = _get_material_scan_caches()
-    if material in caches["brush_material_refs"]:
+    session = _get_material_rna_session()
+    if material_key in session["gn_material_names"]:
         return True
-    if material in caches["gn_material_refs_in_scene"]:
-        return True
-    object_in_scene = caches["object_in_scene"]
-    for obj_name in caches["slot_index"].get(id(material), ()):
+
+    object_in_scene = session["object_in_scene"]
+    for obj_name in session["slot_index"].get(id(material), ()):
         if _object_in_scene_cached(obj_name, object_in_scene):
             return True
     return False

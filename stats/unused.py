@@ -272,120 +272,233 @@ def _is_compositor_node_tree(node_group):
     """
     Check if a node group is a compositor node tree.
     In Blender 5.0+, each scene has a compositing_node_tree that should be ignored.
-    
-    Args:
-        node_group: The node group to check
-        
-    Returns:
-        bool: True if the node group is a compositor node tree
     """
-    # Check if this node group is any scene's compositor node tree
-    # Use compat function to handle version differences properly
-    for scene in bpy.data.scenes:
-        if scene.use_nodes:
-            node_tree = compat.get_scene_compositor_node_tree(scene)
-            config.debug_print(f"[Atomic Debug] _is_compositor_node_tree: scene='{scene.name}', use_nodes={scene.use_nodes}, node_tree={node_tree}")
-            if node_tree:
-                config.debug_print(f"[Atomic Debug] _is_compositor_node_tree: node_tree.name='{node_tree.name}', checking against '{node_group.name}'")
-                # Check by reference, not just name (in case user renamed it)
-                if node_tree == node_group:
-                    config.debug_print(f"[Atomic Debug] _is_compositor_node_tree: '{node_group.name}' is scene '{scene.name}' compositor node tree")
+    if _compositor_session is not None:
+        if id(node_group) in _compositor_session['compositor_tree_ids']:
+            return True
+    else:
+        for scene in bpy.data.scenes:
+            if not scene.use_nodes:
+                continue
+            try:
+                node_tree = compat.get_scene_compositor_node_tree(scene)
+                if node_tree and node_tree == node_group:
+                    if config.enable_debug_prints:
+                        config.debug_print(
+                            f"[Atomic Debug] _is_compositor_node_tree: "
+                            f"'{node_group.name}' is scene '{scene.name}' compositor"
+                        )
                     return True
-                else:
-                    config.debug_print(f"[Atomic Debug] _is_compositor_node_tree: node_tree != node_group (reference comparison failed)")
-    
-    # Also check if it's used as a node within any compositor (via node_group_compositors)
-    # This handles the case where the node group is used within a compositor, not just as the tree itself
-    comp_users = users.node_group_compositors(node_group.name)
-    if comp_users:
-        config.debug_print(f"[Atomic Debug] _is_compositor_node_tree: '{node_group.name}' is used in compositor: {comp_users}")
+            except (AttributeError, RuntimeError, ReferenceError):
+                continue
+
+    if _cached_node_group_compositors(node_group.name):
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] _is_compositor_node_tree: "
+                f"'{node_group.name}' is used in compositor"
+            )
         return True
-    
-    config.debug_print(f"[Atomic Debug] _is_compositor_node_tree: '{node_group.name}' is NOT a compositor node tree")
+
     return False
+
+
+# Shared by node_groups_deep() and RNA Smart Select fallback.
+_node_group_unused_cache = {}
+_compositor_session = None
+
+
+def begin_node_group_scan_session():
+    """Build per-scan caches (compositor trees, user lookups) before node_groups pass."""
+    global _compositor_session
+    compositor_tree_ids = set()
+    compositor_embedded_names = set()
+    for scene in bpy.data.scenes:
+        if not scene.use_nodes:
+            continue
+        try:
+            node_tree = compat.get_scene_compositor_node_tree(scene)
+            if node_tree:
+                compositor_tree_ids.add(id(node_tree))
+                compositor_embedded_names.add(node_tree.name)
+                for node in node_tree.nodes:
+                    nested = getattr(node, 'node_tree', None)
+                    if nested is not None:
+                        compositor_embedded_names.add(nested.name)
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+    _compositor_session = {
+        'compositor_tree_ids': compositor_tree_ids,
+        'compositor_embedded_names': compositor_embedded_names,
+        'object_all': {},
+        'node_group_all': {},
+        'node_group_materials': {},
+        'node_group_objects': {},
+        'node_group_node_groups': {},
+        'node_group_compositors': {},
+    }
+
+
+def _session_node_group_compositors(node_group_key):
+    """O(1) compositor-user check using trees scanned once at session start."""
+    session = _compositor_session
+    if node_group_key in session['compositor_embedded_names']:
+        return ['Compositor']
+    node_group = bpy.data.node_groups.get(node_group_key)
+    if node_group and id(node_group) in session['compositor_tree_ids']:
+        return ['Compositor']
+    for parent_name in _cached_node_group_node_groups(node_group_key):
+        if parent_name in session['compositor_embedded_names']:
+            return ['Compositor']
+    return []
+
+
+def _cached_object_all(object_key):
+    if _compositor_session is None:
+        return bool(users.object_all(object_key))
+    cache = _compositor_session['object_all']
+    if object_key not in cache:
+        cache[object_key] = bool(users.object_all(object_key))
+    return cache[object_key]
+
+
+def _cached_node_group_all(node_group_key):
+    if _compositor_session is None:
+        return users.node_group_all(node_group_key)
+    cache = _compositor_session['node_group_all']
+    if node_group_key not in cache:
+        cache[node_group_key] = users.distinct(
+            _cached_node_group_compositors(node_group_key)
+            + _cached_node_group_materials(node_group_key)
+            + _cached_node_group_node_groups(node_group_key)
+            + users.node_group_textures(node_group_key)
+            + users.node_group_worlds(node_group_key)
+            + _cached_node_group_objects(node_group_key)
+        )
+    return cache[node_group_key]
+
+
+def _cached_node_group_materials(node_group_key):
+    if _compositor_session is None:
+        return users.node_group_materials(node_group_key)
+    cache = _compositor_session['node_group_materials']
+    if node_group_key not in cache:
+        cache[node_group_key] = users.node_group_materials(node_group_key)
+    return cache[node_group_key]
+
+
+def _cached_node_group_objects(node_group_key):
+    if _compositor_session is None:
+        return users.node_group_objects(node_group_key)
+    cache = _compositor_session['node_group_objects']
+    if node_group_key not in cache:
+        cache[node_group_key] = users.node_group_objects(node_group_key)
+    return cache[node_group_key]
+
+
+def _cached_node_group_node_groups(node_group_key):
+    if _compositor_session is None:
+        return users.node_group_node_groups(node_group_key)
+    cache = _compositor_session['node_group_node_groups']
+    if node_group_key not in cache:
+        cache[node_group_key] = users.node_group_node_groups(node_group_key)
+    return cache[node_group_key]
+
+
+def _cached_node_group_compositors(node_group_key):
+    if _compositor_session is None:
+        return users.node_group_compositors(node_group_key)
+    cache = _compositor_session['node_group_compositors']
+    if node_group_key not in cache:
+        cache[node_group_key] = _session_node_group_compositors(node_group_key)
+    return cache[node_group_key]
+
+
+def clear_node_group_rna_cache():
+    """Reset node-group cleanability memo (call before/after each node_groups RNA pass)."""
+    global _node_group_unused_cache, _compositor_session
+    _node_group_unused_cache = {}
+    _compositor_session = None
+
+
+def is_node_group_cleanable(ng_name, visited=None):
+    """
+    True when node_groups_deep() would treat this group as unused/cleanable
+    (only orphan/out-of-scene users, or no users).
+    """
+    global _node_group_unused_cache
+
+    if visited is None:
+        visited = set()
+
+    if ng_name in visited:
+        return False
+    visited.add(ng_name)
+
+    if ng_name in _node_group_unused_cache:
+        return _node_group_unused_cache[ng_name]
+
+    node_group = bpy.data.node_groups.get(ng_name)
+    if not node_group:
+        _node_group_unused_cache[ng_name] = False
+        return False
+
+    if compat.is_library_or_override(node_group):
+        _node_group_unused_cache[ng_name] = False
+        return False
+    if _is_compositor_node_tree(node_group):
+        _node_group_unused_cache[ng_name] = False
+        return False
+
+    all_users = _cached_node_group_all(ng_name)
+    if config.enable_debug_prints:
+        config.debug_print(
+            f"[Atomic Debug] is_node_group_cleanable: '{ng_name}' - all_users = {all_users}"
+        )
+    if not all_users:
+        cleanable = not node_group.use_fake_user or config.include_fake_users
+        _node_group_unused_cache[ng_name] = cleanable
+        return cleanable
+
+    materials_using_ng = _cached_node_group_materials(ng_name)
+    objects_using_ng = _cached_node_group_objects(ng_name)
+    parent_node_groups = _cached_node_group_node_groups(ng_name)
+
+    all_objects_using_ng = list(objects_using_ng)
+    for mat_name in materials_using_ng:
+        objects_using_mat = users.material_objects(mat_name)
+        objects_using_mat.extend(users.material_geometry_nodes(mat_name))
+        all_objects_using_ng.extend(objects_using_mat)
+
+    all_objects_using_ng = list(set(all_objects_using_ng))
+
+    all_objects_unused = True
+    if all_objects_using_ng:
+        all_objects_unused = all(
+            not _cached_object_all(obj_name) for obj_name in all_objects_using_ng
+        )
+
+    all_parent_ngs_unused = True
+    if parent_node_groups:
+        for parent_ng_name in parent_node_groups:
+            if not is_node_group_cleanable(parent_ng_name, visited.copy()):
+                all_parent_ngs_unused = False
+                break
+
+    cleanable = False
+    if all_objects_unused and all_parent_ngs_unused:
+        cleanable = not node_group.use_fake_user or config.include_fake_users
+
+    _node_group_unused_cache[ng_name] = cleanable
+    return cleanable
 
 
 def node_groups_deep():
     # returns a list of keys of unused node_groups
 
     unused = []
-    # Track which node groups we've already determined are unused (to avoid infinite recursion)
-    _unused_node_groups_cache = set()
-
-    def _is_node_group_unused(ng_name, visited=None):
-        """Recursively check if a node group is unused.
-        Returns True if the node group is only used by unused materials/objects/node_groups."""
-        if visited is None:
-            visited = set()
-        
-        # Avoid infinite recursion
-        if ng_name in visited:
-            return False
-        visited.add(ng_name)
-        
-        # Check cache first
-        if ng_name in _unused_node_groups_cache:
-            return True
-        
-        node_group = bpy.data.node_groups.get(ng_name)
-        if not node_group:
-            return False
-        
-        # Skip library-linked and override datablocks
-        if compat.is_library_or_override(node_group):
-            return False
-        # Skip compositor node trees
-        if _is_compositor_node_tree(node_group):
-            return False
-        
-        # First check: node group has no users at all
-        all_users = users.node_group_all(ng_name)
-        config.debug_print(f"[Atomic Debug] _is_node_group_unused: '{ng_name}' - all_users = {all_users}")
-        if not all_users:
-            if not node_group.use_fake_user or config.include_fake_users:
-                config.debug_print(f"[Atomic Debug] _is_node_group_unused: '{ng_name}' has no users, marking as unused")
-                _unused_node_groups_cache.add(ng_name)
-                return True
-        
-        # Second check: node group is used, but check if it's ONLY used by unused materials/objects/node_groups
-        # Get all materials and objects that use this node group
-        materials_using_ng = users.node_group_materials(ng_name)
-        objects_using_ng = users.node_group_objects(ng_name)
-        parent_node_groups = users.node_group_node_groups(ng_name)
-        
-        # Collect all objects that use this node group (directly or via materials)
-        all_objects_using_ng = list(objects_using_ng)  # Direct object usage via geometry nodes
-        
-        # For each material using this node group, get objects using that material
-        for mat_name in materials_using_ng:
-            # Get objects using this material
-            objects_using_mat = users.material_objects(mat_name)
-            objects_using_mat.extend(users.material_geometry_nodes(mat_name))
-            all_objects_using_ng.extend(objects_using_mat)
-        
-        # Remove duplicates
-        all_objects_using_ng = list(set(all_objects_using_ng))
-        
-        # Check if all objects are unused
-        all_objects_unused = True
-        if all_objects_using_ng:
-            all_objects_unused = all(not users.object_all(obj_name) for obj_name in all_objects_using_ng)
-        
-        # Check if all parent node groups are unused (recursive)
-        all_parent_ngs_unused = True
-        if parent_node_groups:
-            for parent_ng_name in parent_node_groups:
-                if not _is_node_group_unused(parent_ng_name, visited.copy()):
-                    all_parent_ngs_unused = False
-                    break
-        
-        # If node group is only used by unused objects and unused parent node groups, mark it as unused
-        if all_objects_unused and all_parent_ngs_unused:
-            if not node_group.use_fake_user or config.include_fake_users:
-                _unused_node_groups_cache.add(ng_name)
-                return True
-        
-        return False
+    clear_node_group_rna_cache()
+    begin_node_group_scan_session()
 
     for node_group in bpy.data.node_groups:
         # Skip library-linked and override datablocks
@@ -394,8 +507,8 @@ def node_groups_deep():
         # Skip compositor node trees (Blender 5.0+ creates one per file)
         if _is_compositor_node_tree(node_group):
             continue
-        
-        if _is_node_group_unused(node_group.name):
+
+        if is_node_group_cleanable(node_group.name):
             unused.append(node_group.name)
 
     return unused

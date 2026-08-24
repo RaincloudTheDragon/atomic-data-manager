@@ -26,6 +26,7 @@ Uses Blender's RNA introspection system to build a dependency graph.
 import bpy
 import json
 import os
+from collections import defaultdict
 from .. import config
 from ..utils import compat
 
@@ -529,20 +530,24 @@ def _extract_animation_data_action_refs(anim_data, prop_prefix='animation_data')
     return references
 
 
-def dump_rna_references(output_path=None):
+def dump_rna_references(output_path=None, only_type=None, rna_data=None, reference_map=None):
     """
     Dump all data-block references found via RNA introspection to JSON.
     
     Args:
         output_path: Optional path to save JSON file. If None, returns dict.
+        only_type: When set, process a single data-block type (incremental builds).
+        rna_data: Optional accumulator dict for incremental builds.
+        reference_map: Optional reverse-reference accumulator for incremental builds.
     
     Returns:
         Dictionary with structure: {data_type: {item_name: {references: [...], referenced_by: []}}}
     """
-    config.debug_print("[Atomic Debug] RNA Analysis: Starting reference dump...")
-    
-    rna_data = {}
-    reference_map = {}  # Track reverse references: {target_type: {target_name: [source_info]}}
+    incremental = rna_data is not None
+    if not incremental:
+        config.debug_print("[Atomic Debug] RNA Analysis: Starting reference dump...")
+        rna_data = {}
+        reference_map = {}
     
     # Get fresh references to data-block types (critical after opening a new blend file)
     try:
@@ -552,15 +557,25 @@ def dump_rna_references(output_path=None):
         if output_path:
             with open(output_path, 'w') as f:
                 json.dump({}, f, indent=2)
-        return {}
+        return rna_data if incremental else {}
     
     # Initialize structure
-    for data_type in data_block_types.keys():
-        rna_data[data_type] = {}
+    if not incremental:
+        for data_type in data_block_types.keys():
+            rna_data[data_type] = {}
+    
+    if only_type is not None:
+        if only_type not in data_block_types:
+            return rna_data
+        types_to_process = [(only_type, data_block_types[only_type])]
+    else:
+        types_to_process = list(data_block_types.items())
     
     # Extract references from all data-blocks
     # Wrap in try-except to handle crashes when collections become invalid
-    for data_type, data_collection in data_block_types.items():
+    for data_type, data_collection in types_to_process:
+        if data_type not in rna_data:
+            rna_data[data_type] = {}
         try:
             config.debug_print(f"[Atomic Debug] RNA Analysis: Processing {data_type}...")
             
@@ -1036,38 +1051,519 @@ def dump_rna_references(output_path=None):
             config.debug_print(f"[Atomic Warning] RNA Analysis: Failed to process {data_type}: {e}")
             continue
     
-    # Populate reverse references
+    if only_type is None and not incremental:
+        finalize_rna_reference_dump(rna_data, reference_map)
+        config.debug_print(f"[Atomic Debug] RNA Analysis: Reference dump complete. Processed {sum(len(items) for items in rna_data.values())} data-blocks.")
+        
+        # Debug: Show sample of extracted references
+        if config.enable_debug_prints:
+            sample_count = 0
+            for data_type, items in rna_data.items():
+                for item_name, item_data in items.items():
+                    refs = item_data.get('references', [])
+                    if refs and sample_count < 5:
+                        config.debug_print(f"[Atomic Debug] RNA Sample: {data_type}.{item_name} references: {[r.get('name') for r in refs[:3]]}")
+                        sample_count += 1
+                        if sample_count >= 5:
+                            break
+                if sample_count >= 5:
+                    break
+        
+        # Save to file if path provided
+        if output_path:
+            try:
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump(rna_data, f, indent=2)
+                config.debug_print(f"[Atomic Debug] RNA Analysis: Saved to {output_path}")
+            except Exception as e:
+                config.debug_print(f"[Atomic Error] RNA Analysis: Failed to save dump: {e}")
+    
+    return rna_data
+
+
+def finalize_rna_reference_dump(rna_data, reference_map):
+    """Populate referenced_by lists after an incremental or full RNA dump."""
     for data_type, items in reference_map.items():
         for item_name, sources in items.items():
             if data_type in rna_data and item_name in rna_data[data_type]:
                 rna_data[data_type][item_name]['referenced_by'] = sources
-    
-    config.debug_print(f"[Atomic Debug] RNA Analysis: Reference dump complete. Processed {sum(len(items) for items in rna_data.values())} data-blocks.")
-    
-    # Debug: Show sample of extracted references
-    if config.enable_debug_prints:
-        sample_count = 0
-        for data_type, items in rna_data.items():
-            for item_name, item_data in items.items():
-                refs = item_data.get('references', [])
-                if refs and sample_count < 5:
-                    config.debug_print(f"[Atomic Debug] RNA Sample: {data_type}.{item_name} references: {[r.get('name') for r in refs[:3]]}")
-                    sample_count += 1
-                    if sample_count >= 5:
-                        break
-            if sample_count >= 5:
-                break
-    
-    # Save to file if path provided
-    if output_path:
+
+
+def begin_rna_graph_build():
+    """Start an incremental RNA reference dump + dependency graph build."""
+    try:
+        type_names = list(_get_data_block_types().keys())
+    except Exception:
+        type_names = list(_DATA_BLOCK_TYPE_NAMES)
+    return {
+        'phase': 'dump',
+        'type_names': type_names,
+        'type_index': 0,
+        'dump_progress': 0.0,
+        'rna_data': {},
+        'reference_map': {},
+    }
+
+
+def reference_graph_build_fraction(state):
+    """
+    Return 0-1 progress through incremental reference graph build.
+
+    Dump dominates runtime; finalize and graph linking get fixed late-stage slots.
+    """
+    phase = state.get('phase', 'dump')
+    if phase == 'dump':
+        return state.get('dump_progress', 0.0) * 0.75
+    if phase == 'finalize':
+        return 0.78
+    if phase == 'graph':
+        return 0.88
+    return 1.0
+
+
+def step_rna_graph_build(state):
+    """
+    Advance incremental RNA graph build by one step.
+
+    Returns:
+        (done, graph_or_none, status_label)
+        status_label is the current step name for UI (e.g. data type or 'graph').
+    """
+    phase = state.get('phase', 'dump')
+
+    if phase == 'dump':
+        type_names = state['type_names']
+        type_index = state['type_index']
+        if type_index >= len(type_names):
+            state['phase'] = 'finalize'
+            return step_rna_graph_build(state)
+
+        data_type = type_names[type_index]
+        dump_rna_references(
+            only_type=data_type,
+            rna_data=state['rna_data'],
+            reference_map=state['reference_map'],
+        )
+        state['type_index'] = type_index + 1
+        dump_progress = state['type_index'] / max(len(type_names), 1)
+        state['dump_progress'] = dump_progress
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] reference graph dump: {state['type_index']}/"
+                f"{len(type_names)} '{data_type}'"
+            )
+        if state['type_index'] >= len(type_names):
+            state['phase'] = 'finalize'
+        return False, None, data_type
+
+    if phase == 'finalize':
+        if config.enable_debug_prints:
+            config.debug_print("[Atomic Debug] reference graph: resolving references")
+        finalize_rna_reference_dump(state['rna_data'], state['reference_map'])
+        state['phase'] = 'graph'
+        return False, None, 'finalize'
+
+    if phase == 'graph':
+        if config.enable_debug_prints:
+            config.debug_print("[Atomic Debug] reference graph: linking dependencies")
+        graph = build_dependency_graph(state['rna_data'])
+        state['dump_progress'] = 1.0
+        return True, graph, None
+
+    return True, None, None
+
+
+NODE_GROUPS_BATCH_SIZE = 50
+MATERIALS_BATCH_SIZE = 8
+NODE_GROUP_INDEX_OBJECT_BATCH = 100
+GRAPH_CATEGORY_BATCH_SIZE = 50
+GRAPH_CATEGORY_BATCH_SIZES = {
+    # action_all() walks every in-scene object per action — keep batches tiny for UI.
+    'actions': 1,
+    'objects': 20,
+}
+
+
+def graph_category_batch_size(category):
+    """Return timer-tick batch size for a generic graph category scan."""
+    return GRAPH_CATEGORY_BATCH_SIZES.get(category, GRAPH_CATEGORY_BATCH_SIZE)
+
+_graph_used_cache = {'filepath': None, 'include_fake_users': None, 'used': None}
+
+
+def _compositor_protected_node_groups(graph):
+    """Node groups that are compositor trees or nested inside them (not cleanable)."""
+    protected = set()
+    queue = []
+    for scene_data in graph.get('scenes', {}).values():
+        for ref_type, ref_name in scene_data.get('references', set()):
+            if ref_type == 'node_groups':
+                queue.append(ref_name)
+    while queue:
+        ng_name = queue.pop()
+        if ng_name in protected:
+            continue
+        protected.add(ng_name)
+        ng_data = graph.get('node_groups', {}).get(ng_name)
+        if not ng_data:
+            continue
+        for ref_type, ref_name in ng_data.get('references', set()):
+            if ref_type == 'node_groups':
+                queue.append(ref_name)
+    return protected
+
+
+def _build_ng_parent_map(graph):
+    """Map each node group to parent groups that reference it (nested group users)."""
+    ng_parents = defaultdict(set)
+    for ng_name, ng_data in graph.get('node_groups', {}).items():
+        for src_type, src_name in ng_data.get('referenced_by', set()):
+            if src_type == 'node_groups':
+                ng_parents[ng_name].add(src_name)
+    return ng_parents
+
+
+def _build_ng_to_materials(graph, ng_parents):
+    """
+    Materials using each node group, including via nested parent groups
+    (node_group_materials parity).
+    """
+    ng_to_materials = defaultdict(set)
+    for ng_name, ng_data in graph.get('node_groups', {}).items():
+        for src_type, src_name in ng_data.get('referenced_by', set()):
+            if src_type == 'materials':
+                ng_to_materials[ng_name].add(src_name)
+
+    changed = True
+    while changed:
+        changed = False
+        for ng_name, parents in ng_parents.items():
+            for parent_name in parents:
+                before = len(ng_to_materials[ng_name])
+                ng_to_materials[ng_name].update(ng_to_materials.get(parent_name, ()))
+                parent_data = graph.get('node_groups', {}).get(parent_name, {})
+                for src_type, src_name in parent_data.get('referenced_by', set()):
+                    if src_type == 'materials':
+                        ng_to_materials[ng_name].add(src_name)
+                if len(ng_to_materials[ng_name]) > before:
+                    changed = True
+    return ng_to_materials
+
+
+def _build_ng_to_materials_transitive(graph):
+    """Map node group -> materials referenced inside its tree (incl. nested groups)."""
+    ng_to_mats = defaultdict(set)
+    for ng_name, ng_data in graph.get('node_groups', {}).items():
+        for ref_type, ref_name in ng_data.get('references', set()):
+            if ref_type == 'materials':
+                ng_to_mats[ng_name].add(ref_name)
+
+    changed = True
+    while changed:
+        changed = False
+        for ng_name, ng_data in graph.get('node_groups', {}).items():
+            for ref_type, ref_name in ng_data.get('references', set()):
+                if ref_type == 'node_groups':
+                    before = len(ng_to_mats[ng_name])
+                    ng_to_mats[ng_name].update(ng_to_mats.get(ref_name, ()))
+                    if len(ng_to_mats[ng_name]) > before:
+                        changed = True
+    return ng_to_mats
+
+
+def _build_object_ng_map(graph):
+    """Objects referencing a node group (e.g. Geometry Nodes modifiers)."""
+    object_ngs = defaultdict(set)
+    for obj_name, obj_data in graph.get('objects', {}).items():
+        for ref_type, ref_name in obj_data.get('references', set()):
+            if ref_type == 'node_groups':
+                object_ngs[obj_name].add(ref_name)
+    return object_ngs
+
+
+def _build_ng_to_objects(graph, ng_parents, object_ngs):
+    """
+    Objects using each node group directly or via a parent group modifier
+    (node_group_objects parity).
+    """
+    ng_to_objects = defaultdict(set)
+    for obj_name, ng_names in object_ngs.items():
+        for ng_name in ng_names:
+            ng_to_objects[ng_name].add(obj_name)
+
+    changed = True
+    while changed:
+        changed = False
+        for ng_name, parents in ng_parents.items():
+            for parent_name in parents:
+                before = len(ng_to_objects[ng_name])
+                ng_to_objects[ng_name].update(ng_to_objects.get(parent_name, ()))
+                if len(ng_to_objects[ng_name]) > before:
+                    changed = True
+    return ng_to_objects
+
+
+def _build_mat_slot_objects(graph):
+    """Material -> objects that assign it via material slots (material_objects parity)."""
+    mat_objects = defaultdict(set)
+    for obj_name, obj_data in graph.get('objects', {}).items():
+        for ref_type, ref_name in obj_data.get('references', set()):
+            if ref_type == 'materials':
+                mat_objects[ref_name].add(obj_name)
+    return mat_objects
+
+
+def _build_mat_gn_objects(graph, ng_to_mats_transitive, object_ngs):
+    """
+    Material -> scene objects using it via Geometry Nodes (material_geometry_nodes parity).
+    Uses graph edges only (object->ng, ng->material).
+    """
+    mat_gn_objects = defaultdict(set)
+    for obj_name, ng_names in object_ngs.items():
+        for ng_name in ng_names:
+            for mat_name in ng_to_mats_transitive.get(ng_name, ()):
+                mat_gn_objects[mat_name].add(obj_name)
+    return mat_gn_objects
+
+
+def _build_static_node_group_graph_indices(graph):
+    """Build graph-derived lookup tables (no per-group bpy walks)."""
+    ng_parents = _build_ng_parent_map(graph)
+    ng_to_mats_transitive = _build_ng_to_materials_transitive(graph)
+    object_ngs = _build_object_ng_map(graph)
+    return {
+        'ng_parents': ng_parents,
+        'ng_to_materials': _build_ng_to_materials(graph, ng_parents),
+        'ng_to_objects': _build_ng_to_objects(graph, ng_parents, object_ngs),
+        'mat_objects': _build_mat_slot_objects(graph),
+        'mat_gn_objects': _build_mat_gn_objects(graph, ng_to_mats_transitive, object_ngs),
+        'compositor_ngs': _compositor_protected_node_groups(graph),
+        'referenced_by_count': {
+            ng_name: len(ng_data.get('referenced_by', set()))
+            for ng_name, ng_data in graph.get('node_groups', {}).items()
+        },
+    }
+
+
+def begin_node_group_graph_index_build(graph):
+    """Start incremental in-scene object index build for graph-only node_groups scan."""
+    return {
+        'graph': graph,
+        'static': _build_static_node_group_graph_indices(graph),
+        'object_names': list(graph.get('objects', {}).keys()),
+        'obj_index': 0,
+        'in_scene_objects': set(),
+    }
+
+
+def step_node_group_graph_index_build(state, batch_size=NODE_GROUP_INDEX_OBJECT_BATCH):
+    """
+    Advance in-scene object indexing (object_all parity, one batch per tick).
+
+    Returns:
+        (done, indices_or_none)
+    """
+    from . import users as users_stats
+
+    if state.get('indices') is not None:
+        return True, state['indices']
+
+    object_names = state['object_names']
+    start = state['obj_index']
+    end = min(start + batch_size, len(object_names))
+    in_scene = state['in_scene_objects']
+    for offset in range(start, end):
+        obj_name = object_names[offset]
         try:
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(rna_data, f, indent=2)
-            config.debug_print(f"[Atomic Debug] RNA Analysis: Saved to {output_path}")
-        except Exception as e:
-            config.debug_print(f"[Atomic Error] RNA Analysis: Failed to save dump: {e}")
-    
-    return rna_data
+            if users_stats.object_all(obj_name):
+                in_scene.add(obj_name)
+        except (AttributeError, KeyError, RuntimeError, ReferenceError):
+            continue
+
+    state['obj_index'] = end
+    if config.enable_debug_prints:
+        config.debug_print(
+            f"[Atomic Debug] scene object index: {end}/{len(object_names)}"
+        )
+    if end < len(object_names):
+        return False, None
+
+    indices = dict(state['static'])
+    indices['in_scene_objects'] = in_scene
+    state['indices'] = indices
+    return True, indices
+
+
+def is_node_group_cleanable_from_graph(ng_name, indices, fake_user_map, memo, visited=None):
+    """
+    Graph-only cleanability check (node_groups_deep / is_node_group_cleanable parity).
+    Uses pre-built indices from the RNA dependency graph — no live user walks per group.
+    """
+    if visited is None:
+        visited = set()
+    if ng_name in visited:
+        return False
+    visited.add(ng_name)
+
+    if ng_name in memo:
+        return memo[ng_name]
+
+    if ng_name in indices['compositor_ngs']:
+        memo[ng_name] = False
+        return False
+
+    if indices['referenced_by_count'].get(ng_name, 0) == 0:
+        cleanable = not fake_user_map.get(ng_name, False) or config.include_fake_users
+        memo[ng_name] = cleanable
+        return cleanable
+
+    all_objects = set(indices['ng_to_objects'].get(ng_name, ()))
+    for mat_name in indices['ng_to_materials'].get(ng_name, ()):
+        all_objects.update(indices['mat_objects'].get(mat_name, ()))
+        all_objects.update(indices['mat_gn_objects'].get(mat_name, ()))
+
+    in_scene = indices['in_scene_objects']
+    all_objects_unused = not all_objects or all(
+        obj_name not in in_scene for obj_name in all_objects
+    )
+
+    all_parents_unused = True
+    for parent_name in indices['ng_parents'].get(ng_name, ()):
+        if not is_node_group_cleanable_from_graph(
+            parent_name, indices, fake_user_map, memo, visited.copy()
+        ):
+            all_parents_unused = False
+            break
+
+    cleanable = False
+    if all_objects_unused and all_parents_unused:
+        cleanable = not fake_user_map.get(ng_name, False) or config.include_fake_users
+
+    memo[ng_name] = cleanable
+    return cleanable
+
+
+def begin_node_groups_analysis(graph, short_circuit=False):
+    """Start graph-based batched node_groups analysis (node_groups_deep parity)."""
+    fake_user_map = {}
+    names = []
+    for node_group in bpy.data.node_groups:
+        try:
+            if compat.is_library_or_override(node_group):
+                continue
+            names.append(node_group.name)
+            fake_user_map[node_group.name] = bool(
+                getattr(node_group, 'use_fake_user', False)
+            )
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+    return {
+        'graph': graph,
+        'names': names,
+        'index': 0,
+        'unused': [],
+        'short_circuit': short_circuit,
+        'fake_user_map': fake_user_map,
+        'memo': {},
+        'index_build_state': begin_node_group_graph_index_build(graph),
+        'indices': None,
+    }
+
+
+def _node_group_scan_sub_fraction(state, index_frac=None, scan_frac=None):
+    """
+    Map index-build and node-group scan work to 0-1 sub_fraction for the category slice.
+
+    Weight follows object vs node-group counts so long index passes still move the bar.
+    """
+    obj_total = len(state.get('index_build_state', {}).get('object_names', []))
+    ng_total = len(state.get('names', []))
+    work_total = max(obj_total + ng_total, 1)
+    index_weight = obj_total / work_total
+
+    if index_frac is not None:
+        return index_frac * index_weight
+    if scan_frac is not None:
+        return index_weight + scan_frac * (1.0 - index_weight)
+    return 0.0
+
+
+def step_node_groups_analysis(state, batch_size=NODE_GROUPS_BATCH_SIZE):
+    """
+    Process the next batch of node groups using graph indices only.
+
+    Returns:
+        (done, unused_list, progress_fraction, current_node_group_name)
+    """
+    if state['indices'] is None:
+        index_done, indices = step_node_group_graph_index_build(
+            state['index_build_state']
+        )
+        if not index_done:
+            index_build = state['index_build_state']
+            obj_total = max(len(index_build.get('object_names', [])), 1)
+            index_frac = index_build.get('obj_index', 0) / obj_total
+            return (
+                False,
+                state['unused'],
+                _node_group_scan_sub_fraction(state, index_frac=index_frac),
+                None,
+            )
+        state['indices'] = indices
+
+    names = state['names']
+    total = len(names)
+    if total == 0:
+        return True, state['unused'], 1.0, None
+
+    indices = state['indices']
+    fake_user_map = state['fake_user_map']
+    memo = state['memo']
+
+    start = state['index']
+    end = min(start + batch_size, total)
+    current_name = None
+    for offset in range(start, end):
+        ng_name = names[offset]
+        current_name = ng_name
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] node_groups scan: {offset + 1}/{total} '{ng_name}'"
+            )
+        try:
+            if is_node_group_cleanable_from_graph(
+                ng_name, indices, fake_user_map, memo
+            ):
+                state['unused'].append(ng_name)
+                if state['short_circuit']:
+                    return True, state['unused'], 1.0, current_name
+        except (AttributeError, KeyError, RuntimeError, ReferenceError):
+            continue
+
+    state['index'] = end
+    done = end >= total
+    scan_progress = end / total
+    return (
+        done,
+        state['unused'],
+        _node_group_scan_sub_fraction(state, scan_frac=scan_progress),
+        current_name,
+    )
+
+
+def analyze_node_groups_from_graph(graph, short_circuit=False):
+    """
+    Return unused node group names using pre-built graph indices only.
+
+    Builds indices in one pass (suitable for direct callers outside the unified scanner).
+    """
+    state = begin_node_groups_analysis(graph, short_circuit=short_circuit)
+    while True:
+        done, unused_list, _progress, _current = step_node_groups_analysis(
+            state, batch_size=NODE_GROUPS_BATCH_SIZE
+        )
+        if done:
+            return unused_list
 
 
 def build_dependency_graph(rna_data):
@@ -1187,6 +1683,398 @@ def build_dependency_graph(rna_data):
     return graph
 
 
+def _compute_graph_used_set(graph, include_fake_users=None):
+    """
+    Traverse the dependency graph from scene roots and return the used set.
+
+    Returns:
+        set of (data_type, item_name) tuples marked as reachable from roots.
+    """
+    if include_fake_users is None:
+        include_fake_users = config.include_fake_users
+
+    used = set()
+    roots = []
+
+    def get_all_scene_collections(root_collection):
+        """Recursively get all collections in the scene hierarchy."""
+        collections = []
+        if root_collection and not compat.is_library_or_override(root_collection):
+            try:
+                collections.append(root_collection)
+                try:
+                    children = list(root_collection.children_recursive)
+                except (RuntimeError, ReferenceError):
+                    children = []
+                for child in children:
+                    if child is None:
+                        continue
+                    try:
+                        if not compat.is_library_or_override(child):
+                            collections.append(child)
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
+        return collections
+
+    for scene in bpy.data.scenes:
+        if compat.is_library_or_override(scene):
+            continue
+        try:
+            roots.append(('scenes', scene.name))
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
+
+        scene_objects = _safe_snapshot(scene.objects)
+        for obj in scene_objects:
+            if obj is None:
+                continue
+            try:
+                roots.append(('objects', obj.name))
+                if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                    try:
+                        data_type_map = {
+                            'LIGHT': 'lights',
+                            'MESH': 'meshes',
+                            'ARMATURE': 'armatures',
+                            'CURVE': 'curves',
+                            'SURFACE': 'curves',
+                            'FONT': 'curves',
+                            'META': 'metaballs',
+                            'LATTICE': 'lattices',
+                            'VOLUME': 'volumes',
+                        }
+                        obj_type = obj.type
+                        if obj_type in data_type_map:
+                            data_type = data_type_map[obj_type]
+                            if not compat.is_library_or_override(obj.data):
+                                roots.append((data_type, obj.data.name))
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        pass
+                if hasattr(obj, 'modifiers'):
+                    try:
+                        modifiers = list(obj.modifiers)
+                    except (RuntimeError, ReferenceError):
+                        modifiers = []
+                    for modifier in modifiers:
+                        if modifier is None:
+                            continue
+                        try:
+                            if compat.is_geometry_nodes_modifier(modifier):
+                                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                if ng and not compat.is_library_or_override(ng):
+                                    roots.append(('node_groups', ng.name))
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            continue
+            except (AttributeError, RuntimeError, ReferenceError):
+                continue
+
+        if scene.world and not compat.is_library_or_override(scene.world):
+            roots.append(('worlds', scene.world.name))
+
+        scene_collections = get_all_scene_collections(scene.collection)
+        for collection in scene_collections:
+            if collection and not compat.is_library_or_override(collection):
+                roots.append(('collections', collection.name))
+
+        if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:
+            if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:
+                if not compat.is_library_or_override(scene.rigidbody_world.collection):
+                    roots.append(('collections', scene.rigidbody_world.collection.name))
+
+        for collection in scene_collections:
+            collection_objects = _safe_snapshot(collection.objects)
+            for obj in collection_objects:
+                if obj is None:
+                    continue
+                try:
+                    roots.append(('objects', obj.name))
+                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
+                        try:
+                            data_type_map = {
+                                'LIGHT': 'lights',
+                                'MESH': 'meshes',
+                                'ARMATURE': 'armatures',
+                                'CURVE': 'curves',
+                                'SURFACE': 'curves',
+                                'FONT': 'curves',
+                                'META': 'metaballs',
+                                'LATTICE': 'lattices',
+                                'VOLUME': 'volumes',
+                            }
+                            obj_type = obj.type
+                            if obj_type in data_type_map:
+                                data_type = data_type_map[obj_type]
+                                if not compat.is_library_or_override(obj.data):
+                                    roots.append((data_type, obj.data.name))
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+                    if hasattr(obj, 'modifiers'):
+                        try:
+                            modifiers = list(obj.modifiers)
+                        except (RuntimeError, ReferenceError):
+                            modifiers = []
+                        for modifier in modifiers:
+                            if modifier is None:
+                                continue
+                            try:
+                                if compat.is_geometry_nodes_modifier(modifier):
+                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                                    if ng and not compat.is_library_or_override(ng):
+                                        roots.append(('node_groups', ng.name))
+                            except (AttributeError, RuntimeError, ReferenceError):
+                                continue
+                except (AttributeError, RuntimeError, ReferenceError):
+                    continue
+
+    if not include_fake_users:
+        try:
+            data_block_types = _get_data_block_types()
+            for data_type, data_collection in data_block_types.items():
+                datablocks = _safe_snapshot(data_collection)
+                for datablock in datablocks:
+                    if datablock is None:
+                        continue
+                    try:
+                        if compat.is_library_or_override(datablock):
+                            continue
+                        if hasattr(datablock, 'use_fake_user') and datablock.use_fake_user:
+                            roots.append((data_type, datablock.name))
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        continue
+        except Exception:
+            pass
+
+    visited = set()
+    queue = list(roots)
+    while queue:
+        data_type, item_name = queue.pop(0)
+        if (data_type, item_name) in visited:
+            continue
+        visited.add((data_type, item_name))
+        used.add((data_type, item_name))
+        if data_type in graph and item_name in graph[data_type]:
+            for ref_type, ref_name in graph[data_type][item_name]['references']:
+                if (ref_type, ref_name) not in visited:
+                    queue.append((ref_type, ref_name))
+
+    return used
+
+
+def get_cached_graph_used_set(graph, include_fake_users=None):
+    """Return graph reachability set, recomputing only when file or fake-user setting changes."""
+    if include_fake_users is None:
+        include_fake_users = config.include_fake_users
+    filepath = bpy.data.filepath or ''
+    cache = _graph_used_cache
+    if (
+        cache['filepath'] == filepath
+        and cache['include_fake_users'] == include_fake_users
+        and cache['used'] is not None
+    ):
+        return cache['used']
+    used = _compute_graph_used_set(graph, include_fake_users)
+    _graph_used_cache['filepath'] = filepath
+    _graph_used_cache['include_fake_users'] = include_fake_users
+    _graph_used_cache['used'] = used
+    return used
+
+
+def clear_graph_used_cache():
+    """Drop cached graph reachability (call on blend-file change or cache invalidation)."""
+    global _graph_used_cache
+    _graph_used_cache = {'filepath': None, 'include_fake_users': None, 'used': None}
+
+
+def begin_materials_analysis(graph, short_circuit=False, include_fake_users=None):
+    """Start batched materials unused analysis (graph reachability + fallback session)."""
+    from . import users as users_stats
+
+    users_stats._get_material_rna_session()
+    names = []
+    for material in bpy.data.materials:
+        try:
+            if compat.is_library_or_override(material):
+                continue
+            names.append(material.name)
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+    return {
+        'graph': graph,
+        'include_fake_users': include_fake_users,
+        'used': None,
+        'names': names,
+        'index': 0,
+        'unused': [],
+        'short_circuit': short_circuit,
+    }
+
+
+def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
+    """
+    Process the next batch of materials for unused detection.
+
+    Returns:
+        (done, unused_list, progress_fraction, current_material_name)
+    """
+    from . import users as users_stats
+
+    if state['used'] is None:
+        state['used'] = get_cached_graph_used_set(
+            state['graph'],
+            state['include_fake_users'],
+        )
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] materials scan: graph used set ready "
+                f"({len(state['used'])} nodes)"
+            )
+        return False, state['unused'], 0.05, None
+
+    names = state['names']
+    total = len(names)
+    if total == 0:
+        users_stats.clear_material_scan_caches()
+        return True, state['unused'], 1.0, None
+
+    start = state['index']
+    end = min(start + batch_size, total)
+    current_name = None
+    for offset in range(start, end):
+        item_name = names[offset]
+        current_name = item_name
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] materials scan: {offset + 1}/{total} '{item_name}'"
+            )
+        if ('materials', item_name) in state['used']:
+            continue
+        try:
+            if users_stats.material_has_scene_reachable_user(item_name):
+                continue
+        except (AttributeError, KeyError, RuntimeError, ReferenceError):
+            pass
+        state['unused'].append(item_name)
+        if state['short_circuit']:
+            users_stats.clear_material_scan_caches()
+            return True, state['unused'], 1.0, current_name
+
+    state['index'] = end
+    done = end >= total
+    if done:
+        users_stats.clear_material_scan_caches()
+    return done, state['unused'], end / total, current_name
+
+
+def begin_graph_category_analysis(
+    graph,
+    category,
+    short_circuit=False,
+    include_fake_users=None,
+):
+    """Start batched unused analysis for a generic graph category (actions, objects, etc.)."""
+    do_not_flag = {
+        'images': ["Render Result", "Viewer Node", "D-NOISE Export"],
+    }
+    names = []
+    if category in _DATA_BLOCK_TYPE_NAMES:
+        try:
+            data_block_types = _get_data_block_types()
+            if category in data_block_types:
+                category_datablocks = _safe_snapshot(data_block_types[category])
+                skip_names = do_not_flag.get(category, [])
+                for datablock in category_datablocks:
+                    if datablock is None:
+                        continue
+                    try:
+                        if compat.is_library_or_override(datablock):
+                            continue
+                        item_name = datablock.name
+                        if item_name in skip_names:
+                            continue
+                        names.append(item_name)
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        continue
+        except Exception:
+            pass
+    return {
+        'graph': graph,
+        'category': category,
+        'include_fake_users': include_fake_users,
+        'used': None,
+        'names': names,
+        'index': 0,
+        'unused': [],
+        'short_circuit': short_circuit,
+        'batch_size': graph_category_batch_size(category),
+    }
+
+
+def step_graph_category_analysis(state, batch_size=None):
+    """
+    Process the next batch of items for a generic graph category.
+
+    Returns:
+        (done, unused_list, progress_fraction, current_item_name)
+    """
+    from . import users
+
+    category = state['category']
+    if batch_size is None:
+        batch_size = state.get('batch_size', GRAPH_CATEGORY_BATCH_SIZE)
+
+    if state['used'] is None:
+        state['used'] = get_cached_graph_used_set(
+            state['graph'],
+            state['include_fake_users'],
+        )
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] {category} scan: graph used set ready "
+                f"({len(state['used'])} nodes)"
+            )
+        return False, state['unused'], 0.05, None
+
+    names = state['names']
+    total = len(names)
+    if total == 0:
+        return True, state['unused'], 1.0, None
+
+    used = state['used']
+    start = state['index']
+    end = min(start + batch_size, total)
+    current_name = None
+    for offset in range(start, end):
+        item_name = names[offset]
+        current_name = item_name
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] {category} scan: {offset + 1}/{total} '{item_name}'"
+            )
+        if (category, item_name) in used:
+            continue
+        if category == 'objects':
+            try:
+                if users.object_all(item_name):
+                    continue
+            except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                pass
+        elif category == 'actions':
+            try:
+                if users.action_all(item_name):
+                    continue
+            except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                pass
+        state['unused'].append(item_name)
+        if state['short_circuit']:
+            return True, state['unused'], 1.0, current_name
+
+    state['index'] = end
+    done = end >= total
+    return done, state['unused'], end / total, current_name
+
+
 def analyze_unused_from_graph(
     graph,
     category,
@@ -1213,239 +2101,39 @@ def analyze_unused_from_graph(
     config.debug_print(f"[Atomic Debug] RNA Analysis: Analyzing unused {category}...")
 
     if category == 'materials':
-        users.clear_material_scan_caches()
-    
+        users._get_material_rna_session()
+        config.debug_print(
+            "[Atomic Debug] RNA Analysis: Material fallback session ready"
+        )
+
     if category not in _DATA_BLOCK_TYPE_NAMES:
         config.debug_print(f"[Atomic Warning] RNA Analysis: Unknown category '{category}'")
         return []
-    
-    # Mark all items as unused initially
-    used = set()
-    
-    # Find root items (those that are directly used in scenes/view layers)
-    roots = []
-    
-    # Debug: Check if graph has any data
+
     if config.enable_debug_prints:
         total_nodes = sum(len(items) for items in graph.values())
         config.debug_print(f"[Atomic Debug] RNA Analysis: Graph has {total_nodes} total nodes")
-        # Check if collections have object references
         collection_count = 0
         for coll_name, coll_data in graph.get('collections', {}).items():
             refs = coll_data.get('references', set())
             obj_refs = [r for r in refs if r[0] == 'objects']
             if obj_refs and collection_count < 3:
-                config.debug_print(f"[Atomic Debug] RNA Analysis: Collection '{coll_name}' references {len(obj_refs)} objects (sample: {[r[1] for r in list(obj_refs)[:3]]})")
+                config.debug_print(
+                    f"[Atomic Debug] RNA Analysis: Collection '{coll_name}' references "
+                    f"{len(obj_refs)} objects (sample: {[r[1] for r in list(obj_refs)[:3]]})"
+                )
                 collection_count += 1
-    
-    # Helper function to get all collections in a scene hierarchy
-    def get_all_scene_collections(root_collection):
-        """Recursively get all collections in the scene hierarchy."""
-        collections = []
-        if root_collection and not compat.is_library_or_override(root_collection):
-            try:
-                collections.append(root_collection)
-                # Add all descendant collections
-                try:
-                    children = list(root_collection.children_recursive)
-                except (RuntimeError, ReferenceError):
-                    children = []
-                
-                for child in children:
-                    if child is None:
-                        continue
-                    try:
-                        if not compat.is_library_or_override(child):
-                            collections.append(child)
-                    except (AttributeError, RuntimeError, ReferenceError):
-                        # Child may be invalid
-                        continue
-            except (AttributeError, RuntimeError, ReferenceError):
-                # Root collection may be invalid
-                pass
-        return collections
-    
-    # Objects in scenes/view layers (directly in scene.objects)
-    for scene in bpy.data.scenes:
-        if compat.is_library_or_override(scene):
-            continue
-        
-        # Add scene itself as a root so its references (compositor node tree, world, etc.) are traversed
-        try:
-            roots.append(('scenes', scene.name))
-        except (AttributeError, RuntimeError, ReferenceError):
-            # Scene may be invalid
-            pass
-        
-        # Create a snapshot to avoid iteration issues
-        scene_objects = _safe_snapshot(scene.objects)
-        
-        for obj in scene_objects:
-            if obj is None:
-                continue
-            try:
-                # IMPORTANT: include linked/override objects as roots so their references
-                # (e.g. local materials assigned to linked objects) are treated as used.
-                roots.append(('objects', obj.name))
 
-                # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
-                if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
-                    try:
-                        data_type_map = {
-                            'LIGHT': 'lights',
-                            'MESH': 'meshes',
-                            'ARMATURE': 'armatures',
-                            'CURVE': 'curves',
-                            'SURFACE': 'curves',  # Surface objects also use curve data
-                            'FONT': 'curves',  # Font objects also use curve data
-                            'META': 'metaballs',
-                            'LATTICE': 'lattices',
-                            'VOLUME': 'volumes',
-                        }
-                        obj_type = obj.type
-                        if obj_type in data_type_map:
-                            data_type = data_type_map[obj_type]
-                            if not compat.is_library_or_override(obj.data):
-                                roots.append((data_type, obj.data.name))
-                    except (AttributeError, RuntimeError, ReferenceError):
-                        pass
+    used = get_cached_graph_used_set(graph, include_fake_users)
 
-                # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
-                if hasattr(obj, 'modifiers'):
-                    try:
-                        modifiers = list(obj.modifiers)
-                    except (RuntimeError, ReferenceError):
-                        modifiers = []
+    if category == 'node_groups':
+        unused = analyze_node_groups_from_graph(graph, short_circuit=short_circuit)
+        config.debug_print(
+            f"[Atomic Debug] RNA Analysis: Found {len(unused)} unused "
+            f"{category} (graph scan)"
+        )
+        return unused
 
-                    for modifier in modifiers:
-                        if modifier is None:
-                            continue
-                        try:
-                            if compat.is_geometry_nodes_modifier(modifier):
-                                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                if ng and not compat.is_library_or_override(ng):
-                                    roots.append(('node_groups', ng.name))
-                        except (AttributeError, RuntimeError, ReferenceError):
-                            continue
-            except (AttributeError, RuntimeError, ReferenceError):
-                # Object may have been deleted or is invalid
-                continue
-        
-        # World assigned to scene
-        if scene.world and not compat.is_library_or_override(scene.world):
-            roots.append(('worlds', scene.world.name))
-        
-        # Collections in scene (including root collection and all descendants)
-        scene_collections = get_all_scene_collections(scene.collection)
-        for collection in scene_collections:
-            roots.append(('collections', collection.name))
-        
-        # RigidBodyWorld collection (physics world)
-        if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:
-            if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:
-                if not compat.is_library_or_override(scene.rigidbody_world.collection):
-                    roots.append(('collections', scene.rigidbody_world.collection.name))
-        
-        # Objects in collections that are in scenes (via collection.objects)
-        # This ensures objects in collections are marked as used
-        # Note: The graph traversal should also handle this, but we add them explicitly as a safety measure
-        for collection in scene_collections:
-            # Create a snapshot to avoid iteration issues
-            collection_objects = _safe_snapshot(collection.objects)
-            
-            for obj in collection_objects:
-                if obj is None:
-                    continue
-                try:
-                    # IMPORTANT: include linked/override objects as roots so their references
-                    # (e.g. textures in Displace modifiers, materials, etc.) are traversed.
-                    roots.append(('objects', obj.name))
-                    
-                    # Also mark the object's data-block as used (for lights, meshes, armatures, etc.)
-                    if hasattr(obj, 'data') and obj.data and hasattr(obj.data, 'name'):
-                        try:
-                            data_type_map = {
-                                'LIGHT': 'lights',
-                                'MESH': 'meshes',
-                                'ARMATURE': 'armatures',
-                                'CURVE': 'curves',
-                                'SURFACE': 'curves',  # Surface objects also use curve data
-                                'FONT': 'curves',  # Font objects also use curve data
-                                'META': 'metaballs',
-                                'LATTICE': 'lattices',
-                                'VOLUME': 'volumes',
-                            }
-                            obj_type = obj.type
-                            if obj_type in data_type_map:
-                                data_type = data_type_map[obj_type]
-                                if not compat.is_library_or_override(obj.data):
-                                    roots.append((data_type, obj.data.name))
-                        except (AttributeError, RuntimeError, ReferenceError):
-                            pass
-                    
-                    # Also mark node groups used by object modifiers (e.g., Geometry Nodes modifiers)
-                    if hasattr(obj, 'modifiers'):
-                        try:
-                            modifiers = list(obj.modifiers)
-                        except (RuntimeError, ReferenceError):
-                            modifiers = []
-                        
-                        for modifier in modifiers:
-                            if modifier is None:
-                                continue
-                            try:
-                                if compat.is_geometry_nodes_modifier(modifier):
-                                    ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                    if ng and not compat.is_library_or_override(ng):
-                                        roots.append(('node_groups', ng.name))
-                            except (AttributeError, RuntimeError, ReferenceError):
-                                continue
-                except (AttributeError, RuntimeError, ReferenceError):
-                    # Object may have been deleted or is invalid
-                    continue
-    
-    # Fake users
-    if not include_fake_users:
-        try:
-            data_block_types = _get_data_block_types()
-            for data_type, data_collection in data_block_types.items():
-                # Create a snapshot to avoid iteration issues
-                datablocks = _safe_snapshot(data_collection)
-                
-                for datablock in datablocks:
-                    if datablock is None:
-                        continue
-                    try:
-                        if compat.is_library_or_override(datablock):
-                            continue
-                        if hasattr(datablock, 'use_fake_user') and datablock.use_fake_user:
-                            roots.append((data_type, datablock.name))
-                    except (AttributeError, RuntimeError, ReferenceError):
-                        # Datablock may be invalid
-                        continue
-        except Exception:
-            # If accessing data-block types fails, skip fake user check
-            pass
-    
-    # Traverse graph from roots
-    visited = set()
-    queue = list(roots)
-    
-    while queue:
-        data_type, item_name = queue.pop(0)
-        
-        if (data_type, item_name) in visited:
-            continue
-        
-        visited.add((data_type, item_name))
-        used.add((data_type, item_name))
-        
-        # Follow forward references (what this item references)
-        if data_type in graph and item_name in graph[data_type]:
-            for ref_type, ref_name in graph[data_type][item_name]['references']:
-                if (ref_type, ref_name) not in visited:
-                    queue.append((ref_type, ref_name))
-    
     # Find unused items in the requested category
     unused = []
     
@@ -1477,42 +2165,44 @@ def analyze_unused_from_graph(
                 continue
             
             item_name = datablock.name
+            if item_name in category_do_not_flag:
+                continue
+
             if (category, item_name) not in used:
-                if item_name not in category_do_not_flag:
-                    # Objects that appear in a scene collection must stay (traceable to a scene), even
-                    # if the RNA graph missed them (e.g. mesh parented to an out-of-scene armature).
-                    if category == 'objects':
-                        try:
-                            if users.object_all(item_name):
-                                continue
-                        except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                            pass
-                    if category == 'actions':
-                        # Keep actions that still have scene/object users (NLA, shape keys, etc.)
-                        try:
-                            if users.action_all(item_name):
-                                continue
-                        except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                            pass
+                # Objects that appear in a scene collection must stay (traceable to a scene), even
+                # if the RNA graph missed them (e.g. mesh parented to an out-of-scene armature).
+                if category == 'objects':
+                    try:
+                        if users.object_all(item_name):
+                            continue
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+                if category == 'actions':
+                    # Keep actions that still have scene/object users (NLA, shape keys, etc.)
+                    try:
+                        if users.action_all(item_name):
+                            continue
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+                if category == 'materials':
+                    # Cleanability rule (issue #5): keep only when a
+                    # scene-reachable object or brush still uses this material
+                    # (RNA graph miss). Session cache matches material_objects /
+                    # material_geometry_nodes / material_brushes semantics.
+                    try:
+                        if users.material_has_scene_reachable_user(item_name):
+                            continue
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+                unused.append(item_name)
+                if short_circuit:
+                    config.debug_print(
+                        f"[Atomic Debug] RNA Analysis: Short-circuit unused "
+                        f"{category} (found '{item_name}')"
+                    )
                     if category == 'materials':
-                        # Cleanability rule (issue #5): keep only when a
-                        # scene-reachable object or brush still uses this material
-                        # (RNA graph miss). Uses one-pass caches, not per-material
-                        # full-scene scans.
-                        try:
-                            if users.material_has_scene_reachable_user(item_name):
-                                continue
-                        except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                            pass
-                    unused.append(item_name)
-                    if short_circuit:
-                        config.debug_print(
-                            f"[Atomic Debug] RNA Analysis: Short-circuit unused "
-                            f"{category} (found '{item_name}')"
-                        )
-                        if category == 'materials':
-                            users.clear_material_scan_caches()
-                        return unused
+                        users.clear_material_scan_caches()
+                    return unused
         except (AttributeError, RuntimeError, ReferenceError):
             # Datablock may be invalid
             continue

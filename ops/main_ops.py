@@ -128,8 +128,350 @@ _scan_state = {
     'results': {},  # Quick scan: {category: bool}, Full scan: {category: [items]}
     'status_updated': False,
     'callback': None,  # Function to call when scan completes
-    'callback_data': {}  # Data to pass to callback
+    'callback_data': {},  # Data to pass to callback
+    'graph_build_state': None,  # Incremental RNA dump / graph build
+    'ng_analysis_state': None,  # Batched node_groups cleanability pass
+    'material_session_ready': False,  # Material fallback indices for current category
+    'mat_session_build_state': None,  # Incremental material session build
+    'mat_analysis_state': None,  # Batched materials unused pass
+    'cat_analysis_state': None,  # Batched generic graph category pass (actions, objects, ...)
+    'progress_start': 0.0,
+    'progress_end': 100.0,
 }
+
+
+# Smart Select: quick scan uses the first slice; full scan continues to completion.
+SMART_SELECT_QUICK_SCAN_PROGRESS_END = 30.0
+SCAN_PROGRESS_FINISH = 98.0  # scan phase tops out here; callbacks set 100%
+
+# Progress budget: reference graph build, then per-category scanning.
+REFERENCE_GRAPH_PROGRESS_SLICE = 0.18
+CATEGORY_PROGRESS_SLICE = 1.0 - REFERENCE_GRAPH_PROGRESS_SLICE
+
+# Share of a category's progress slice used while building material fallback indices.
+MATERIAL_SESSION_PROGRESS_SLICE = 0.55
+
+
+def _format_elapsed_mmss(elapsed_seconds):
+    """Format elapsed wall time as M:SS (or MM:SS for longer runs)."""
+    total = max(0, int(round(elapsed_seconds)))
+    minutes, seconds = divmod(total, 60)
+    return f"{minutes}:{seconds:02d}"
+
+
+def _analysis_done_status(scan_state, suffix=None, started_at=None):
+    """Build 'Analysis done in M:SS' from scan_state.started_at (monotonic clock)."""
+    if started_at is None and scan_state:
+        started_at = scan_state.get('started_at')
+    if started_at is None:
+        message = "Analysis done"
+    else:
+        elapsed = time.monotonic() - started_at
+        message = f"Analysis done in {_format_elapsed_mmss(elapsed)}"
+    if suffix:
+        message = f"{message} — {suffix}"
+    return message
+
+
+# Keep the progress panel visible briefly so the final timing message is readable.
+OPERATION_DONE_DISPLAY_SECONDS = 8.0
+
+
+def _show_operation_done(atom, status):
+    """Show completion status at 100% briefly before hiding the operation UI."""
+    config.debug_print(f"[Atomic Debug] {status}")
+    _safe_set_atom_property(atom, 'operation_progress', 100.0)
+    _safe_set_atom_property(atom, 'operation_status', status)
+    _safe_set_atom_property(atom, 'is_operation_running', True)
+
+    def _hide_operation_ui():
+        try:
+            scene = getattr(bpy.context, 'scene', None)
+            if scene is not None:
+                active = scene.atomic
+                if active.operation_status == status:
+                    _safe_set_atom_property(active, 'is_operation_running', False)
+                    _safe_set_atom_property(active, 'operation_status', "")
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
+        if bpy.context.screen:
+            for area in bpy.context.screen.areas:
+                area.tag_redraw()
+        return None
+
+    bpy.app.timers.register(_hide_operation_ui, first_interval=OPERATION_DONE_DISPLAY_SECONDS)
+    if bpy.context.screen:
+        for area in bpy.context.screen.areas:
+            area.tag_redraw()
+
+
+def _reference_graph_scan_progress(atom, scan_state, build_state, step_label=None):
+    """
+    Update progress during incremental RNA reference graph build.
+
+    Uses a display counter so the bar advances each timer tick even when individual
+    dump steps are a small fraction of the overall scan (quick scan, many types).
+    """
+    progress_start = float(scan_state.get('progress_start', 0.0))
+    progress_end = float(scan_state.get('progress_end', 100.0))
+    progress_span = max(progress_end - progress_start, 0.0)
+    graph_slice = REFERENCE_GRAPH_PROGRESS_SLICE
+
+    from ..stats import rna_analysis
+
+    actual_sub = rna_analysis.reference_graph_build_fraction(build_state)
+    display_sub = scan_state.get('_ref_graph_display_sub', 0.0)
+    tick_step = 0.05  # ~5% of the graph slice per active tick
+    display_sub = min(1.0, max(actual_sub, display_sub + tick_step))
+    scan_state['_ref_graph_display_sub'] = display_sub
+
+    frac = display_sub * graph_slice
+    progress = progress_start + frac * progress_span
+    progress = min(progress, progress_end - 0.5)
+
+    try:
+        current = float(atom.operation_progress)
+        progress = max(current, progress)
+    except (AttributeError, TypeError, ValueError):
+        pass
+
+    phase = build_state.get('phase', 'dump')
+    type_index = build_state.get('type_index', 0)
+    type_total = len(build_state.get('type_names', []))
+    if phase == 'dump' and step_label:
+        status = (
+            f"Building reference graph: {step_label} "
+            f"({type_index}/{type_total})..."
+        )
+    elif phase == 'finalize':
+        status = "Building reference graph: resolving references..."
+    elif phase == 'graph':
+        status = "Building reference graph: linking dependencies..."
+    else:
+        label = step_label or 'graph'
+        status = f"Building reference graph: {label}..."
+
+    _safe_set_atom_property(atom, 'operation_status', status)
+    _safe_set_atom_property(atom, 'operation_progress', progress)
+
+
+def _material_session_scan_progress(
+    atom, scan_state, session_frac, done_objs, total_objs, phase_name, phase_key=None
+):
+    """
+    Update progress during incremental material session build.
+
+    Uses a dedicated display counter so the bar moves each timer tick even when
+    session_frac steps are tiny (quick scan, many categories, large object counts).
+
+    Session progress is split: material slots 0–50%, geometry nodes 50–100%.
+    """
+    progress_start = float(scan_state.get('progress_start', 0.0))
+    progress_end = float(scan_state.get('progress_end', 100.0))
+    progress_span = max(progress_end - progress_start, 0.0)
+    total_categories = max(len(scan_state.get('categories_to_scan', [])), 1)
+    cat_idx = scan_state.get('current_category_index', 0)
+    category_span = CATEGORY_PROGRESS_SLICE / total_categories
+    session_slice = MATERIAL_SESSION_PROGRESS_SLICE
+
+    actual_sub = session_frac * session_slice
+    last_phase = scan_state.get('_mat_session_phase')
+    if last_phase == 'slots' and phase_key == 'gn':
+        # Slots used 0–50% of session_frac; sync display when gn phase begins.
+        scan_state['_mat_session_display_sub'] = actual_sub
+    if phase_key is not None:
+        scan_state['_mat_session_phase'] = phase_key
+
+    display_sub = scan_state.get('_mat_session_display_sub', 0.0)
+    # GN batches are heavier — nudge the bar a bit more per tick in that phase.
+    tick_step = 0.06 if phase_key == 'gn' else 0.04
+    display_sub = max(actual_sub, display_sub + tick_step)
+    # Stay within one tick of actual work so the bar does not pin early.
+    display_sub = min(session_slice, display_sub, actual_sub + tick_step)
+    scan_state['_mat_session_display_sub'] = display_sub
+
+    frac = REFERENCE_GRAPH_PROGRESS_SLICE + cat_idx * category_span + display_sub * category_span
+    progress = progress_start + min(frac, 1.0) * progress_span
+    progress = min(progress, progress_end - 0.5)
+
+    try:
+        current = float(atom.operation_progress)
+        progress = max(current, progress)
+    except (AttributeError, TypeError, ValueError):
+        pass
+
+    status = (
+        f"Building usage indices ({done_objs}/{total_objs}, {phase_name})..."
+    )
+    _safe_set_atom_property(atom, 'operation_status', status)
+    _safe_set_atom_property(atom, 'operation_progress', progress)
+
+
+def _unified_scan_progress(atom, scan_state, sub_fraction=0.0, status_text=None):
+    """
+    Map scan sub-steps to operation_progress within scan_state's progress range.
+
+    scan_state may set progress_start / progress_end (defaults 0–100).
+    Reference graph build uses _reference_graph_scan_progress(); categories use
+    the remaining slice. Progress never moves backward within a scan phase.
+    """
+    if status_text:
+        _safe_set_atom_property(atom, 'operation_status', status_text)
+
+    progress_start = float(scan_state.get('progress_start', 0.0))
+    progress_end = float(scan_state.get('progress_end', 100.0))
+    progress_span = max(progress_end - progress_start, 0.0)
+
+    total_categories = max(len(scan_state.get('categories_to_scan', [])), 1)
+    cat_idx = scan_state.get('current_category_index', 0)
+    category_span = CATEGORY_PROGRESS_SLICE / total_categories
+    if sub_fraction == 0.0:
+        scan_state['_display_sub_fraction'] = 0.0
+    else:
+        display_sub = scan_state.get('_display_sub_fraction', 0.0)
+        if sub_fraction > display_sub:
+            # Each active tick advances at least ~1.5% of the category slice so
+            # the PERCENTAGE bar moves on heavy files with many small batches.
+            min_step = 0.015
+            delta = sub_fraction - display_sub
+            display_sub = min(sub_fraction, display_sub + max(min_step, delta))
+            scan_state['_display_sub_fraction'] = display_sub
+        sub_fraction = scan_state.get('_display_sub_fraction', sub_fraction)
+    frac = REFERENCE_GRAPH_PROGRESS_SLICE + cat_idx * category_span + sub_fraction * category_span
+    frac = min(frac, 1.0)
+
+    progress = progress_start + frac * progress_span
+    progress = min(progress, progress_end - 0.5)
+
+    try:
+        current = float(atom.operation_progress)
+        progress = max(current, progress)
+    except (AttributeError, TypeError, ValueError):
+        pass
+
+    _safe_set_atom_property(atom, 'operation_progress', progress)
+
+
+def _unified_scan_redraw():
+    if bpy.context.screen:
+        for area in bpy.context.screen.areas:
+            area.tag_redraw()
+
+
+_DEBUG_LIST_SAMPLE = 3
+
+
+def _debug_summarize_list(items, sample=_DEBUG_LIST_SAMPLE):
+    """Truncate long lists for debug output."""
+    if not isinstance(items, list):
+        return items
+    if len(items) <= sample:
+        return items
+    return items[:sample] + [f"... +{len(items) - sample} more"]
+
+
+def _debug_summarize_results(results, sample=_DEBUG_LIST_SAMPLE):
+    """Summarize scan results without dumping every unused item name."""
+    if results is None:
+        return None
+    summary = {}
+    for category, value in results.items():
+        if isinstance(value, bool):
+            summary[category] = value
+        elif isinstance(value, list):
+            entry = {'count': len(value)}
+            if value:
+                entry['sample'] = _debug_summarize_list(value, sample)
+            summary[category] = entry
+        else:
+            summary[category] = value
+    return summary
+
+
+def _debug_summarize_graph_indices(indices):
+    """Counts-only summary of node-group graph indices (not full adjacency maps)."""
+    if not indices:
+        return None
+    return {
+        'compositor_ngs': len(indices.get('compositor_ngs', ())),
+        'in_scene_objects': len(indices.get('in_scene_objects', ())),
+        'ng_to_materials': len(indices.get('ng_to_materials', {})),
+        'ng_to_objects': len(indices.get('ng_to_objects', {})),
+        'ng_parents': len(indices.get('ng_parents', {})),
+        'mat_objects': len(indices.get('mat_objects', {})),
+        'mat_gn_objects': len(indices.get('mat_gn_objects', {})),
+        'referenced_by_count': len(indices.get('referenced_by_count', {})),
+    }
+
+
+def _debug_summarize_ng_analysis_state(ng_state):
+    if not ng_state:
+        return None
+    index_build = ng_state.get('index_build_state') or {}
+    obj_total = len(index_build.get('object_names', []))
+    obj_done = index_build.get('obj_index', 0)
+    return {
+        'checked': ng_state.get('index'),
+        'total': len(ng_state.get('names', [])),
+        'unused_so_far': len(ng_state.get('unused', [])),
+        'indices_ready': ng_state.get('indices') is not None,
+        'scene_objects': f"{obj_done}/{obj_total}",
+        'indices': _debug_summarize_graph_indices(ng_state.get('indices')),
+    }
+
+
+def _debug_summarize_scan_state(scan_state):
+    """Compact scan state for debug logs (avoids huge results/index dict dumps)."""
+    if not scan_state:
+        return None
+    graph_build = scan_state.get('graph_build_state')
+    mat_state = scan_state.get('mat_analysis_state')
+    return {
+        'mode': scan_state.get('mode'),
+        'current_category_index': scan_state.get('current_category_index'),
+        'categories_to_scan': scan_state.get('categories_to_scan'),
+        'status_updated': scan_state.get('status_updated'),
+        'results': _debug_summarize_results(scan_state.get('results')),
+        'graph_build': (
+            {
+                'phase': graph_build.get('phase'),
+                'type_index': graph_build.get('type_index'),
+                'type_total': len(graph_build.get('type_names', [])),
+            }
+            if graph_build else None
+        ),
+        'ng_analysis': _debug_summarize_ng_analysis_state(
+            scan_state.get('ng_analysis_state')
+        ),
+        'material_session_ready': scan_state.get('material_session_ready'),
+        'mat_session_build': (
+            {
+                'phase': mat_build.get('phase'),
+                'obj_index': mat_build.get('obj_index'),
+                'gn_obj_index': mat_build.get('gn_obj_index'),
+                'total_objects': len(mat_build.get('object_names', [])),
+            }
+            if (mat_build := scan_state.get('mat_session_build_state')) else None
+        ),
+        'mat_analysis': (
+            {
+                'checked': mat_state.get('index'),
+                'total': len(mat_state.get('names', [])),
+                'unused_so_far': len(mat_state.get('unused', [])),
+            }
+            if mat_state else None
+        ),
+        'cat_analysis': (
+            {
+                'category': cat_state.get('category'),
+                'checked': cat_state.get('index'),
+                'total': len(cat_state.get('names', [])),
+                'unused_so_far': len(cat_state.get('unused', [])),
+                'used_ready': cat_state.get('used') is not None,
+            }
+            if (cat_state := scan_state.get('cat_analysis_state')) else None
+        ),
+    }
 
 
 def _cleanup_old_job_files():
@@ -163,6 +505,10 @@ def _invalidate_cache():
     # Clear RNA graph cache if it exists
     if hasattr(_process_unified_scan_step, '_rna_graph'):
         delattr(_process_unified_scan_step, '_rna_graph')
+    if hasattr(_process_unified_scan_step, '_rna_data'):
+        delattr(_process_unified_scan_step, '_rna_data')
+    from ..stats import rna_analysis
+    rna_analysis.clear_graph_used_cache()
     # Optionally clear disk cache on invalidation
     # (We keep it for now to allow cache reuse across sessions)
 
@@ -1028,7 +1374,7 @@ def _process_clean_execute_step():
 def _on_smart_select_quick_scan_complete(results, **kwargs):
     """Callback for Smart Select quick scan completion.
     Processes quick scan results and triggers full scan for detected categories."""
-    global _smart_select_state
+    global _smart_select_state, _scan_state
     
     # Process quick scan results
     detected_categories = []
@@ -1042,16 +1388,19 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
     # If no categories detected, finish early
     if not detected_categories:
         atom = bpy.context.scene.atomic
-        _safe_set_atom_property(atom, 'is_operation_running', False)
-        _safe_set_atom_property(atom, 'operation_progress', 100.0)
-        _safe_set_atom_property(atom, 'operation_status', "Complete! No unused items found")
+        _show_operation_done(
+            atom,
+            _analysis_done_status(_scan_state, "no unused items found"),
+        )
         _smart_select_state = None
         for area in bpy.context.screen.areas:
             area.tag_redraw()
         return
     
     # Start full scan for detected categories
-    global _scan_state
+    scan_started_at = (
+        _scan_state.get('started_at', time.monotonic()) if _scan_state else time.monotonic()
+    )
     config.debug_print(f"[Atomic Debug] Smart Select: Quick scan complete, starting full scan for categories: {detected_categories}")
     _scan_state = {
         'mode': 'full',
@@ -1060,7 +1409,16 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
         'results': None,
         'status_updated': False,
         'callback': _on_smart_select_full_scan_complete,
-        'callback_data': {}
+        'callback_data': {},
+        'graph_build_state': None,
+        'ng_analysis_state': None,
+        'material_session_ready': False,
+        'mat_session_build_state': None,
+        'mat_analysis_state': None,
+        'cat_analysis_state': None,
+        'progress_start': SMART_SELECT_QUICK_SCAN_PROGRESS_END,
+        'progress_end': SCAN_PROGRESS_FINISH,
+        'started_at': scan_started_at,
     }
     
     bpy.app.timers.register(_process_unified_scan_step)
@@ -1070,7 +1428,7 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
 def _on_smart_select_full_scan_complete(results, **kwargs):
     """Callback for Smart Select full scan completion.
     Processes full scan results, caches them, and updates UI toggles."""
-    global _smart_select_state, _unused_cache, _cache_valid
+    global _smart_select_state, _unused_cache, _cache_valid, _scan_state
     
     # Store results
     _smart_select_state['all_unused'] = results
@@ -1080,8 +1438,8 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     _cache_valid = True
     
     atom = bpy.context.scene.atomic
-    _safe_set_atom_property(atom, 'operation_progress', 75.0)
-    
+    _safe_set_atom_property(atom, 'operation_progress', SCAN_PROGRESS_FINISH)
+
     # Update UI toggles
     _safe_set_atom_property(atom, 'operation_status', "Updating selection...")
     atom.collections = _smart_select_state['unused_flags'].get('collections', False)
@@ -1096,10 +1454,15 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     atom.actions = _smart_select_state['unused_flags'].get('actions', False)
     atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)
     
-    # Operation complete
-    _safe_set_atom_property(atom, 'is_operation_running', False)
-    _safe_set_atom_property(atom, 'operation_progress', 100.0)
-    _safe_set_atom_property(atom, 'operation_status', f"Complete! Found unused items in {len(_smart_select_state['detected_categories'])} categories")
+    # Operation complete — keep progress visible briefly with elapsed time.
+    category_count = len(_smart_select_state['detected_categories'])
+    _show_operation_done(
+        atom,
+        _analysis_done_status(
+            _scan_state,
+            f"unused in {category_count} categor{'y' if category_count == 1 else 'ies'}",
+        ),
+    )
     
     # Clear state
     _smart_select_state = None
@@ -1112,7 +1475,7 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
 def _on_clean_scan_complete(results, **kwargs):
     """Callback for Clean scan completion.
     Populates operator properties and shows dialog."""
-    global _clean_operator_instance, _clean_invoke_state, _clean_pending_results, _clean_pending_categories
+    global _clean_operator_instance, _clean_invoke_state, _clean_pending_results, _clean_pending_categories, _scan_state
     
     atom = bpy.context.scene.atomic
     
@@ -1142,10 +1505,8 @@ def _on_clean_scan_complete(results, **kwargs):
             config.debug_print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
             config.debug_print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
     
-    # Operation complete - show dialog
-    _safe_set_atom_property(atom, 'is_operation_running', False)
-    _safe_set_atom_property(atom, 'operation_progress', 100.0)
-    _safe_set_atom_property(atom, 'operation_status', "")
+    # Operation complete — keep progress visible briefly with elapsed time.
+    _show_operation_done(atom, _analysis_done_status(_scan_state))
     
     # Force UI update
     for area in bpy.context.screen.areas:
@@ -1209,7 +1570,10 @@ def _process_unified_scan_step():
         atom = bpy.context.scene.atomic
         global _scan_state, _unused_cache, _cache_valid
         
-        config.debug_print(f"[Atomic Debug] Unified Scanner: _scan_state = {_scan_state}")
+        config.debug_print(
+            f"[Atomic Debug] Unified Scanner: _scan_state = "
+            f"{_debug_summarize_scan_state(_scan_state)}"
+        )
         
         # Check if scan state is initialized (mode should be set)
         if _scan_state is None or _scan_state.get('mode') is None:
@@ -1242,8 +1606,13 @@ def _process_unified_scan_step():
                 # Filter cache to only include requested categories
                 filtered_results = {cat: _unused_cache[cat] for cat in _scan_state['categories_to_scan']}
                 _scan_state['results'] = filtered_results
-                _safe_set_atom_property(atom, 'operation_progress', 50.0)
-                _safe_set_atom_property(atom, 'operation_status', "Using cached results...")
+                progress_end = float(_scan_state.get('progress_end', SCAN_PROGRESS_FINISH))
+                _safe_set_atom_property(atom, 'operation_progress', progress_end)
+                _safe_set_atom_property(
+                    atom,
+                    'operation_status',
+                    _analysis_done_status(_scan_state, "cached"),
+                )
                 config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
                 # Call callback with cached results
                 if _scan_state['callback']:
@@ -1268,12 +1637,17 @@ def _process_unified_scan_step():
             # Update status first, then return to let UI refresh
             if not _scan_state['status_updated']:
                 config.debug_print(f"[Atomic Debug] Unified Scanner: Updating status for {category}")
-                if _scan_state['mode'] == 'quick':
-                    _safe_set_atom_property(atom, 'operation_status', f"Scanning {category}...")
-                else:
-                    _safe_set_atom_property(atom, 'operation_status', f"Counting {category}...")
-                progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-                _safe_set_atom_property(atom, 'operation_progress', progress)
+                status = (
+                    f"Scanning {category}..."
+                    if _scan_state['mode'] == 'quick'
+                    else f"Counting {category}..."
+                )
+                _unified_scan_progress(
+                    atom,
+                    _scan_state,
+                    sub_fraction=0.0,
+                    status_text=status,
+                )
                 _scan_state['status_updated'] = True
                 # Force UI update and return to let it refresh
                 for area in bpy.context.screen.areas:
@@ -1286,71 +1660,260 @@ def _process_unified_scan_step():
             if _scan_state['results'] is None:
                 _scan_state['results'] = {}
             
-            # Use RNA-based analysis for all categories (unified approach)
-            # Build RNA dependency graph if not already built (shared across all categories)
-            # Also rebuild if the filepath has changed (new file loaded)
             current_filepath = bpy.data.filepath
             cached_filepath = getattr(_process_unified_scan_step, '_rna_graph_filepath', None)
-            
-            if not hasattr(_process_unified_scan_step, '_rna_graph') or current_filepath != cached_filepath:
-                if hasattr(_process_unified_scan_step, '_rna_graph') and current_filepath != cached_filepath:
-                    config.debug_print("[Atomic Debug] Unified Scanner: File changed, rebuilding RNA dependency graph...")
-                else:
-                    config.debug_print("[Atomic Debug] Unified Scanner: Building RNA dependency graph...")
-                # Always dump RNA data to file for debugging/verification
-                rna_dump_path = os.path.join(tempfile.gettempdir(), f"atomic_rna_dump_{int(time.time())}.json")
-                rna_data = rna_analysis.dump_rna_references(output_path=rna_dump_path)
-                if config.enable_debug_prints:
-                    config.debug_print(f"[Atomic Debug] Unified Scanner: RNA data dumped to {rna_dump_path}")
-                _process_unified_scan_step._rna_graph = rna_analysis.build_dependency_graph(rna_data)
+            graph_cached = (
+                hasattr(_process_unified_scan_step, '_rna_graph')
+                and current_filepath == cached_filepath
+            )
+
+            # Incremental RNA graph build (one data-block type per timer tick)
+            if not graph_cached:
+                if _scan_state['graph_build_state'] is None:
+                    _scan_state['graph_build_state'] = rna_analysis.begin_rna_graph_build()
+                    _scan_state['_ref_graph_display_sub'] = 0.0
+                build_state = _scan_state['graph_build_state']
+                if build_state.get('phase') == 'graph':
+                    _reference_graph_scan_progress(
+                        atom, _scan_state, build_state, step_label='graph'
+                    )
+                done, graph, step_label = rna_analysis.step_rna_graph_build(build_state)
+                _reference_graph_scan_progress(
+                    atom, _scan_state, build_state, step_label=step_label
+                )
+                if not done:
+                    _unified_scan_redraw()
+                    return 0.01
+                if config.enable_debug_prints and _scan_state['graph_build_state'] is not None:
+                    rna_dump_path = os.path.join(
+                        tempfile.gettempdir(),
+                        f"atomic_rna_dump_{int(time.time())}.json",
+                    )
+                    try:
+                        with open(rna_dump_path, 'w', encoding='utf-8') as dump_file:
+                            json.dump(
+                                _scan_state['graph_build_state'].get('rna_data', {}),
+                                dump_file,
+                                indent=2,
+                            )
+                        config.debug_print(
+                            f"[Atomic Debug] Unified Scanner: RNA data dumped to {rna_dump_path}"
+                        )
+                    except Exception as dump_err:
+                        config.debug_print(
+                            f"[Atomic Debug] Unified Scanner: RNA dump failed: {dump_err}"
+                        )
+                _process_unified_scan_step._rna_graph = graph
                 _process_unified_scan_step._rna_graph_filepath = current_filepath
+                if _scan_state['graph_build_state'] is not None:
+                    _process_unified_scan_step._rna_data = _scan_state[
+                        'graph_build_state'
+                    ].get('rna_data', {})
+                _scan_state['graph_build_state'] = None
+                _scan_state['_display_sub_fraction'] = 0.0
                 config.debug_print("[Atomic Debug] Unified Scanner: RNA dependency graph built")
-            
-            if _scan_state['mode'] == 'quick':
-                # Quick scan: check if category has any unused items using RNA analysis
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Quick scan for '{category}' using RNA analysis")
-                
-                # Check if any unused items exist (short-circuit)
-                unused_list = rna_analysis.analyze_unused_from_graph(
-                    _process_unified_scan_step._rna_graph,
-                    category,
-                    short_circuit=True,
+
+            # node_groups: scan pre-built RNA graph indices (node_groups_deep parity)
+            if category == 'node_groups':
+                if _scan_state['ng_analysis_state'] is None:
+                    _scan_state['ng_analysis_state'] = rna_analysis.begin_node_groups_analysis(
+                        _process_unified_scan_step._rna_graph,
+                        short_circuit=_scan_state['mode'] == 'quick',
+                    )
+                ng_state = _scan_state['ng_analysis_state']
+                done, unused_list, ng_frac, current_ng = rna_analysis.step_node_groups_analysis(
+                    ng_state
                 )
-                result = len(unused_list) > 0
-                
-                _scan_state['results'][category] = result
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Stored result for '{category}': {result}, results now: {_scan_state['results']}")
-            
-            else:  # mode == 'full'
-                # Full scan: get complete list of unused items using RNA analysis
-                config.debug_print(f"[Atomic Debug] Unified Scanner: Full scan for '{category}' using RNA analysis")
-                
-                # Analyze unused items using RNA graph
-                unused_list = rna_analysis.analyze_unused_from_graph(
-                    _process_unified_scan_step._rna_graph,
-                    category
+                if ng_state['indices'] is None:
+                    built = ng_state['index_build_state']['obj_index']
+                    total_objs = len(ng_state['index_build_state']['object_names'])
+                    _unified_scan_progress(
+                        atom,
+                        _scan_state,
+                        sub_fraction=ng_frac,
+                        status_text=(
+                            f"Indexing scene objects ({built}/{total_objs})..."
+                        ),
+                    )
+                else:
+                    checked = ng_state['index']
+                    total_ng = len(ng_state['names'])
+                    ng_label = current_ng or ''
+                    status = f"Checking node groups ({checked}/{total_ng})"
+                    if ng_label:
+                        status = f"{status}: {ng_label}"
+                    _unified_scan_progress(
+                        atom,
+                        _scan_state,
+                        sub_fraction=ng_frac,
+                        status_text=f"{status}...",
+                    )
+                if not done:
+                    _unified_scan_redraw()
+                    return 0.01
+                if _scan_state['mode'] == 'quick':
+                    _scan_state['results'][category] = len(unused_list) > 0
+                else:
+                    _scan_state['results'][category] = unused_list
+                _scan_state['ng_analysis_state'] = None
+
+            elif category == 'materials':
+                from ..stats import users as users_stats
+
+                if not _scan_state['material_session_ready']:
+                    if _scan_state['mat_session_build_state'] is None:
+                        users_stats.clear_material_scan_caches()
+                        _scan_state['mat_session_build_state'] = (
+                            users_stats.begin_material_session_build()
+                        )
+                        _scan_state['_mat_session_display_sub'] = 0.0
+                        _scan_state['_mat_session_phase'] = None
+                    session_done, session_frac = users_stats.step_material_session_build(
+                        _scan_state['mat_session_build_state']
+                    )
+                    build_state = _scan_state['mat_session_build_state']
+                    total_objs = max(len(build_state['object_names']), 1)
+                    if build_state['phase'] == 'slots':
+                        done_objs = build_state['obj_index']
+                        phase_name = 'material slots'
+                    else:
+                        done_objs = build_state['gn_obj_index']
+                        phase_name = 'geometry nodes'
+                    _material_session_scan_progress(
+                        atom,
+                        _scan_state,
+                        session_frac,
+                        done_objs,
+                        total_objs,
+                        phase_name,
+                        phase_key=build_state['phase'],
+                    )
+                    if not session_done:
+                        _unified_scan_redraw()
+                        return 0.01
+                    _scan_state['mat_session_build_state'] = None
+                    _scan_state['material_session_ready'] = True
+                    _scan_state['_display_sub_fraction'] = MATERIAL_SESSION_PROGRESS_SLICE
+                    _unified_scan_redraw()
+                    return 0.01
+
+                if _scan_state['mat_analysis_state'] is None:
+                    _scan_state['mat_analysis_state'] = rna_analysis.begin_materials_analysis(
+                        _process_unified_scan_step._rna_graph,
+                        short_circuit=_scan_state['mode'] == 'quick',
+                    )
+                mat_state = _scan_state['mat_analysis_state']
+                done, unused_list, mat_frac, current_mat = rna_analysis.step_materials_analysis(
+                    mat_state
                 )
-                
-                _scan_state['results'][category] = unused_list
-                config.debug_print(f"[Atomic Debug] Unified Scanner: RNA analysis found {len(unused_list)} unused {category}")
+                checked = mat_state['index']
+                total_mats = len(mat_state['names'])
+                mat_label = current_mat or ''
+                status = f"Analyzing materials ({checked}/{total_mats})"
+                if mat_label:
+                    status = f"{status}: {mat_label}"
+                mat_slice = MATERIAL_SESSION_PROGRESS_SLICE
+                _unified_scan_progress(
+                    atom,
+                    _scan_state,
+                    sub_fraction=mat_slice + mat_frac * (1.0 - mat_slice),
+                    status_text=f"{status}...",
+                )
+                if not done:
+                    _unified_scan_redraw()
+                    return 0.01
+                if _scan_state['mode'] == 'quick':
+                    _scan_state['results'][category] = len(unused_list) > 0
+                else:
+                    _scan_state['results'][category] = unused_list
+                _scan_state['mat_analysis_state'] = None
+                _scan_state['material_session_ready'] = False
+
+            else:
+                if _scan_state['cat_analysis_state'] is None or (
+                    _scan_state['cat_analysis_state'].get('category') != category
+                ):
+                    if _scan_state['mode'] == 'quick':
+                        config.debug_print(
+                            f"[Atomic Debug] Unified Scanner: Quick scan for "
+                            f"'{category}' using RNA analysis"
+                        )
+                    else:
+                        config.debug_print(
+                            f"[Atomic Debug] Unified Scanner: Full scan for "
+                            f"'{category}' using RNA analysis"
+                        )
+                    _scan_state['cat_analysis_state'] = (
+                        rna_analysis.begin_graph_category_analysis(
+                            _process_unified_scan_step._rna_graph,
+                            category,
+                            short_circuit=_scan_state['mode'] == 'quick',
+                        )
+                    )
+                cat_state = _scan_state['cat_analysis_state']
+                done, unused_list, cat_frac, current_item = (
+                    rna_analysis.step_graph_category_analysis(cat_state)
+                )
+                checked = cat_state['index']
+                total_items = len(cat_state['names'])
+                item_label = current_item or ''
+                if cat_state['used'] is None:
+                    status = f"Building usage graph for {category}..."
+                else:
+                    status = f"Analyzing {category} ({checked}/{total_items})"
+                    if item_label:
+                        status = f"{status}: {item_label}"
+                _unified_scan_progress(
+                    atom,
+                    _scan_state,
+                    sub_fraction=cat_frac,
+                    status_text=f"{status}...",
+                )
+                if not done:
+                    _unified_scan_redraw()
+                    return 0.01
+                if _scan_state['mode'] == 'quick':
+                    _scan_state['results'][category] = len(unused_list) > 0
+                else:
+                    _scan_state['results'][category] = unused_list
+                    config.debug_print(
+                        f"[Atomic Debug] Unified Scanner: RNA analysis found "
+                        f"{len(unused_list)} unused {category}"
+                    )
+                _scan_state['cat_analysis_state'] = None
             
             # Move to next category
             _scan_state['current_category_index'] += 1
-            _scan_state['status_updated'] = False  # Reset for next category
-            progress = (_scan_state['current_category_index'] / total_categories) * 50.0
-            _safe_set_atom_property(atom, 'operation_progress', progress)
-            config.debug_print(f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index {_scan_state['current_category_index']}/{total_categories}, results: {_scan_state['results']}")
+            _scan_state['status_updated'] = False
+            _scan_state['material_session_ready'] = False
+            _scan_state['ng_analysis_state'] = None
+            _scan_state['mat_session_build_state'] = None
+            _scan_state['mat_analysis_state'] = None
+            _scan_state['cat_analysis_state'] = None
+            _unified_scan_progress(atom, _scan_state, sub_fraction=0.0)
+            config.debug_print(
+                f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index "
+                f"{_scan_state['current_category_index']}/{total_categories}, "
+                f"results: {_debug_summarize_results(_scan_state['results'])}"
+            )
             
-            # Force UI update
-            for area in bpy.context.screen.areas:
-                area.tag_redraw()
-            
-            return 0.01  # Continue processing
+            _unified_scan_redraw()
+            return 0.01
         
         # All categories scanned
-        config.debug_print(f"[Atomic Debug] Unified Scanner: All categories scanned! current_index={_scan_state.get('current_category_index')}, total={total_categories}, results={_scan_state.get('results')}")
-        _safe_set_atom_property(atom, 'operation_progress', 50.0)
-        _safe_set_atom_property(atom, 'operation_status', "Scan complete, processing results...")
+        config.debug_print(
+            f"[Atomic Debug] Unified Scanner: All categories scanned! "
+            f"current_index={_scan_state.get('current_category_index')}, "
+            f"total={total_categories}, "
+            f"results={_debug_summarize_results(_scan_state.get('results'))}"
+        )
+        progress_end = float(_scan_state.get('progress_end', SCAN_PROGRESS_FINISH))
+        _safe_set_atom_property(atom, 'operation_progress', progress_end)
+        _safe_set_atom_property(
+            atom,
+            'operation_status',
+            f"{_analysis_done_status(_scan_state)}, processing results...",
+        )
         
         # Ensure results is a dictionary, not None
         if _scan_state['results'] is None:
@@ -1363,7 +1926,10 @@ def _process_unified_scan_step():
         
         # Call callback function with results
         if _scan_state['callback']:
-            config.debug_print(f"[Atomic Debug] Unified Scanner: Calling callback with results: {_scan_state['results']}")
+            config.debug_print(
+                f"[Atomic Debug] Unified Scanner: Calling callback with results: "
+                f"{_debug_summarize_results(_scan_state['results'])}"
+            )
             old_mode = _scan_state.get('mode')
             old_categories = _scan_state.get('categories_to_scan', [])[:]  # Copy list
             _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
@@ -1457,7 +2023,7 @@ def _process_clean_invoke_step():
         global _clean_invoke_state, _scan_state
         
         config.debug_print(f"[Atomic Debug] Clean: _clean_invoke_state = {_clean_invoke_state}")
-        config.debug_print(f"[Atomic Debug] Clean: _scan_state = {_scan_state}")
+        config.debug_print(f"[Atomic Debug] Clean: _scan_state = {_debug_summarize_scan_state(_scan_state)}")
         
         # Check for cancellation
         if atom.cancel_operation:
@@ -1498,13 +2064,22 @@ def _process_clean_invoke_step():
                 area.tag_redraw()
             config.debug_print("[Atomic Debug] Clean: Creating _scan_state for full scan")
             _scan_state = {
-            'mode': 'full',
-            'categories_to_scan': _clean_invoke_state['selected_categories'],
-            'current_category_index': 0,
-            'results': None,
-            'status_updated': False,
+                'mode': 'full',
+                'categories_to_scan': _clean_invoke_state['selected_categories'],
+                'current_category_index': 0,
+                'results': None,
+                'status_updated': False,
                 'callback': _on_clean_scan_complete,
-                'callback_data': {}
+                'callback_data': {},
+                'graph_build_state': None,
+                'ng_analysis_state': None,
+                'material_session_ready': False,
+                'mat_session_build_state': None,
+                'mat_analysis_state': None,
+                'cat_analysis_state': None,
+                'progress_start': 0.0,
+                'progress_end': SCAN_PROGRESS_FINISH,
+                'started_at': time.monotonic(),
             }
             # Start unified scanner and stop this timer (unified scanner will handle everything)
             # Always register the timer - it will handle its own lifecycle
@@ -1589,7 +2164,7 @@ def _process_smart_select_step():
         global _smart_select_state, _scan_state
         
         config.debug_print(f"[Atomic Debug] Smart Select: _smart_select_state = {_smart_select_state}")
-        config.debug_print(f"[Atomic Debug] Smart Select: _scan_state = {_scan_state}")
+        config.debug_print(f"[Atomic Debug] Smart Select: _scan_state = {_debug_summarize_scan_state(_scan_state)}")
         
         # Check for cancellation
         if atom.cancel_operation:
@@ -1614,13 +2189,22 @@ def _process_smart_select_step():
                 area.tag_redraw()
             config.debug_print("[Atomic Debug] Smart Select: Creating _scan_state for quick scan")
             _scan_state = {
-            'mode': 'quick',
-            'categories_to_scan': list(unused_parallel.CATEGORIES),
-            'current_category_index': 0,
-            'results': None,
-            'status_updated': False,
+                'mode': 'quick',
+                'categories_to_scan': list(unused_parallel.CATEGORIES),
+                'current_category_index': 0,
+                'results': None,
+                'status_updated': False,
                 'callback': _on_smart_select_quick_scan_complete,
-                'callback_data': {}
+                'callback_data': {},
+                'graph_build_state': None,
+                'ng_analysis_state': None,
+                'material_session_ready': False,
+                'mat_session_build_state': None,
+                'mat_analysis_state': None,
+                'cat_analysis_state': None,
+                'progress_start': 0.0,
+                'progress_end': SMART_SELECT_QUICK_SCAN_PROGRESS_END,
+                'started_at': time.monotonic(),
             }
             # Start unified scanner and stop this timer (unified scanner will handle everything)
             # Always register the timer - it will handle its own lifecycle
