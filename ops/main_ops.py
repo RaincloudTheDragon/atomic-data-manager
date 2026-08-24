@@ -971,6 +971,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     """Remove all unused data-blocks from the selected categories"""
     bl_idname = "atomic.clean"
     bl_label = "Clean"
+    bl_options = {'REGISTER', 'UNDO'}
 
     # Use None as sentinel to indicate "not yet calculated"
     # Empty lists [] indicate "calculated and found nothing"

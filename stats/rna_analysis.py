@@ -593,7 +593,7 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                 except (AttributeError, RuntimeError, ReferenceError):
                     # Datablock may be invalid
                     continue
-                if is_linked_or_override and data_type not in {'objects'}:
+                if is_linked_or_override and data_type not in {'objects', 'node_groups'}:
                     continue
                 
                 try:
@@ -620,7 +620,8 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
-                # Special handling for node groups
+                # Special handling for node groups (including linked/override trees so
+                # nested *local* groups still get referenced_by edges).
                 try:
                     if data_type == 'node_groups':
                         node_refs = _extract_node_tree_references(datablock)
@@ -628,6 +629,41 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
+                # Linked/override node groups are reference-only: keep outbound edges for
+                # nested local groups, then skip other type-specific handlers.
+                if is_linked_or_override and data_type == 'node_groups':
+                    rna_data[data_type][item_name] = {
+                        'references': references,
+                        'referenced_by': [],
+                    }
+                    for ref in references:
+                        ref_type = (ref.get('type', '') or '').lower()
+                        ref_name = ref.get('name', '')
+                        if not ref_name:
+                            continue
+                        if 'nodetree' in ref_type or 'nodegroup' in ref_type or 'node_tree' in ref_type:
+                            mapped_type = 'node_groups'
+                        elif 'material' in ref_type:
+                            mapped_type = 'materials'
+                        elif 'image' in ref_type:
+                            mapped_type = 'images'
+                        elif 'object' in ref_type:
+                            mapped_type = 'objects'
+                        elif 'collection' in ref_type:
+                            mapped_type = 'collections'
+                        else:
+                            continue
+                        if mapped_type not in reference_map:
+                            reference_map[mapped_type] = {}
+                        if ref_name not in reference_map[mapped_type]:
+                            reference_map[mapped_type][ref_name] = []
+                        reference_map[mapped_type][ref_name].append({
+                            'type': data_type,
+                            'name': item_name,
+                            'property': ref.get('property', ''),
+                        })
+                    continue
+
                 # Special handling for scenes (compositor, rigidbody_world, collection, world, etc.)
                 try:
                     if data_type == 'scenes':
@@ -770,7 +806,9 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                                 try:
                                     if compat.is_geometry_nodes_modifier(modifier):
                                         ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                        if ng and not compat.is_library_or_override(ng):
+                                        # Keep object→ng edges even for linked/override groups so
+                                        # nested local groups remain reachable via parent indices.
+                                        if ng and hasattr(ng, 'name'):
                                             references.append({
                                                 'property': 'modifiers.node_group',
                                                 'type': 'NodeTree',
@@ -1445,6 +1483,11 @@ def is_node_group_cleanable_from_graph(ng_name, indices, fake_user_map, memo, vi
 
 def begin_node_groups_analysis(graph, short_circuit=False):
     """Start graph-based batched node_groups analysis (node_groups_deep parity)."""
+    from . import unused as unused_stats
+
+    unused_stats.clear_node_group_rna_cache()
+    unused_stats.begin_node_group_scan_session()
+
     fake_user_map = {}
     names = []
     for node_group in bpy.data.node_groups:
@@ -1514,11 +1557,14 @@ def step_node_groups_analysis(state, batch_size=NODE_GROUPS_BATCH_SIZE):
     names = state['names']
     total = len(names)
     if total == 0:
+        from . import unused as unused_stats
+        unused_stats.clear_node_group_rna_cache()
         return True, state['unused'], 1.0, None
 
     indices = state['indices']
     fake_user_map = state['fake_user_map']
     memo = state['memo']
+    from . import unused as unused_stats
 
     start = state['index']
     end = min(start + batch_size, total)
@@ -1531,17 +1577,30 @@ def step_node_groups_analysis(state, batch_size=NODE_GROUPS_BATCH_SIZE):
                 f"[Atomic Debug] node_groups scan: {offset + 1}/{total} '{ng_name}'"
             )
         try:
-            if is_node_group_cleanable_from_graph(
+            if not is_node_group_cleanable_from_graph(
                 ng_name, indices, fake_user_map, memo
             ):
-                state['unused'].append(ng_name)
-                if state['short_circuit']:
-                    return True, state['unused'], 1.0, current_name
+                continue
+            # Live parity guard: graph can miss nested / linked-parent edges
+            # (e.g. local "get coordinate" inside an override GN tree).
+            if not unused_stats.is_node_group_cleanable(ng_name):
+                if config.enable_debug_prints:
+                    config.debug_print(
+                        f"[Atomic Debug] node_groups: graph said cleanable but "
+                        f"live kept '{ng_name}'"
+                    )
+                continue
+            state['unused'].append(ng_name)
+            if state['short_circuit']:
+                unused_stats.clear_node_group_rna_cache()
+                return True, state['unused'], 1.0, current_name
         except (AttributeError, KeyError, RuntimeError, ReferenceError):
             continue
 
     state['index'] = end
     done = end >= total
+    if done:
+        unused_stats.clear_node_group_rna_cache()
     scan_progress = end / total
     return (
         done,
