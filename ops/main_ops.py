@@ -173,36 +173,59 @@ def _analysis_done_status(scan_state, suffix=None, started_at=None):
     return message
 
 
-# Keep the progress panel visible briefly so the final timing message is readable.
-OPERATION_DONE_DISPLAY_SECONDS = 8.0
+def _finish_scan_operation(atom, progress=100.0):
+    """Hide the progress UI after a scan completes."""
+    _safe_set_atom_property(atom, 'is_operation_running', False)
+    _safe_set_atom_property(atom, 'operation_progress', progress)
+    _safe_set_atom_property(atom, 'operation_status', "")
 
 
-def _show_operation_done(atom, status):
-    """Show completion status at 100% briefly before hiding the operation UI."""
-    config.debug_print(f"[Atomic Debug] {status}")
-    _safe_set_atom_property(atom, 'operation_progress', 100.0)
-    _safe_set_atom_property(atom, 'operation_status', status)
-    _safe_set_atom_property(atom, 'is_operation_running', True)
+def _report_scan_analysis_info(scan_state, suffix=None):
+    """
+    Post scan elapsed time as a normal Blender INFO report (blue status banner).
 
-    def _hide_operation_ui():
+    Deferred with a full window/area override so Operator.report() actually shows
+    from timer/callback stacks (plain status_text_set is the wrong UI).
+    """
+    message = _analysis_done_status(scan_state, suffix)
+    config.debug_print(f"[Atomic Debug] {message}")
+
+    def _post_report():
         try:
-            scene = getattr(bpy.context, 'scene', None)
-            if scene is not None:
-                active = scene.atomic
-                if active.operation_status == status:
-                    _safe_set_atom_property(active, 'is_operation_running', False)
-                    _safe_set_atom_property(active, 'operation_status', "")
-        except (AttributeError, RuntimeError, ReferenceError):
-            pass
-        if bpy.context.screen:
-            for area in bpy.context.screen.areas:
-                area.tag_redraw()
+            # Clear any leftover workspace status text from older builds.
+            workspace = bpy.context.workspace
+            if workspace is not None:
+                workspace.status_text_set(None)
+
+            windows = bpy.context.window_manager.windows
+            if not windows:
+                print(f"Info: {message}")
+                return None
+
+            window = windows[0]
+            screen = window.screen
+            area = screen.areas[0] if screen.areas else None
+            region = None
+            if area is not None:
+                for candidate in area.regions:
+                    if candidate.type == 'WINDOW':
+                        region = candidate
+                        break
+
+            override = {'window': window, 'screen': screen}
+            if area is not None:
+                override['area'] = area
+            if region is not None:
+                override['region'] = region
+
+            with bpy.context.temp_override(**override):
+                bpy.ops.atomic.report_info('INVOKE_DEFAULT', message=message)
+        except (RuntimeError, AttributeError, TypeError) as err:
+            config.debug_print(f"[Atomic Debug] Could not post Info report: {err}")
+            print(f"Info: {message}")
         return None
 
-    bpy.app.timers.register(_hide_operation_ui, first_interval=OPERATION_DONE_DISPLAY_SECONDS)
-    if bpy.context.screen:
-        for area in bpy.context.screen.areas:
-            area.tag_redraw()
+    bpy.app.timers.register(_post_report, first_interval=0.05)
 
 
 def _reference_graph_scan_progress(atom, scan_state, build_state, step_label=None):
@@ -732,6 +755,41 @@ class ATOMIC_OT_clear_cache(bpy.types.Operator):
         _invalidate_cache()
         _cleanup_old_job_files()
         config.debug_print("[Atomic Debug] Cache cleared manually, old job files cleaned up")
+        return {'FINISHED'}
+
+
+# Atomic Data Manager Report Info Operator
+class ATOMIC_OT_report_info(bpy.types.Operator):
+    """Show a normal Blender INFO report (blue report banner) from timer paths."""
+    bl_idname = "atomic.report_info"
+    bl_label = "Report Info"
+    # No REGISTER — avoids bpy.ops spam in Scripting > Info.
+    bl_options = {'INTERNAL'}
+
+    message: bpy.props.StringProperty()
+    _timer = None
+
+    def invoke(self, context, event):
+        # Modal + timer so the report banner is shown (direct execute from
+        # app timers often only prints to the system console).
+        wm = context.window_manager
+        self._timer = wm.event_timer_add(0.0, window=context.window)
+        wm.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        if event.type != 'TIMER':
+            return {'PASS_THROUGH'}
+        try:
+            self.report({'INFO'}, self.message)
+        finally:
+            if self._timer is not None:
+                context.window_manager.event_timer_remove(self._timer)
+                self._timer = None
+        return {'FINISHED'}
+
+    def execute(self, context):
+        self.report({'INFO'}, self.message)
         return {'FINISHED'}
 
 
@@ -1388,10 +1446,8 @@ def _on_smart_select_quick_scan_complete(results, **kwargs):
     # If no categories detected, finish early
     if not detected_categories:
         atom = bpy.context.scene.atomic
-        _show_operation_done(
-            atom,
-            _analysis_done_status(_scan_state, "no unused items found"),
-        )
+        _finish_scan_operation(atom)
+        _report_scan_analysis_info(_scan_state, "no unused items found")
         _smart_select_state = None
         for area in bpy.context.screen.areas:
             area.tag_redraw()
@@ -1454,14 +1510,12 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     atom.actions = _smart_select_state['unused_flags'].get('actions', False)
     atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)
     
-    # Operation complete — keep progress visible briefly with elapsed time.
+    # Operation complete
     category_count = len(_smart_select_state['detected_categories'])
-    _show_operation_done(
-        atom,
-        _analysis_done_status(
-            _scan_state,
-            f"unused in {category_count} categor{'y' if category_count == 1 else 'ies'}",
-        ),
+    _finish_scan_operation(atom, progress=100.0)
+    _report_scan_analysis_info(
+        _scan_state,
+        f"unused in {category_count} categor{'y' if category_count == 1 else 'ies'}",
     )
     
     # Clear state
@@ -1505,8 +1559,9 @@ def _on_clean_scan_complete(results, **kwargs):
             config.debug_print(f"[Atomic Clean] Selected categories: {', '.join(selected_categories)}")
             config.debug_print(f"[Atomic Clean] WARNING: No unused items found in selected categories!")
     
-    # Operation complete — keep progress visible briefly with elapsed time.
-    _show_operation_done(atom, _analysis_done_status(_scan_state))
+    # Operation complete — show dialog; elapsed time goes to Info only.
+    _finish_scan_operation(atom, progress=100.0)
+    _report_scan_analysis_info(_scan_state)
     
     # Force UI update
     for area in bpy.context.screen.areas:
@@ -1608,11 +1663,7 @@ def _process_unified_scan_step():
                 _scan_state['results'] = filtered_results
                 progress_end = float(_scan_state.get('progress_end', SCAN_PROGRESS_FINISH))
                 _safe_set_atom_property(atom, 'operation_progress', progress_end)
-                _safe_set_atom_property(
-                    atom,
-                    'operation_status',
-                    _analysis_done_status(_scan_state, "cached"),
-                )
+                _safe_set_atom_property(atom, 'operation_status', "Using cached results...")
                 config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
                 # Call callback with cached results
                 if _scan_state['callback']:
@@ -1909,11 +1960,7 @@ def _process_unified_scan_step():
         )
         progress_end = float(_scan_state.get('progress_end', SCAN_PROGRESS_FINISH))
         _safe_set_atom_property(atom, 'operation_progress', progress_end)
-        _safe_set_atom_property(
-            atom,
-            'operation_status',
-            f"{_analysis_done_status(_scan_state)}, processing results...",
-        )
+        _safe_set_atom_property(atom, 'operation_status', "Scan complete, processing results...")
         
         # Ensure results is a dictionary, not None
         if _scan_state['results'] is None:
@@ -2278,6 +2325,7 @@ class ATOMIC_OT_deselect_all(bpy.types.Operator):
 
 reg_list = [
     ATOMIC_OT_clear_cache,
+    ATOMIC_OT_report_info,
     ATOMIC_OT_cancel_operation,
     ATOMIC_OT_nuke,
     ATOMIC_OT_clean,
