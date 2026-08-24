@@ -33,6 +33,156 @@ a material would be searching for the image_materials() function.
 import bpy
 from ..utils import compat
 
+# Built once per materials RNA scan; avoids O(materials × objects) rescans.
+_material_scan_caches = None
+
+
+def clear_material_scan_caches():
+    """Drop cached material slot / GN / brush indices (call before each materials pass)."""
+    global _material_scan_caches
+    _material_scan_caches = None
+
+
+def _object_in_scene_cached(object_key, object_in_scene):
+    """Memoized object_all() for a single RNA materials pass."""
+    if object_key not in object_in_scene:
+        object_in_scene[object_key] = bool(object_all(object_key))
+    return object_in_scene[object_key]
+
+
+def _material_refs_in_node_group(node_group_key, visited=None):
+    """Collect material datablocks referenced by a node group (directly or nested)."""
+    refs = set()
+    if visited is None:
+        visited = set()
+    if node_group_key in visited:
+        return refs
+    visited.add(node_group_key)
+    try:
+        node_group = bpy.data.node_groups[node_group_key]
+    except (KeyError, AttributeError, TypeError):
+        return refs
+
+    for node in node_group.nodes:
+        try:
+            if getattr(node, "bl_idname", "") == "GeometryNodeSetMaterial":
+                if hasattr(node, "inputs") and "Material" in node.inputs:
+                    default_value = getattr(node.inputs["Material"], "default_value", None)
+                    if isinstance(default_value, bpy.types.Material):
+                        refs.add(default_value)
+            if hasattr(node, "material") and node.material:
+                refs.add(node.material)
+            for input_socket in getattr(node, "inputs", []) or []:
+                try:
+                    socket_type = getattr(input_socket, "type", "")
+                    if socket_type == "MATERIAL" or "material" in str(socket_type).lower():
+                        default_value = getattr(input_socket, "default_value", None)
+                        if isinstance(default_value, bpy.types.Material):
+                            refs.add(default_value)
+                except (AttributeError, ReferenceError, RuntimeError, TypeError):
+                    continue
+            if hasattr(node, "node_tree") and node.node_tree:
+                refs.update(
+                    _material_refs_in_node_group(node.node_tree.name, visited)
+                )
+        except (AttributeError, ReferenceError, RuntimeError, TypeError):
+            continue
+    return refs
+
+
+def _build_material_scan_caches():
+    """One-pass indices for material cleanability checks during RNA analysis."""
+    object_in_scene = {}
+    slot_index = {}
+    brush_material_refs = set()
+
+    for obj in bpy.data.objects:
+        if not hasattr(obj, "material_slots"):
+            continue
+        for slot in obj.material_slots:
+            mat = slot.material
+            if mat is None:
+                continue
+            slot_index.setdefault(id(mat), []).append(obj.name)
+
+    if hasattr(bpy.data, "brushes"):
+        for brush in bpy.data.brushes:
+            if hasattr(brush, "gpencil_settings") and brush.gpencil_settings:
+                gp_settings = brush.gpencil_settings
+                if hasattr(gp_settings, "material") and gp_settings.material:
+                    brush_material_refs.add(gp_settings.material)
+                if hasattr(gp_settings, "material_index"):
+                    mat_idx = gp_settings.material_index
+                    for gp_obj in bpy.data.objects:
+                        if gp_obj.type != "GPENCIL" or not gp_obj.data:
+                            continue
+                        gp_data = gp_obj.data
+                        if not hasattr(gp_data, "materials") or not gp_data.materials:
+                            continue
+                        if 0 <= mat_idx < len(gp_data.materials):
+                            gp_mat = gp_data.materials[mat_idx]
+                            if gp_mat:
+                                brush_material_refs.add(gp_mat)
+            if hasattr(brush, "stroke_material") and brush.stroke_material:
+                brush_material_refs.add(brush.stroke_material)
+            if hasattr(brush, "material") and brush.material:
+                brush_material_refs.add(brush.material)
+
+    gn_material_refs_in_scene = set()
+    visited_gn_roots = set()
+    for obj in bpy.data.objects:
+        if compat.is_object_linked_without_override(obj):
+            continue
+        if not _object_in_scene_cached(obj.name, object_in_scene):
+            continue
+        if not hasattr(obj, "modifiers"):
+            continue
+        for modifier in obj.modifiers:
+            if not compat.is_geometry_nodes_modifier(modifier):
+                continue
+            ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+            if ng is None or ng.name in visited_gn_roots:
+                continue
+            visited_gn_roots.add(ng.name)
+            gn_material_refs_in_scene.update(_material_refs_in_node_group(ng.name))
+
+    return {
+        "object_in_scene": object_in_scene,
+        "slot_index": slot_index,
+        "brush_material_refs": brush_material_refs,
+        "gn_material_refs_in_scene": gn_material_refs_in_scene,
+    }
+
+
+def _get_material_scan_caches():
+    global _material_scan_caches
+    if _material_scan_caches is None:
+        _material_scan_caches = _build_material_scan_caches()
+    return _material_scan_caches
+
+
+def material_has_scene_reachable_user(material_key):
+    """
+    True when a material is used by a brush or by scene-reachable objects
+    (slots or Geometry Nodes). Uses scan-session caches — call
+    clear_material_scan_caches() before each materials RNA pass.
+    """
+    try:
+        material = bpy.data.materials[material_key]
+    except (KeyError, AttributeError, TypeError):
+        return False
+
+    caches = _get_material_scan_caches()
+    if material in caches["brush_material_refs"]:
+        return True
+    if material in caches["gn_material_refs_in_scene"]:
+        return True
+    object_in_scene = caches["object_in_scene"]
+    for obj_name in caches["slot_index"].get(id(material), ()):
+        if _object_in_scene_cached(obj_name, object_in_scene):
+            return True
+    return False
+
 
 def collection_all(collection_key):
     # returns a list of keys of every data-block that uses this collection

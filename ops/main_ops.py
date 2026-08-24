@@ -1313,7 +1313,8 @@ def _process_unified_scan_step():
                 # Check if any unused items exist (short-circuit)
                 unused_list = rna_analysis.analyze_unused_from_graph(
                     _process_unified_scan_step._rna_graph,
-                    category
+                    category,
+                    short_circuit=True,
                 )
                 result = len(unused_list) > 0
                 

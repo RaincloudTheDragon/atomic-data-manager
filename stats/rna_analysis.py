@@ -1187,7 +1187,12 @@ def build_dependency_graph(rna_data):
     return graph
 
 
-def analyze_unused_from_graph(graph, category, include_fake_users=None):
+def analyze_unused_from_graph(
+    graph,
+    category,
+    include_fake_users=None,
+    short_circuit=False,
+):
     """
     Determine unused items using the dependency graph.
     
@@ -1195,6 +1200,7 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
         graph: Dependency graph from build_dependency_graph()
         category: Category to analyze ('images', 'materials', etc.)
         include_fake_users: Whether to treat fake users as used (defaults to config.include_fake_users)
+        short_circuit: If True, return as soon as the first unused item is found (quick scan)
     
     Returns:
         List of unused item names for the specified category
@@ -1205,6 +1211,9 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
         include_fake_users = config.include_fake_users
     
     config.debug_print(f"[Atomic Debug] RNA Analysis: Analyzing unused {category}...")
+
+    if category == 'materials':
+        users.clear_material_scan_caches()
     
     if category not in _DATA_BLOCK_TYPE_NAMES:
         config.debug_print(f"[Atomic Warning] RNA Analysis: Unknown category '{category}'")
@@ -1486,25 +1495,29 @@ def analyze_unused_from_graph(graph, category, include_fake_users=None):
                         except (AttributeError, KeyError, RuntimeError, ReferenceError):
                             pass
                     if category == 'materials':
-                        # Cleanability rule (issue #5 / materials_deep): if nothing
-                        # traces back to a scene, the material is cleanable — even
-                        # when bpy.users > 0 from orphan objects or ghost caches.
-                        # Only keep when a scene-reachable object still uses it
-                        # (RNA graph miss) or a brush owns it.
+                        # Cleanability rule (issue #5): keep only when a
+                        # scene-reachable object or brush still uses this material
+                        # (RNA graph miss). Uses one-pass caches, not per-material
+                        # full-scene scans.
                         try:
-                            if users.material_brushes(item_name):
-                                continue
-                            slot_objs = users.material_objects(item_name)
-                            if any(users.object_all(obj_name) for obj_name in slot_objs):
-                                continue
-                            if users.material_geometry_nodes(item_name):
+                            if users.material_has_scene_reachable_user(item_name):
                                 continue
                         except (AttributeError, KeyError, RuntimeError, ReferenceError):
                             pass
                     unused.append(item_name)
+                    if short_circuit:
+                        config.debug_print(
+                            f"[Atomic Debug] RNA Analysis: Short-circuit unused "
+                            f"{category} (found '{item_name}')"
+                        )
+                        if category == 'materials':
+                            users.clear_material_scan_caches()
+                        return unused
         except (AttributeError, RuntimeError, ReferenceError):
             # Datablock may be invalid
             continue
     
     config.debug_print(f"[Atomic Debug] RNA Analysis: Found {len(unused)} unused {category}")
+    if category == 'materials':
+        users.clear_material_scan_caches()
     return unused
