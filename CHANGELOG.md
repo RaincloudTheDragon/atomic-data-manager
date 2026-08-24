@@ -1,3 +1,10 @@
+## [v2.9.2] - 2026-08-24
+
+### Fixes
+
+- **Node groups**: nested Geometry Nodes groups used via linked/override parents (e.g. `get coordinate`) are no longer falsely marked cleanable.
+- **Clean**: registers a Blender undo step so Atomic Undo can restore a purge.
+
 ## [v2.9.1] - 2026-08-24
 
 ### Fixes
