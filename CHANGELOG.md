@@ -1,3 +1,9 @@
+## [v2.8.1] - 2026-08-24
+
+### Fixes
+
+- **RNA / materials**: Smart Select no longer hangs on large files—material cleanability checks use a one-pass usage cache instead of per-material full-scene walks (issue #5 behavior unchanged).
+
 ## [v2.8.0] - 2026-08-21
 
 ### Features
