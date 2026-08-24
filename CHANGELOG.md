@@ -1,3 +1,14 @@
+## [v2.9.0] - 2026-08-24
+
+### Features
+
+- **Smart Select / Clean**: incremental RNA scanning on heavy files—reference graph build, usage indices, and batched category passes (node groups, materials, actions, etc.) with live progress and **Analysis done in M:SS** on completion.
+
+### Fixes
+
+- **Cancel** during a scan no longer errors on cache invalidation.
+- **Node groups / materials**: graph-based cleanability checks and incremental material session build replace one-shot hangs.
+
 ## [v2.8.1] - 2026-08-24
 
 ### Fixes
