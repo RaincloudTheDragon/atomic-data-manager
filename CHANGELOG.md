@@ -1,3 +1,9 @@
+## [v2.9.1] - 2026-08-24
+
+### Fixes
+
+- **Scan complete**: analysis timing posts as a normal Blender INFO report instead of lingering in the progress UI.
+
 ## [v2.9.0] - 2026-08-24
 
 ### Features
