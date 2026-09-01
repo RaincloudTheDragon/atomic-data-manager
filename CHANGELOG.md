@@ -1,3 +1,9 @@
+## [v2.9.3] - 2026-09-01
+
+### Fixes
+
+- **Materials**: usage and cleanability checks key by datablock identity so local CC3 ghost copies are not shielded by linked materials with the same name; storage navigate resolves the exact material via `id_ptr`; materials quick-scan no longer crashes on renamed analysis state.
+
 ## [v2.9.2] - 2026-08-24
 
 ### Fixes
