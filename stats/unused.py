@@ -216,11 +216,11 @@ def materials_deep():
             continue
         
         # Check if material is used by brushes - these should always be ignored
-        if users.material_brushes(material.name):
+        if users.material_brushes(material.name, material=material):
             continue
         
         # First check: standard unused detection
-        if not users.material_all(material.name):
+        if not users.material_all(material.name, material=material):
             # check if material has a fake user or if ignore fake users
             # is enabled
             if not material.use_fake_user or config.include_fake_users:
@@ -234,8 +234,8 @@ def materials_deep():
             # This fixes issue #5: materials used by unused objects should be marked as unused
             # Get all objects that use this material
             objects_using_material = []
-            objects_using_material.extend(users.material_objects(material.name))
-            objects_using_material.extend(users.material_geometry_nodes(material.name))
+            objects_using_material.extend(users.material_objects(material.name, material=material))
+            objects_using_material.extend(users.material_geometry_nodes(material.name, material=material))
             
             # Remove duplicates
             objects_using_material = list(set(objects_using_material))

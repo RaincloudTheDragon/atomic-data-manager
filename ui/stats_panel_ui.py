@@ -171,6 +171,7 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 )
                 nav.storage_type = r["type"]
                 nav.id_name = r.get("id_name", r["name"])
+                nav.id_ptr = r.get("id_ptr", "")
                 nav.owner_object = r.get("owner_object", "")
                 nav.owner_scene = r.get("owner_scene", "")
                 nav.modifier_name = r.get("modifier_name", "")

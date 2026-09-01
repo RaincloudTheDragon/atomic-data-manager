@@ -1951,19 +1951,19 @@ def begin_materials_analysis(graph, short_circuit=False, include_fake_users=None
     from . import users as users_stats
 
     users_stats._get_material_rna_session()
-    names = []
+    materials = []
     for material in bpy.data.materials:
         try:
             if compat.is_library_or_override(material):
                 continue
-            names.append(material.name)
+            materials.append(material)
         except (AttributeError, RuntimeError, ReferenceError):
             continue
     return {
         'graph': graph,
         'include_fake_users': include_fake_users,
         'used': None,
-        'names': names,
+        'materials': materials,
         'index': 0,
         'unused': [],
         'short_circuit': short_circuit,
@@ -1991,8 +1991,8 @@ def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
             )
         return False, state['unused'], 0.05, None
 
-    names = state['names']
-    total = len(names)
+    materials = state['materials']
+    total = len(materials)
     if total == 0:
         users_stats.clear_material_scan_caches()
         return True, state['unused'], 1.0, None
@@ -2001,7 +2001,8 @@ def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
     end = min(start + batch_size, total)
     current_name = None
     for offset in range(start, end):
-        item_name = names[offset]
+        material = materials[offset]
+        item_name = material.name
         current_name = item_name
         if config.enable_debug_prints:
             config.debug_print(
@@ -2010,7 +2011,9 @@ def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
         if ('materials', item_name) in state['used']:
             continue
         try:
-            if users_stats.material_has_scene_reachable_user(item_name):
+            if users_stats.material_has_scene_reachable_user(
+                item_name, material=material
+            ):
                 continue
         except (AttributeError, KeyError, RuntimeError, ReferenceError):
             pass
@@ -2249,7 +2252,9 @@ def analyze_unused_from_graph(
                     # (RNA graph miss). Session cache matches material_objects /
                     # material_geometry_nodes / material_brushes semantics.
                     try:
-                        if users.material_has_scene_reachable_user(item_name):
+                        if users.material_has_scene_reachable_user(
+                            item_name, material=datablock
+                        ):
                             continue
                     except (AttributeError, KeyError, RuntimeError, ReferenceError):
                         pass

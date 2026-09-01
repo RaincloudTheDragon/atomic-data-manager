@@ -479,7 +479,7 @@ def _debug_summarize_scan_state(scan_state):
         'mat_analysis': (
             {
                 'checked': mat_state.get('index'),
-                'total': len(mat_state.get('names', [])),
+                'total': len(mat_state.get('materials', mat_state.get('names', []))),
                 'unused_so_far': len(mat_state.get('unused', [])),
             }
             if mat_state else None
@@ -1859,7 +1859,7 @@ def _process_unified_scan_step():
                     mat_state
                 )
                 checked = mat_state['index']
-                total_mats = len(mat_state['names'])
+                total_mats = len(mat_state['materials'])
                 mat_label = current_mat or ''
                 status = f"Analyzing materials ({checked}/{total_mats})"
                 if mat_label:

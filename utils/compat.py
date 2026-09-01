@@ -923,6 +923,8 @@ def build_report():
             {
                 "type": "Material",
                 "name": mat.name,
+                "id_name": mat.name,
+                "id_ptr": str(mat.as_pointer()),
                 "embedded": 0,
                 "size_bytes": sz,
                 "is_lib_override": io,

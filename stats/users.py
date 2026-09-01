@@ -46,6 +46,40 @@ def clear_material_scan_caches():
     _material_rna_session = None
 
 
+def _resolve_material(material_key, material=None):
+    """
+    Resolve a Material datablock from an explicit material or a name key.
+
+    Prefer passing ``material`` when iterating bpy.data.materials — duplicate
+    local/linked names make bpy.data.materials[name] ambiguous.
+    """
+    if material is not None:
+        return material
+    if isinstance(material_key, bpy.types.Material):
+        return material_key
+    try:
+        return bpy.data.materials[material_key]
+    except (KeyError, AttributeError, TypeError):
+        return None
+
+
+def material_from_ptr(id_ptr):
+    """Find a Material by as_pointer() string (decimal or 0x hex)."""
+    if not id_ptr:
+        return None
+    try:
+        ptr = int(id_ptr, 0)
+    except (ValueError, TypeError):
+        return None
+    for mat in bpy.data.materials:
+        try:
+            if mat.as_pointer() == ptr:
+                return mat
+        except ReferenceError:
+            continue
+    return None
+
+
 MATERIAL_SESSION_OBJECT_BATCH = 75
 
 
@@ -59,7 +93,7 @@ def begin_material_session_build():
         'gn_obj_index': 0,
         'object_in_scene': {},
         'slot_index': {},
-        'gn_material_names': set(),
+        'gn_material_ids': set(),
         'visited_gn_roots': set(),
         'ng_has_material_memo': {},
     }
@@ -133,7 +167,7 @@ def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH)
                 state['visited_gn_roots'].add(ng.name)
                 for material in state['materials']:
                     if _material_session_ng_has_material(state, ng.name, material):
-                        state['gn_material_names'].add(material.name)
+                        state['gn_material_ids'].add(id(material))
         state['gn_obj_index'] = end
         if config.enable_debug_prints:
             config.debug_print(
@@ -143,7 +177,7 @@ def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH)
             _material_rna_session = {
                 'object_in_scene': state['object_in_scene'],
                 'slot_index': state['slot_index'],
-                'gn_material_names': state['gn_material_names'],
+                'gn_material_ids': state['gn_material_ids'],
             }
             return True, 1.0
         gn_progress = 0.5 + (0.5 * end / total_objects)
@@ -173,7 +207,7 @@ def _build_material_rna_session():
     """
     object_in_scene = {}
     slot_index = {}
-    gn_material_names = set()
+    gn_material_ids = set()
     ng_has_material_memo = {}
 
     def _ng_has_material(ng_name, material):
@@ -209,30 +243,29 @@ def _build_material_rna_session():
             visited_gn_roots.add(ng.name)
             for material in bpy.data.materials:
                 if _ng_has_material(ng.name, material):
-                    gn_material_names.add(material.name)
+                    gn_material_ids.add(id(material))
 
     return {
         "object_in_scene": object_in_scene,
         "slot_index": slot_index,
-        "gn_material_names": gn_material_names,
+        "gn_material_ids": gn_material_ids,
     }
 
 
-def material_has_scene_reachable_user(material_key):
+def material_has_scene_reachable_user(material_key, material=None):
     """
     True when issue #5 fallback would keep this material (brush, scene-reachable
     slot, or scene-reachable Geometry Nodes). Matches pre-2.8.1 behavior.
     """
-    if material_brushes(material_key):
-        return True
-
-    try:
-        material = bpy.data.materials[material_key]
-    except (KeyError, AttributeError, TypeError):
+    material = _resolve_material(material_key, material)
+    if material is None:
         return False
 
+    if material_brushes(material_key, material=material):
+        return True
+
     session = _get_material_rna_session()
-    if material_key in session["gn_material_names"]:
+    if id(material) in session["gn_material_ids"]:
         return True
 
     object_in_scene = session["object_in_scene"]
@@ -701,36 +734,39 @@ def light_objects(light_key):
     return distinct(users)
 
 
-def material_all(material_key):
+def material_all(material_key, material=None):
     # returns a list of keys of every data-block that uses this material
     # Use comprehensive custom detection that covers all usage contexts
+    material = _resolve_material(material_key, material)
+    if material is None:
+        return []
+
     users = []
     
     # Check direct object usage (material slots)
-    users.extend(material_objects(material_key))
+    users.extend(material_objects(material_key, material=material))
     
     # Check Geometry Nodes usage (materials in node groups used by objects)
-    users.extend(material_geometry_nodes(material_key))
+    users.extend(material_geometry_nodes(material_key, material=material))
     
     # Check node group usage (materials in node groups used elsewhere)
-    users.extend(material_node_groups(material_key))
+    users.extend(material_node_groups(material_key, material=material))
     
     # Check brush usage (materials used by brushes for stroke)
-    users.extend(material_brushes(material_key))
+    users.extend(material_brushes(material_key, material=material))
     
     return distinct(users)
 
 
-def material_brushes(material_key):
+def material_brushes(material_key, material=None):
     # returns a list of brush keys that use this material
     # Brushes use materials for stroke rendering (Grease Pencil brushes)
     
-    users = []
-    try:
-        material = bpy.data.materials[material_key]
-    except (KeyError, AttributeError):
+    material = _resolve_material(material_key, material)
+    if material is None:
         return []
     
+    users = []
     if not hasattr(bpy.data, 'brushes'):
         return []
     
@@ -777,16 +813,15 @@ def material_brushes(material_key):
     return distinct(users)
 
 
-def material_geometry_nodes(material_key):
+def material_geometry_nodes(material_key, material=None):
     # returns a list of object keys that use the material via Geometry Nodes
     # Only counts objects that are in scene collections (recursive check)
 
-    users = []
-    try:
-        material = bpy.data.materials[material_key]
-    except (KeyError, AttributeError):
+    material = _resolve_material(material_key, material)
+    if material is None:
         return []
 
+    users = []
     # Import compat module for version-safe geometry nodes access
     from ..utils import compat
 
@@ -817,7 +852,7 @@ def material_geometry_nodes(material_key):
     return distinct(users)
 
 
-def material_node_groups(material_key):
+def material_node_groups(material_key, material=None):
     # returns a list of keys indicating where the material is used via node groups
     # This checks if the material is used in any node group, and if that node group
     # is itself used anywhere. This complements material_geometry_nodes() by checking
@@ -826,9 +861,8 @@ def material_node_groups(material_key):
     # Optimized to return early when usage is found
     
     from ..utils import compat
-    try:
-        material = bpy.data.materials[material_key]
-    except (KeyError, AttributeError):
+    material = _resolve_material(material_key, material)
+    if material is None:
         return []
 
     # Check all node groups to see if they contain this material
@@ -920,15 +954,14 @@ def material_node_groups_list(material_key):
     return distinct(users)
 
 
-def material_objects(material_key):
+def material_objects(material_key, material=None):
     # returns a list of object keys that use this material
 
-    users = []
-    try:
-        material = bpy.data.materials[material_key]
-    except (KeyError, AttributeError):
+    material = _resolve_material(material_key, material)
+    if material is None:
         return []
 
+    users = []
     for obj in bpy.data.objects:
 
         # if the object has the option to add materials

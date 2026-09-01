@@ -43,6 +43,7 @@ class ATOMIC_OT_storage_navigate(bpy.types.Operator):
 
     storage_type: StringProperty(name="Storage Type")
     id_name: StringProperty(name="ID Name")
+    id_ptr: StringProperty(name="ID Pointer", default="")
     owner_object: StringProperty(name="Owner Object", default="")
     owner_scene: StringProperty(name="Owner Scene", default="")
     modifier_name: StringProperty(name="Modifier", default="")
@@ -54,6 +55,7 @@ class ATOMIC_OT_storage_navigate(bpy.types.Operator):
             owner_object=self.owner_object,
             owner_scene=self.owner_scene,
             modifier_name=self.modifier_name,
+            id_ptr=self.id_ptr,
         )
         if not self._targets:
             if self.storage_type == "Action":
@@ -92,6 +94,7 @@ class ATOMIC_OT_storage_navigate(bpy.types.Operator):
                 owner_object=self.owner_object,
                 owner_scene=self.owner_scene,
                 modifier_name=self.modifier_name,
+                id_ptr=self.id_ptr,
             )
         if not targets:
             self.report({"WARNING"}, "No scene users found for '%s'" % self.id_name)

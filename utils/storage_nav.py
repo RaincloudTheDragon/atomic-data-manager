@@ -18,20 +18,28 @@ def _find_area(context, area_type):
     return context.window, None, None
 
 
-def resolve_targets(storage_type, id_name, owner_object="", owner_scene="", modifier_name=""):
+def resolve_targets(
+    storage_type,
+    id_name,
+    owner_object="",
+    owner_scene="",
+    modifier_name="",
+    id_ptr="",
+):
     """
     Return navigation targets as dicts:
     object, material, action, nav (viewport|shader|dopesheet).
     """
     targets = []
 
-    def add_objects(names, nav="viewport", material="", action=""):
+    def add_objects(names, nav="viewport", material="", action="", material_ptr=""):
         for name in names:
             if name in bpy.data.objects:
                 targets.append(
                     {
                         "object": name,
                         "material": material,
+                        "material_ptr": material_ptr,
                         "action": action,
                         "nav": nav,
                         "modifier": modifier_name if owner_object == name else "",
@@ -73,15 +81,23 @@ def resolve_targets(storage_type, id_name, owner_object="", owner_scene="", modi
     elif storage_type == "Image":
         add_objects(users.image_viewport_objects(id_name))
     elif storage_type == "Material":
+        material = users.material_from_ptr(id_ptr) or users._resolve_material(id_name)
+        if material is None:
+            return targets
+        mat_ptr = str(material.as_pointer())
         seen = set()
-        for name in users.material_objects(id_name):
+        for name in users.material_objects(material.name, material=material):
             if name not in seen:
                 seen.add(name)
-                add_objects([name], nav="shader", material=id_name)
-        for name in users.material_geometry_nodes(id_name):
+                add_objects(
+                    [name], nav="shader", material=material.name, material_ptr=mat_ptr
+                )
+        for name in users.material_geometry_nodes(material.name, material=material):
             if name not in seen:
                 seen.add(name)
-                add_objects([name], nav="shader", material=id_name)
+                add_objects(
+                    [name], nav="shader", material=material.name, material_ptr=mat_ptr
+                )
     elif storage_type == "Action":
         for name in users.action_objects(id_name):
             add_objects([name], nav="dopesheet", action=id_name)
@@ -133,8 +149,10 @@ def _outliner_show_active(context):
             pass
 
 
-def _focus_shader_editor(context, material_name):
-    material = bpy.data.materials.get(material_name)
+def _focus_shader_editor(context, material_name, material_ptr=""):
+    material = users.material_from_ptr(material_ptr)
+    if material is None:
+        material = bpy.data.materials.get(material_name)
     if not material:
         return
     ob = context.view_layer.objects.active
@@ -175,7 +193,11 @@ def apply_target(context, target):
 
     nav = target.get("nav", "viewport")
     if nav == "shader" and target.get("material"):
-        _focus_shader_editor(context, target["material"])
+        _focus_shader_editor(
+            context,
+            target["material"],
+            material_ptr=target.get("material_ptr", ""),
+        )
     elif nav == "dopesheet" and target.get("action"):
         _focus_dopesheet(context, target["action"])
 
