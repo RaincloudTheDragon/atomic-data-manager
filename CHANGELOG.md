@@ -1,3 +1,18 @@
+## [v2.10.0] - 2026-09-04
+
+### Features
+
+- **Remap (#20)**: multi-folder Search with per-row pickers, preference defaults, Save/Load Defaults, and a main-panel prefs cog.
+- **Remap (#21)**: filename hit equivalents — treat renamed `.blend` basenames as exact Search hits.
+
+### Fixes
+
+- **Remap (#22)**: Search progress updates live in the dialog without moving the mouse (`region_popup` + `tag_refresh_ui`).
+
+### Internal
+
+- **Prefs sidecar**: AddonPreferences mirrored to user CONFIG JSON so values survive VS Code Reload Addons.
+
 ## [v2.9.3] - 2026-09-01
 
 ### Fixes
