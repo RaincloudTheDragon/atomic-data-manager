@@ -36,6 +36,8 @@ enable_debug_prints = False
 storage_navigate_frame_view = False
 # Switch windows to an empty scene during Clean/Nuke bulk removes (default on)
 safe_clean_empty_scene = True
+# Semicolon-separated folders for missing-library Search (remap) defaults
+remap_search_roots = ""
 
 # hidden atomic preferences
 pie_menu_type = "D"

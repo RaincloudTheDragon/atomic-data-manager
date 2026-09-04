@@ -145,7 +145,6 @@ class ATOMIC_OT_remove_missing(bpy.types.Operator):
 
 # Module-level state for library search
 _library_search_state = {
-    'search_directory': '',
     'is_searching': False,
     'found_blend_files': [],
     'matches': {},  # {library_key: {'exact': path, 'candidates': [paths], 'warnings': [], 'selected_match': ''}}
@@ -158,72 +157,157 @@ _library_search_state = {
 }
 
 
-def _search_blend_files_worker(directory, progress_queue, found_files, error_queue):
-    """Worker thread function to recursively search for .blend files"""
+def _normalize_search_directories(directories):
+    """Return unique absolute directory paths from a list of path strings."""
+    out = []
+    seen = set()
+    for raw in directories or []:
+        if not raw:
+            continue
+        try:
+            abs_dir = bpy.path.abspath(raw)
+        except Exception:
+            abs_dir = raw
+        abs_dir = os.path.normpath(abs_dir)
+        key = abs_dir.upper()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(abs_dir)
+    return out
+
+
+def _wm_search_paths(context=None):
+    """Active Search-dialog folder collection on WindowManager."""
+    wm = (context or bpy.context).window_manager
+    return wm.atomic_remap_search_paths
+
+
+def _wm_search_path_strings(context=None):
+    """Non-empty path strings from the Search-dialog folder list."""
+    return [
+        item.path for item in _wm_search_paths(context)
+        if (item.path or "").strip()
+    ]
+
+
+def _fill_wm_search_paths(paths, context=None, ensure_one=True):
+    """Replace WM search-path rows from a path list."""
+    coll = _wm_search_paths(context)
+    coll.clear()
+    for path in _normalize_search_directories(paths):
+        item = coll.add()
+        item.path = path
+    if ensure_one and len(coll) == 0:
+        coll.add()
+
+
+def _default_search_directories_from_prefs():
+    """Load remap search roots from addon preferences."""
+    from ..ui.preferences_ui import get_prefs_search_paths
+    return _normalize_search_directories(get_prefs_search_paths())
+
+
+def _search_blend_files_worker(directories, progress_queue, found_files, error_queue):
+    """Worker thread: recursively search one or more directories for .blend files."""
     try:
-        if not os.path.exists(directory):
-            error_queue.put(f"Directory does not exist: {directory}")
+        valid_dirs = []
+        for directory in directories or []:
+            if not os.path.exists(directory):
+                progress_queue.put(
+                    ('status', f'Skipping missing directory: {directory}')
+                )
+                continue
+            if not os.path.isdir(directory):
+                progress_queue.put(
+                    ('status', f'Skipping non-directory: {directory}')
+                )
+                continue
+            if not os.access(directory, os.R_OK):
+                progress_queue.put(
+                    ('status', f'Skipping unreadable directory: {directory}')
+                )
+                continue
+            valid_dirs.append(directory)
+
+        if not valid_dirs:
+            error_queue.put("No valid searchable directories")
             return
-        
-        if not os.path.isdir(directory):
-            error_queue.put(f"Path is not a directory: {directory}")
-            return
-        
+
         total_files = 0
         scanned_dirs = 0
-        
+
         # First pass: count files for progress (with error handling)
         try:
-            for root, dirs, files in os.walk(directory):
-                # Filter out directories starting with '.' (e.g., .git, .vscode)
-                dirs[:] = [d for d in dirs if not d.startswith('.')]
-                try:
-                    total_files += len([f for f in files if f.lower().endswith('.blend')])
-                    scanned_dirs += 1
-                    if scanned_dirs % 10 == 0:
-                        progress_queue.put(('status', f'Scanning directory structure... ({scanned_dirs} directories)'))
-                except (PermissionError, OSError) as e:
-                    # Skip directories we can't access
-                    config.debug_print(f"[Atomic Debug] Cannot access {root}: {e}")
-                    continue
+            for directory in valid_dirs:
+                for root, dirs, files in os.walk(directory):
+                    # Filter out directories starting with '.' (e.g., .git, .vscode)
+                    dirs[:] = [d for d in dirs if not d.startswith('.')]
+                    try:
+                        total_files += len(
+                            [f for f in files if f.lower().endswith('.blend')]
+                        )
+                        scanned_dirs += 1
+                        if scanned_dirs % 10 == 0:
+                            progress_queue.put((
+                                'status',
+                                f'Scanning directory structure... '
+                                f'({scanned_dirs} directories)',
+                            ))
+                    except (PermissionError, OSError) as e:
+                        config.debug_print(
+                            f"[Atomic Debug] Cannot access {root}: {e}"
+                        )
+                        continue
         except Exception as e:
             error_queue.put(f"Error scanning directory structure: {str(e)}")
             return
-        
+
         # Second pass: collect files (with error handling)
         found_count = 0
         try:
-            for root, dirs, files in os.walk(directory):
-                # Filter out directories starting with '.' (e.g., .git, .vscode)
-                dirs[:] = [d for d in dirs if not d.startswith('.')]
-                try:
-                    for file in files:
-                        if file.lower().endswith('.blend'):
-                            filepath = os.path.join(root, file)
-                            try:
-                                # Verify it's actually a file and readable
-                                if os.path.isfile(filepath) and os.access(filepath, os.R_OK):
-                                    found_files.append(filepath)
-                                    found_count += 1
-                                    
-                                    # Update progress
-                                    if total_files > 0:
-                                        progress = (found_count / total_files) * 100.0
-                                        progress_queue.put(('progress', progress))
-                                        progress_queue.put(('status', f'Found {found_count}/{total_files} .blend files...'))
-                            except (OSError, PermissionError) as e:
-                                # Skip files we can't access
-                                config.debug_print(f"[Atomic Debug] Cannot access file {filepath}: {e}")
-                                continue
-                except (PermissionError, OSError) as e:
-                    # Skip directories we can't access
-                    config.debug_print(f"[Atomic Debug] Cannot access directory {root}: {e}")
-                    continue
-        
+            for directory in valid_dirs:
+                for root, dirs, files in os.walk(directory):
+                    dirs[:] = [d for d in dirs if not d.startswith('.')]
+                    try:
+                        for file in files:
+                            if file.lower().endswith('.blend'):
+                                filepath = os.path.join(root, file)
+                                try:
+                                    if (
+                                        os.path.isfile(filepath)
+                                        and os.access(filepath, os.R_OK)
+                                    ):
+                                        found_files.append(filepath)
+                                        found_count += 1
+                                        if total_files > 0:
+                                            progress = (
+                                                found_count / total_files
+                                            ) * 100.0
+                                            progress_queue.put(
+                                                ('progress', progress)
+                                            )
+                                            progress_queue.put((
+                                                'status',
+                                                f'Found {found_count}/'
+                                                f'{total_files} .blend files...',
+                                            ))
+                                except (OSError, PermissionError) as e:
+                                    config.debug_print(
+                                        f"[Atomic Debug] Cannot access file "
+                                        f"{filepath}: {e}"
+                                    )
+                                    continue
+                    except (PermissionError, OSError) as e:
+                        config.debug_print(
+                            f"[Atomic Debug] Cannot access directory "
+                            f"{root}: {e}"
+                        )
+                        continue
         except Exception as e:
             error_queue.put(f"Error collecting files: {str(e)}")
             return
-        
+
         progress_queue.put(('complete', None))
     except PermissionError as e:
         error_queue.put(f"Permission denied: {str(e)}")
@@ -474,140 +558,141 @@ def _safe_set_atom_property(atom, prop_name, value):
 
 # Atomic Data Manager Search for Missing Files Operator
 class ATOMIC_OT_search_missing(bpy.types.Operator):
-    """Search a specified directory for missing library files"""
+    """Search one or more directories for missing library files"""
     bl_idname = "atomic.search_missing"
     bl_label = "Search for Missing Libraries"
     bl_options = {'REGISTER', 'UNDO'}
-    
-    # Directory to search
-    def _update_search_directory(self, context):
-        """Update state when search directory changes"""
-        global _library_search_state
-        if self.search_directory:
-            try:
-                abs_dir = bpy.path.abspath(self.search_directory)
-                _library_search_state['search_directory'] = abs_dir
-            except Exception:
-                pass
-    
-    search_directory: bpy.props.StringProperty(
-        name="Search Directory",
-        description="Directory to search for .blend files",
-        subtype='DIR_PATH',
-        default="",
-        update=_update_search_directory
-    )
-    
+
     # Relative path option
     relative_path: bpy.props.BoolProperty(
         name="Relative Path",
         description="Select the file relative to the blend file",
         default=True
     )
-    
+
     # Selected matches for libraries with multiple candidates
-    selected_matches: bpy.props.StringProperty(default="")  # JSON-like storage: "lib_key:filepath|lib_key:filepath"
-    
+    selected_matches: bpy.props.StringProperty(default="")  # JSON-like storage
+
     def draw(self, context):
         layout = self.layout
         global _library_search_state
-        
+
+        from ..ui.preferences_ui import draw_remap_search_path_list
+
         state = _library_search_state
         atom = context.scene.atomic
-        
-        # Directory selection
-        row = layout.row()
-        row.prop(self, 'search_directory')
-        
+        directories = _normalize_search_directories(_wm_search_path_strings(context))
+
+        # Multi-path list — same row UI as addon prefs
+        box = layout.box()
+        box.label(text="Search Directories:", icon='FILE_FOLDER')
+        draw_remap_search_path_list(
+            box,
+            _wm_search_paths(context),
+            add_idname="atomic.search_missing_path_add",
+            remove_idname="atomic.search_missing_path_remove",
+        )
+
+        row = box.row(align=True)
+        row.operator(
+            "atomic.search_missing_path_save_defaults",
+            text="Save as Defaults",
+            icon='PREFERENCES',
+        )
+        row.operator(
+            "atomic.search_missing_path_load_defaults",
+            text="Load Defaults",
+            icon='FILE_REFRESH',
+        )
+
         # Relative path checkbox
         row = layout.row()
         row.prop(self, 'relative_path', text="Relative Path")
-        
-        # Update state with current directory
-        if self.search_directory:
-            try:
-                abs_dir = bpy.path.abspath(self.search_directory)
-                state['search_directory'] = abs_dir
-            except Exception:
-                pass
-        
+
         # Search button
         if not state['is_searching']:
             row = layout.row()
-            search_dir = self.search_directory or state.get('search_directory', '')
-            if search_dir:
-                try:
-                    abs_dir = bpy.path.abspath(search_dir)
-                    if os.path.isdir(abs_dir) and os.access(abs_dir, os.R_OK):
-                        row.operator("atomic.search_missing_start", text="Start Search")
-                    else:
-                        row.label(text="Please select a valid, readable directory", icon='ERROR')
-                except Exception:
-                    row.label(text="Please select a valid directory", icon='ERROR')
+            valid = [
+                d for d in directories
+                if os.path.isdir(d) and os.access(d, os.R_OK)
+            ]
+            if valid:
+                row.operator("atomic.search_missing_start", text="Start Search")
+            elif directories:
+                row.label(
+                    text="Please select valid, readable directories",
+                    icon='ERROR',
+                )
             else:
-                row.label(text="Please select a directory", icon='INFO')
+                row.label(text="Please add at least one directory", icon='INFO')
         else:
             # Progress display
             row = layout.row()
             row.prop(atom, 'operation_progress', text="Progress", slider=True)
-            
+
             if atom.operation_status:
                 row = layout.row()
                 row.label(text=atom.operation_status, icon='TIME')
-            
+
             row = layout.row()
             row.operator("atomic.search_missing_cancel", text="Cancel Search")
-        
+
         # Results display
         if state['search_complete'] and not state['is_searching']:
             missing_libs = missing.libraries()
             matches = state.get('matches', {})
-            
+
             if not missing_libs:
                 row = layout.row()
                 row.label(text="No missing libraries found!", icon='INFO')
                 return
-            
+
             layout.separator()
             row = layout.row()
             row.label(text="Missing Libraries:", icon='LIBRARY_DATA_DIRECT')
-            
+
             # Display each missing library
             for lib_key in missing_libs:
                 box = layout.box()
-                
+
                 # Library name
                 row = box.row()
                 lib_info = missing.get_missing_library_info(lib_key)
                 lib_name = lib_info['filename'] if lib_info else lib_key
                 row.label(text=lib_name, icon='LIBRARY_DATA_DIRECT')
-                
+
                 match_info = matches.get(lib_key, {})
                 exact_match = match_info.get('exact')
                 candidates = match_info.get('candidates', [])
                 warnings = match_info.get('warnings', [])
                 selected_match = match_info.get('selected_match')
-                
+
                 # Show match status
                 if exact_match:
                     row = box.row()
-                    row.label(text=f"✓ Exact match: {os.path.basename(exact_match)}", icon='CHECKMARK')
+                    row.label(
+                        text=f"✓ Exact match: {os.path.basename(exact_match)}",
+                        icon='CHECKMARK',
+                    )
                 elif candidates:
                     row = box.row()
-                    row.label(text=f"Found {len(candidates)} candidate(s)", icon='QUESTION')
-                    
+                    row.label(
+                        text=f"Found {len(candidates)} candidate(s)",
+                        icon='QUESTION',
+                    )
+
                     # Show candidate selection
                     if len(candidates) > 1:
-                        # Store current selection
-                        current_selection = self._get_selected_match(lib_key)
-                        
                         row = box.row()
                         row.label(text="Select match:")
-                        for i, candidate in enumerate(candidates[:5]):  # Show max 5 candidates
+                        for i, candidate in enumerate(candidates[:5]):
                             candidate_name = os.path.basename(candidate)
                             if len(candidate_name) > 40:
                                 candidate_name = candidate_name[:37] + "..."
-                            op = row.operator("atomic.search_missing_select", text=candidate_name)
+                            op = row.operator(
+                                "atomic.search_missing_select",
+                                text=candidate_name,
+                            )
                             op.library_key = lib_key
                             op.filepath = candidate
                 elif state['found_blend_files']:
@@ -615,63 +700,75 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                     row.label(text="No match found", icon='ERROR')
                 else:
                     row = box.row()
-                    row.label(text="No .blend files found in directory", icon='INFO')
-                
+                    row.label(
+                        text="No .blend files found in search directories",
+                        icon='INFO',
+                    )
+
                 # Show warnings
                 if warnings:
                     for warning in warnings:
                         row = box.row()
                         row.label(text=f"⚠ {warning}", icon='ERROR')
-                
+
                 # Relink button
                 if selected_match:
                     row = box.row()
                     if warnings:
-                        op = row.operator("atomic.search_missing_relink", text="Relink (Ignore Warnings)")
+                        op = row.operator(
+                            "atomic.search_missing_relink",
+                            text="Relink (Ignore Warnings)",
+                        )
                         op.library_key = lib_key
                         op.filepath = selected_match
                         op.ignore_warnings = True
                         op.use_relative_path = self.relative_path
                     else:
-                        op = row.operator("atomic.search_missing_relink", text="Relink")
+                        op = row.operator(
+                            "atomic.search_missing_relink",
+                            text="Relink",
+                        )
                         op.library_key = lib_key
                         op.filepath = selected_match
                         op.ignore_warnings = False
                         op.use_relative_path = self.relative_path
-            
+
             # Relink All: show when at least one library has a relinkable match
             relinkable = [
                 lib_key for lib_key in missing_libs
-                if (matches.get(lib_key) or {}).get('selected_match') or (matches.get(lib_key) or {}).get('exact')
+                if (matches.get(lib_key) or {}).get('selected_match')
+                or (matches.get(lib_key) or {}).get('exact')
             ]
             if relinkable:
                 layout.separator()
                 row = layout.row()
-                op = row.operator("atomic.search_missing_relink_all", text="Relink All", icon='LINKED')
+                op = row.operator(
+                    "atomic.search_missing_relink_all",
+                    text="Relink All",
+                    icon='LINKED',
+                )
                 op.use_relative_path = self.relative_path
-        
+
         # Error display
         if state.get('search_error'):
             layout.separator()
             row = layout.row()
             row.label(text=f"Error: {state['search_error']}", icon='ERROR')
-    
+
     def _get_selected_match(self, library_key):
         """Get the currently selected match for a library"""
         global _library_search_state
         matches = _library_search_state.get('matches', {})
         match_info = matches.get(library_key, {})
         return match_info.get('selected_match')
-    
+
     def execute(self, context):
         return {'FINISHED'}
-    
+
     def invoke(self, context, event):
         global _library_search_state
-        
-        # Initialize state
+
         _library_search_state = {
-            'search_directory': self.search_directory or '',
             'is_searching': False,
             'found_blend_files': [],
             'matches': {},
@@ -682,9 +779,91 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
             'search_complete': False,
             'search_error': None
         }
-        
+        _fill_wm_search_paths(
+            _default_search_directories_from_prefs(),
+            context,
+            ensure_one=True,
+        )
+
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=600)
+
+
+class ATOMIC_OT_search_missing_path_add(bpy.types.Operator):
+    """Add a folder row to the multi-path library search list"""
+    bl_idname = "atomic.search_missing_path_add"
+    bl_label = "Add Search Directory"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        _wm_search_paths(context).add()
+        for area in context.screen.areas:
+            area.tag_redraw()
+        return {'FINISHED'}
+
+
+class ATOMIC_OT_search_missing_path_remove(bpy.types.Operator):
+    """Remove a folder row from the multi-path library search list"""
+    bl_idname = "atomic.search_missing_path_remove"
+    bl_label = "Remove Search Directory"
+    bl_options = {'INTERNAL'}
+
+    index: bpy.props.IntProperty(default=0)
+
+    def execute(self, context):
+        coll = _wm_search_paths(context)
+        if len(coll) <= 1:
+            return {'CANCELLED'}
+        if 0 <= self.index < len(coll):
+            coll.remove(self.index)
+        for area in context.screen.areas:
+            area.tag_redraw()
+        return {'FINISHED'}
+
+
+class ATOMIC_OT_search_missing_path_save_defaults(bpy.types.Operator):
+    """Save the current search directories as addon preference defaults"""
+    bl_idname = "atomic.search_missing_path_save_defaults"
+    bl_label = "Save Search Defaults"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        from ..ui.preferences_ui import (
+            set_prefs_search_paths,
+            copy_prefs_to_config,
+            _save_after_pref_change,
+        )
+        dirs = _normalize_search_directories(_wm_search_path_strings(context))
+        if not set_prefs_search_paths(dirs):
+            self.report({'ERROR'}, "Could not find Atomic preferences")
+            return {'CANCELLED'}
+        copy_prefs_to_config(None, None)
+        _save_after_pref_change()
+        self.report(
+            {'INFO'},
+            f"Saved {len(dirs)} search root{'s' if len(dirs) != 1 else ''} "
+            f"as defaults",
+        )
+        return {'FINISHED'}
+
+
+class ATOMIC_OT_search_missing_path_load_defaults(bpy.types.Operator):
+    """Reload search directories from addon preference defaults"""
+    bl_idname = "atomic.search_missing_path_load_defaults"
+    bl_label = "Load Search Defaults"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        defaults = _default_search_directories_from_prefs()
+        _fill_wm_search_paths(defaults, context, ensure_one=True)
+        for area in context.screen.areas:
+            area.tag_redraw()
+        count = len(defaults)
+        self.report(
+            {'INFO'},
+            f"Loaded {count} default search root{'s' if count != 1 else ''}",
+        )
+        return {'FINISHED'}
 
 
 # Operator to start the search
@@ -693,76 +872,68 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
     bl_idname = "atomic.search_missing_start"
     bl_label = "Start Search"
     bl_options = {'INTERNAL'}
-    
+
     def execute(self, context):
         global _library_search_state
-        
-        # Get search directory from state (updated by the draw method)
-        search_dir = _library_search_state.get('search_directory', '')
-        
-        # Fallback: try to get from the search_missing operator if available
-        if not search_dir and hasattr(context.window_manager, 'operators'):
-            for op in context.window_manager.operators:
-                if op.bl_idname == 'atomic.search_missing' and hasattr(op, 'search_directory') and op.search_directory:
-                    search_dir = op.search_directory
-                    break
-        
-        if not search_dir:
-            self.report({'ERROR'}, "Please select a search directory first")
+
+        search_dirs = _normalize_search_directories(
+            _wm_search_path_strings(context)
+        )
+
+        valid = [
+            d for d in search_dirs
+            if os.path.isdir(d) and os.access(d, os.R_OK)
+        ]
+        if not valid:
+            self.report(
+                {'ERROR'},
+                "Please add at least one valid, readable search directory",
+            )
             return {'CANCELLED'}
-        
-        try:
-            search_dir = bpy.path.abspath(search_dir)
-        except Exception as e:
-            self.report({'ERROR'}, f"Invalid path: {str(e)}")
-            return {'CANCELLED'}
-        
-        if not os.path.exists(search_dir):
-            self.report({'ERROR'}, f"Directory does not exist: {search_dir}")
-            return {'CANCELLED'}
-        
-        if not os.path.isdir(search_dir):
-            self.report({'ERROR'}, f"Path is not a directory: {search_dir}")
-            return {'CANCELLED'}
-        
-        if not os.access(search_dir, os.R_OK):
-            self.report({'ERROR'}, f"Permission denied: Cannot read directory {search_dir}")
-            return {'CANCELLED'}
-        
+
         # Check if search is already running
         if _library_search_state.get('is_searching', False):
             self.report({'WARNING'}, "Search is already in progress")
             return {'CANCELLED'}
-        
+
         # Initialize search state
         atom = context.scene.atomic
-        _library_search_state['search_directory'] = search_dir
         _library_search_state['is_searching'] = True
         _library_search_state['found_blend_files'] = []
         _library_search_state['matches'] = {}
         _library_search_state['progress'] = 0.0
-        _library_search_state['status'] = 'Initializing search...'
+        _library_search_state['status'] = (
+            f'Initializing search across {len(valid)} director'
+            f'{"y" if len(valid) == 1 else "ies"}...'
+        )
         _library_search_state['search_complete'] = False
         _library_search_state['search_error'] = None
-        
+
         # Initialize progress tracking
         _safe_set_atom_property(atom, 'is_operation_running', True)
         _safe_set_atom_property(atom, 'operation_progress', 0.0)
-        _safe_set_atom_property(atom, 'operation_status', 'Initializing search...')
+        _safe_set_atom_property(
+            atom, 'operation_status', _library_search_state['status']
+        )
         _safe_set_atom_property(atom, 'cancel_operation', False)
-        
+
         # Create queues for thread communication
         progress_queue = queue.Queue()
         error_queue = queue.Queue()
         _library_search_state['progress_queue'] = progress_queue
         _library_search_state['error_queue'] = error_queue
-        
+
         # Start search thread
         try:
             search_thread = threading.Thread(
                 target=_search_blend_files_worker,
-                args=(search_dir, progress_queue, _library_search_state['found_blend_files'], error_queue),
-                daemon=True
+                args=(
+                    valid,
+                    progress_queue,
+                    _library_search_state['found_blend_files'],
+                    error_queue,
+                ),
+                daemon=True,
             )
             search_thread.start()
             _library_search_state['search_thread'] = search_thread
@@ -771,7 +942,7 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             _safe_set_atom_property(atom, 'is_operation_running', False)
             self.report({'ERROR'}, f"Failed to start search thread: {str(e)}")
             return {'CANCELLED'}
-        
+
         # Start timer to process progress
         try:
             bpy.app.timers.register(_process_library_search_step)
@@ -781,11 +952,11 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             _safe_set_atom_property(atom, 'is_operation_running', False)
             self.report({'ERROR'}, f"Failed to start progress timer: {str(e)}")
             return {'CANCELLED'}
-        
+
         # Redraw
         for area in context.screen.areas:
             area.tag_redraw()
-        
+
         return {'FINISHED'}
 
 
@@ -1260,6 +1431,10 @@ reg_list = [
     ATOMIC_OT_reload_missing,
     ATOMIC_OT_reload_report,
     ATOMIC_OT_search_missing,
+    ATOMIC_OT_search_missing_path_add,
+    ATOMIC_OT_search_missing_path_remove,
+    ATOMIC_OT_search_missing_path_save_defaults,
+    ATOMIC_OT_search_missing_path_load_defaults,
     ATOMIC_OT_search_missing_start,
     ATOMIC_OT_search_missing_cancel,
     ATOMIC_OT_search_missing_select,
@@ -1276,10 +1451,23 @@ reg_list = [
 
 
 def register():
+    from ..ui.preferences_ui import ATOMIC_PG_remap_search_path
+
     for item in reg_list:
         register_class(item)
 
+    bpy.types.WindowManager.atomic_remap_search_paths = bpy.props.CollectionProperty(
+        type=ATOMIC_PG_remap_search_path,
+        name="Atomic Remap Search Paths",
+    )
+
 
 def unregister():
+    if hasattr(bpy.types.WindowManager, "atomic_remap_search_paths"):
+        try:
+            del bpy.types.WindowManager.atomic_remap_search_paths
+        except Exception:
+            pass
+
     for item in reg_list:
         compat.safe_unregister_class(item)

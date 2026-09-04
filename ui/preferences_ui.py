@@ -73,6 +73,88 @@ def _get_addon_prefs():
     return None
 
 
+class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
+    """One search-root folder for missing-library remap."""
+
+    path: bpy.props.StringProperty(
+        name="Folder",
+        description="Directory to search for missing .blend libraries",
+        subtype="DIR_PATH",
+        default="",
+    )
+
+
+def get_prefs_search_paths(prefs=None):
+    """Return non-empty remap search path strings from addon preferences."""
+    prefs = prefs or _get_addon_prefs()
+    if not prefs or not hasattr(prefs, "remap_search_paths"):
+        return []
+    out = []
+    seen = set()
+    for item in prefs.remap_search_paths:
+        raw = (item.path or "").strip()
+        if not raw:
+            continue
+        norm = os.path.normpath(raw)
+        key = norm.upper()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(norm)
+    return out
+
+
+def set_prefs_search_paths(paths, prefs=None, ensure_one=True):
+    """Replace preference remap search paths with the given list."""
+    prefs = prefs or _get_addon_prefs()
+    if not prefs or not hasattr(prefs, "remap_search_paths"):
+        return False
+    prefs.remap_search_paths.clear()
+    seen = set()
+    for raw in paths or []:
+        raw = (raw or "").strip()
+        if not raw:
+            continue
+        norm = os.path.normpath(raw)
+        key = norm.upper()
+        if key in seen:
+            continue
+        seen.add(key)
+        item = prefs.remap_search_paths.add()
+        item.path = norm
+    if ensure_one and len(prefs.remap_search_paths) == 0:
+        prefs.remap_search_paths.add()
+    return True
+
+
+def ensure_remap_search_path_collection(collection):
+    """Guarantee at least one path row exists in a CollectionProperty."""
+    if collection is None:
+        return
+    if len(collection) == 0:
+        collection.add()
+
+
+def draw_remap_search_path_list(layout, collection, *, add_idname, remove_idname):
+    """
+    Draw editable folder rows: DIR_PATH field (folder picker).
+
+    First row: path + Add (+ Remove only when more than one path).
+    Extra rows: path + Remove. Always keeps at least one path.
+    """
+    ensure_remap_search_path_collection(collection)
+    count = len(collection)
+
+    for i, item in enumerate(collection):
+        row = layout.row(align=True)
+        row.prop(item, "path", text="")
+        if i == 0:
+            row.operator(add_idname, text="", icon="ADD")
+        if count > 1:
+            op = row.operator(remove_idname, text="", icon="REMOVE")
+            op.index = i
+
+
 def _save_after_pref_change():
     """
     Persist user preferences after programmatic updates.
@@ -144,6 +226,8 @@ def copy_prefs_to_config(self, context):
 
     config.safe_clean_empty_scene = \
         atomic_preferences.safe_clean_empty_scene
+
+    config.remap_search_roots = ";".join(get_prefs_search_paths(atomic_preferences))
 
     # hidden atomic preferences
     config.pie_menu_type = \
@@ -277,6 +361,13 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         default=True,
     )
 
+    remap_search_paths: bpy.props.CollectionProperty(
+        type=ATOMIC_PG_remap_search_path,
+        name="Default Remap Search Roots",
+        description="Folders used as the starting search roots when remapping "
+                    "missing libraries (Search dialog)",
+    )
+
     # hidden atomic preferences
     pie_menu_type: bpy.props.StringProperty(
         default="D"
@@ -353,6 +444,17 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             text="Safe Clean (Empty Scene)",
         )
 
+        # Remap / missing-library search defaults
+        layout.separator()
+        box = layout.box()
+        box.label(text="Missing Library Search (Remap)")
+        draw_remap_search_path_list(
+            box,
+            self.remap_search_paths,
+            add_idname="atomic.remap_prefs_path_add",
+            remove_idname="atomic.remap_prefs_path_remove",
+        )
+
         # pie menu settings
         pie_split = col.split(factor=0.55)  # nice
 
@@ -398,29 +500,87 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         copy_prefs_to_config(None, None)
 
 
-reg_list = [ATOMIC_PT_preferences_panel]
+class ATOMIC_OT_remap_prefs_path_add(bpy.types.Operator):
+    """Add a folder row to remap search defaults"""
+    bl_idname = "atomic.remap_prefs_path_add"
+    bl_label = "Add Remap Search Folder"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if not prefs:
+            return {"CANCELLED"}
+        prefs.remap_search_paths.add()
+        copy_prefs_to_config(None, None)
+        return {"FINISHED"}
+
+
+class ATOMIC_OT_remap_prefs_path_remove(bpy.types.Operator):
+    """Remove a folder row from remap search defaults"""
+    bl_idname = "atomic.remap_prefs_path_remove"
+    bl_label = "Remove Remap Search Folder"
+    bl_options = {"INTERNAL"}
+
+    index: bpy.props.IntProperty(default=0)
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if not prefs:
+            return {"CANCELLED"}
+        if len(prefs.remap_search_paths) <= 1:
+            return {"CANCELLED"}
+        if 0 <= self.index < len(prefs.remap_search_paths):
+            prefs.remap_search_paths.remove(self.index)
+            copy_prefs_to_config(None, None)
+        return {"FINISHED"}
+
+
 keymaps = []
 
 
 def register():
-    for cls in reg_list:
+    # PropertyGroup + prefs path ops before AddonPreferences
+    for cls in (
+        ATOMIC_PG_remap_search_path,
+        ATOMIC_OT_remap_prefs_path_add,
+        ATOMIC_OT_remap_prefs_path_remove,
+        ATOMIC_PT_preferences_panel,
+    ):
         try:
             register_class(cls)
-            config.debug_print(f"[Atomic Debug] Registered preferences class: {cls.__name__} with bl_idname: {cls.bl_idname}")
+            config.debug_print(
+                f"[Atomic Debug] Registered preferences class: {cls.__name__}"
+                + (
+                    f" with bl_idname: {cls.bl_idname}"
+                    if hasattr(cls, "bl_idname")
+                    else ""
+                )
+            )
         except Exception as e:
-            print(f"[Atomic Error] Failed to register preferences class {cls.__name__}: {e}")
+            print(
+                f"[Atomic Error] Failed to register preferences class "
+                f"{cls.__name__}: {e}"
+            )
             import traceback
             traceback.print_exc()
 
     # make sure global preferences are updated on registration
     copy_prefs_to_config(None, None)
+    prefs = _get_addon_prefs()
+    if prefs and hasattr(prefs, "remap_search_paths"):
+        ensure_remap_search_path_collection(prefs.remap_search_paths)
 
     # update keymaps
     add_pie_menu_hotkeys()
 
 
 def unregister():
-    for cls in reg_list:
+    for cls in (
+        ATOMIC_PT_preferences_panel,
+        ATOMIC_OT_remap_prefs_path_remove,
+        ATOMIC_OT_remap_prefs_path_add,
+        ATOMIC_PG_remap_search_path,
+    ):
         compat.safe_unregister_class(cls)
 
     remove_pie_menu_hotkeys()

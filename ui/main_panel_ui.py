@@ -41,6 +41,16 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
     bl_region_type = "WINDOW"
     bl_context = "scene"
 
+    def draw_header(self, context):
+        # Prefs cog — same pattern as Dynamic Library Manager
+        from .preferences_ui import _get_addon_module_name
+        layout = self.layout
+        layout.operator(
+            "preferences.addon_show",
+            text="",
+            icon="PREFERENCES",
+        ).module = _get_addon_module_name()
+
     def draw(self, context):
         layout = self.layout
         atom = bpy.context.scene.atomic
