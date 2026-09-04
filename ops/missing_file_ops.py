@@ -156,6 +156,65 @@ _library_search_state = {
     'search_error': None
 }
 
+# Popup regions from Search dialog draw() — area.tag_redraw alone does not
+# refresh invoke_props_dialog; need Region.tag_refresh_ui (Blender 4.2+).
+# See bpy.types.Context.region_popup / Region.tag_refresh_ui.
+_search_popup_regions = set()
+
+
+def _region_still_exists(region):
+    """
+    True if region is still a live UI region.
+
+    Matches Blender's bl_pkg notify helper: temp_override(region=...) fails
+    with TypeError once the popup is gone.
+    """
+    if region is None:
+        return False
+    try:
+        with bpy.context.temp_override(region=region):
+            return True
+    except (TypeError, ReferenceError, AttributeError):
+        return False
+
+
+def _remember_search_popup_region(context):
+    """Cache the Search props-dialog region for timer-driven refresh."""
+    region = getattr(context, "region_popup", None)
+    if region is not None:
+        _search_popup_regions.add(region)
+
+
+def _tag_search_ui_redraw():
+    """
+    Force Search dialog + screen areas to redraw during background search.
+
+    Mouse-move over the popup works because it marks the popup region dirty;
+    timers must call tag_refresh_ui on context.region_popup explicitly.
+    """
+    # Drop freed popup regions
+    for region in list(_search_popup_regions):
+        if not _region_still_exists(region):
+            _search_popup_regions.discard(region)
+            continue
+        try:
+            region.tag_redraw()
+            if hasattr(region, "tag_refresh_ui"):
+                region.tag_refresh_ui()
+        except (ReferenceError, AttributeError):
+            _search_popup_regions.discard(region)
+
+    # Also dirty normal areas (status labels elsewhere, etc.)
+    try:
+        for window in bpy.context.window_manager.windows:
+            screen = window.screen
+            if not screen:
+                continue
+            for area in screen.areas:
+                area.tag_redraw()
+    except Exception:
+        pass
+
 
 def _normalize_search_directories(directories):
     """Return unique absolute directory paths from a list of path strings."""
@@ -335,6 +394,7 @@ def _process_library_search_step():
         _safe_set_atom_property(atom, 'operation_progress', 0.0)
         _safe_set_atom_property(atom, 'operation_status', "")
         config.debug_print("[Atomic Debug] Library search cancelled")
+        _tag_search_ui_redraw()
         return None
     
     # Process progress updates from queue
@@ -346,11 +406,14 @@ def _process_library_search_step():
                     if update_type == 'progress':
                         state['progress'] = value
                         _safe_set_atom_property(atom, 'operation_progress', value)
+                        state['_dialog_needs_redraw'] = True
                     elif update_type == 'status':
                         state['status'] = value
                         _safe_set_atom_property(atom, 'operation_status', value)
+                        state['_dialog_needs_redraw'] = True
                     elif update_type == 'complete':
                         state['search_complete'] = True
+                        state['_dialog_needs_redraw'] = True
                 except queue.Empty:
                     break
         except Exception as e:
@@ -368,10 +431,10 @@ def _process_library_search_step():
                 _safe_set_atom_property(atom, 'is_operation_running', False)
                 _safe_set_atom_property(atom, 'operation_progress', 0.0)
                 _safe_set_atom_property(atom, 'operation_status', "")
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
+                _tag_search_ui_redraw()
                 return None  # Run once
             bpy.app.timers.register(clear_error_progress, first_interval=3.0)  # Clear after 3 seconds
+            _tag_search_ui_redraw()
             return None
         except queue.Empty:
             pass
@@ -391,21 +454,20 @@ def _process_library_search_step():
             _safe_set_atom_property(atom, 'is_operation_running', False)
             _safe_set_atom_property(atom, 'operation_progress', 0.0)
             _safe_set_atom_property(atom, 'operation_status', "")
-            # Redraw UI
-            for area in bpy.context.screen.areas:
-                area.tag_redraw()
+            _tag_search_ui_redraw()
             return None  # Run once
         
         # Only register timer if not already cleared (avoid duplicate timers)
         if atom.is_operation_running:
             bpy.app.timers.register(clear_progress, first_interval=1.5)  # Clear after 1.5 seconds
         
-        # Redraw UI
-        for area in bpy.context.screen.areas:
-            area.tag_redraw()
-        
+        _tag_search_ui_redraw()
         return None
     
+    # Keep the props dialog alive while the worker runs (issue #22)
+    state['_dialog_needs_redraw'] = True
+    _tag_search_ui_redraw()
+
     # Continue polling
     return 0.1
 
@@ -584,6 +646,9 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         global _library_search_state
+
+        # Capture popup region so the search timer can tag_refresh_ui (#22)
+        _remember_search_popup_region(context)
 
         from ..ui.preferences_ui import (
             draw_remap_search_path_list,
@@ -796,12 +861,19 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
         match_info = matches.get(library_key, {})
         return match_info.get('selected_match')
 
+    def check(self, context):
+        """Ask Blender to redraw the props dialog when search state changes."""
+        # Returning True signals the dialog to redraw (Operator.check docs).
+        # Only when flagged, to avoid a draw/check spin while searching.
+        return bool(_library_search_state.pop('_dialog_needs_redraw', False))
+
     def execute(self, context):
         return {'FINISHED'}
 
     def invoke(self, context, event):
         global _library_search_state
 
+        _search_popup_regions.clear()
         _library_search_state = {
             'is_searching': False,
             'found_blend_files': [],
@@ -987,9 +1059,8 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             self.report({'ERROR'}, f"Failed to start progress timer: {str(e)}")
             return {'CANCELLED'}
 
-        # Redraw
-        for area in context.screen.areas:
-            area.tag_redraw()
+        _library_search_state['_dialog_needs_redraw'] = True
+        _tag_search_ui_redraw()
 
         return {'FINISHED'}
 
