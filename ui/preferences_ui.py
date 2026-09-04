@@ -73,6 +73,21 @@ def _get_addon_prefs():
     return None
 
 
+def _persist_prefs_sidecar(self=None, context=None):
+    """Sync config.py and write the reload-safe preferences sidecar."""
+    copy_prefs_to_config(None, None)
+    try:
+        from ..utils.prefs_sidecar import save_sidecar
+        save_sidecar()
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] Sidecar save skipped: {e}")
+
+
+def _on_visible_pref_update(self, context):
+    """Bool/string AddonPreferences change → config + sidecar."""
+    _persist_prefs_sidecar()
+
+
 class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
     """One search-root folder for missing-library remap."""
 
@@ -81,6 +96,7 @@ class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
         description="Directory to search for missing .blend libraries",
         subtype="DIR_PATH",
         default="",
+        update=lambda self, context: _persist_prefs_sidecar(),
     )
 
 
@@ -92,12 +108,14 @@ class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
         description="Filename as referenced by the missing library "
                     "(e.g. old_name.blend)",
         default="",
+        update=lambda self, context: _persist_prefs_sidecar(),
     )
     equivalent: bpy.props.StringProperty(
         name="Equivalent",
         description="Renamed file on disk that should count as an exact hit "
                     "(e.g. new_name.blend)",
         default="",
+        update=lambda self, context: _persist_prefs_sidecar(),
     )
 
 
@@ -150,6 +168,7 @@ def set_prefs_search_paths(paths, prefs=None, ensure_one=True):
         item.path = norm
     if ensure_one and len(prefs.remap_search_paths) == 0:
         prefs.remap_search_paths.add()
+    _persist_prefs_sidecar()
     return True
 
 
@@ -198,6 +217,7 @@ def set_prefs_filename_equivalents(pairs, prefs=None, ensure_one=True):
         item.equivalent = b
     if ensure_one and len(prefs.remap_filename_equivalents) == 0:
         prefs.remap_filename_equivalents.add()
+    _persist_prefs_sidecar()
     return True
 
 
@@ -283,6 +303,11 @@ def _save_after_pref_change():
     """
     Persist user preferences after programmatic updates.
     """
+    try:
+        from ..utils.prefs_sidecar import save_sidecar
+        save_sidecar()
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] Sidecar save skipped: {e}")
     bpy.ops.wm.save_userpref()
 
 
@@ -379,6 +404,14 @@ def copy_prefs_to_config(self, context):
 
 
 def update_pie_menu_hotkeys(self, context):
+    # Avoid double-registering keymaps while sidecar restore setattr-triggers
+    try:
+        from ..utils.prefs_sidecar import is_restoring
+        if is_restoring():
+            return
+    except Exception:
+        pass
+
     atomic_preferences = _get_addon_prefs()
     if not atomic_preferences:
         return
@@ -390,6 +423,8 @@ def update_pie_menu_hotkeys(self, context):
     # remove the hotkeys otherwise
     else:
         remove_pie_menu_hotkeys()
+
+    _persist_prefs_sidecar()
 
 
 def add_pie_menu_hotkeys():
@@ -452,13 +487,15 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
     enable_missing_file_warning: bpy.props.BoolProperty(
         description="Display a warning on startup if Atomic detects "
                     "missing files in your project",
-        default=True
+        default=True,
+        update=_on_visible_pref_update,
     )
 
     include_fake_users: bpy.props.BoolProperty(
         description="Include data-blocks with only fake users in unused "
                     "data detection",
-        default=False
+        default=False,
+        update=_on_visible_pref_update,
     )
 
     enable_pie_menu_ui: bpy.props.BoolProperty(
@@ -470,7 +507,8 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
 
     enable_debug_prints: bpy.props.BoolProperty(
         description="Enable debug print statements in the console",
-        default=False
+        default=False,
+        update=_on_visible_pref_update,
     )
 
     storage_navigate_frame_view: bpy.props.BoolProperty(
@@ -479,6 +517,7 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
                     "in the 3D viewport (off by default: only selects and "
                     "activates)",
         default=False,
+        update=_on_visible_pref_update,
     )
 
     safe_clean_empty_scene: bpy.props.BoolProperty(
@@ -488,6 +527,7 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
                     "restore. Avoids Blender viewport draw crashes on heavy "
                     "files after mass deletes (recommended; default on)",
         default=True,
+        update=_on_visible_pref_update,
     )
 
     remap_search_paths: bpy.props.CollectionProperty(
@@ -662,7 +702,7 @@ class ATOMIC_OT_remap_prefs_path_add(bpy.types.Operator):
         if not prefs:
             return {"CANCELLED"}
         prefs.remap_search_paths.add()
-        copy_prefs_to_config(None, None)
+        _persist_prefs_sidecar()
         return {"FINISHED"}
 
 
@@ -682,7 +722,7 @@ class ATOMIC_OT_remap_prefs_path_remove(bpy.types.Operator):
             return {"CANCELLED"}
         if 0 <= self.index < len(prefs.remap_search_paths):
             prefs.remap_search_paths.remove(self.index)
-            copy_prefs_to_config(None, None)
+            _persist_prefs_sidecar()
         return {"FINISHED"}
 
 
@@ -697,7 +737,7 @@ class ATOMIC_OT_remap_prefs_equiv_add(bpy.types.Operator):
         if not prefs:
             return {"CANCELLED"}
         prefs.remap_filename_equivalents.add()
-        copy_prefs_to_config(None, None)
+        _persist_prefs_sidecar()
         return {"FINISHED"}
 
 
@@ -717,7 +757,7 @@ class ATOMIC_OT_remap_prefs_equiv_remove(bpy.types.Operator):
             return {"CANCELLED"}
         if 0 <= self.index < len(prefs.remap_filename_equivalents):
             prefs.remap_filename_equivalents.remove(self.index)
-            copy_prefs_to_config(None, None)
+            _persist_prefs_sidecar()
         return {"FINISHED"}
 
 
@@ -753,6 +793,14 @@ def register():
             import traceback
             traceback.print_exc()
 
+    # Restore prefs wiped by disable/enable (VS Code Reload Addons)
+    prefs = _get_addon_prefs()
+    try:
+        from ..utils.prefs_sidecar import restore_sidecar_into_prefs
+        restore_sidecar_into_prefs(prefs)
+    except Exception as e:
+        print(f"[Atomic] Prefs sidecar restore failed: {e}")
+
     # make sure global preferences are updated on registration
     copy_prefs_to_config(None, None)
     prefs = _get_addon_prefs()
@@ -768,6 +816,13 @@ def register():
 
 
 def unregister():
+    # Snapshot before AddonPreferences RNA is freed by disable/enable
+    try:
+        from ..utils.prefs_sidecar import save_sidecar
+        save_sidecar()
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] Sidecar save on unregister: {e}")
+
     for cls in (
         ATOMIC_PT_preferences_panel,
         ATOMIC_OT_remap_prefs_equiv_remove,
