@@ -38,6 +38,8 @@ storage_navigate_frame_view = False
 safe_clean_empty_scene = True
 # Semicolon-separated folders for missing-library Search (remap) defaults
 remap_search_roots = ""
+# Semicolon-separated missing=equivalent basename pairs for remap Search
+remap_filename_equivalents = ""
 
 # hidden atomic preferences
 pie_menu_type = "D"

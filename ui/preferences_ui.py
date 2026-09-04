@@ -84,6 +84,32 @@ class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
     )
 
 
+class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
+    """One missing-filename ↔ on-disk-filename equivalence for remap search."""
+
+    missing: bpy.props.StringProperty(
+        name="Missing",
+        description="Filename as referenced by the missing library "
+                    "(e.g. old_name.blend)",
+        default="",
+    )
+    equivalent: bpy.props.StringProperty(
+        name="Equivalent",
+        description="Renamed file on disk that should count as an exact hit "
+                    "(e.g. new_name.blend)",
+        default="",
+    )
+
+
+def _normalize_blend_filename(raw):
+    """Basename only, stripped; empty if blank."""
+    raw = (raw or "").strip()
+    if not raw:
+        return ""
+    # Allow pasted paths; match logic compares basenames only
+    return os.path.basename(raw.replace("\\", "/"))
+
+
 def get_prefs_search_paths(prefs=None):
     """Return non-empty remap search path strings from addon preferences."""
     prefs = prefs or _get_addon_prefs()
@@ -127,8 +153,79 @@ def set_prefs_search_paths(paths, prefs=None, ensure_one=True):
     return True
 
 
+def get_prefs_filename_equivalents(prefs=None):
+    """
+    Return non-empty (missing, equivalent) basename pairs from preferences.
+    """
+    prefs = prefs or _get_addon_prefs()
+    if not prefs or not hasattr(prefs, "remap_filename_equivalents"):
+        return []
+    out = []
+    seen = set()
+    for item in prefs.remap_filename_equivalents:
+        a = _normalize_blend_filename(item.missing)
+        b = _normalize_blend_filename(item.equivalent)
+        if not a or not b:
+            continue
+        key = (a.lower(), b.lower())
+        rev = (b.lower(), a.lower())
+        if key in seen or rev in seen:
+            continue
+        seen.add(key)
+        out.append((a, b))
+    return out
+
+
+def set_prefs_filename_equivalents(pairs, prefs=None, ensure_one=True):
+    """Replace preference filename-equivalent rows from (missing, equivalent) pairs."""
+    prefs = prefs or _get_addon_prefs()
+    if not prefs or not hasattr(prefs, "remap_filename_equivalents"):
+        return False
+    prefs.remap_filename_equivalents.clear()
+    seen = set()
+    for missing, equivalent in pairs or []:
+        a = _normalize_blend_filename(missing)
+        b = _normalize_blend_filename(equivalent)
+        if not a or not b:
+            continue
+        key = (a.lower(), b.lower())
+        rev = (b.lower(), a.lower())
+        if key in seen or rev in seen:
+            continue
+        seen.add(key)
+        item = prefs.remap_filename_equivalents.add()
+        item.missing = a
+        item.equivalent = b
+    if ensure_one and len(prefs.remap_filename_equivalents) == 0:
+        prefs.remap_filename_equivalents.add()
+    return True
+
+
+def build_filename_equivalence_map(pairs=None):
+    """
+    Map lowercased basename -> set of acceptable exact-match basenames
+    (includes the key itself). Bidirectional per configured pair.
+    """
+    if pairs is None:
+        pairs = get_prefs_filename_equivalents()
+    mapping = {}
+    for a, b in pairs or []:
+        la, lb = a.lower(), b.lower()
+        mapping.setdefault(la, {la}).add(lb)
+        mapping.setdefault(lb, {lb}).add(la)
+    return mapping
+
+
 def ensure_remap_search_path_collection(collection):
     """Guarantee at least one path row exists in a CollectionProperty."""
+    if collection is None:
+        return
+    if len(collection) == 0:
+        collection.add()
+
+
+def ensure_remap_filename_equivalent_collection(collection):
+    """Guarantee at least one filename-equivalent row exists."""
     if collection is None:
         return
     if len(collection) == 0:
@@ -148,6 +245,33 @@ def draw_remap_search_path_list(layout, collection, *, add_idname, remove_idname
     for i, item in enumerate(collection):
         row = layout.row(align=True)
         row.prop(item, "path", text="")
+        if i == 0:
+            row.operator(add_idname, text="", icon="ADD")
+        if count > 1:
+            op = row.operator(remove_idname, text="", icon="REMOVE")
+            op.index = i
+
+
+def draw_remap_filename_equivalent_list(
+    layout, collection, *, add_idname, remove_idname
+):
+    """
+    Draw missing ↔ equivalent filename rows.
+
+    First row: fields + Add (+ Remove only when more than one row).
+    Extra rows: fields + Remove. Always keeps at least one row.
+    """
+    ensure_remap_filename_equivalent_collection(collection)
+    count = len(collection)
+
+    header = layout.row(align=True)
+    header.label(text="Missing filename")
+    header.label(text="Equivalent on disk")
+
+    for i, item in enumerate(collection):
+        row = layout.row(align=True)
+        row.prop(item, "missing", text="")
+        row.prop(item, "equivalent", text="")
         if i == 0:
             row.operator(add_idname, text="", icon="ADD")
         if count > 1:
@@ -228,6 +352,11 @@ def copy_prefs_to_config(self, context):
         atomic_preferences.safe_clean_empty_scene
 
     config.remap_search_roots = ";".join(get_prefs_search_paths(atomic_preferences))
+
+    # missing↔equivalent filename pairs as "a=b;c=d"
+    config.remap_filename_equivalents = ";".join(
+        f"{a}={b}" for a, b in get_prefs_filename_equivalents(atomic_preferences)
+    )
 
     # hidden atomic preferences
     config.pie_menu_type = \
@@ -368,6 +497,13 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
                     "missing libraries (Search dialog)",
     )
 
+    remap_filename_equivalents: bpy.props.CollectionProperty(
+        type=ATOMIC_PG_remap_filename_equivalent,
+        name="Filename Hit Equivalents",
+        description="Treat renamed .blend basenames as exact Search hits when "
+                    "the library path was never updated",
+    )
+
     # hidden atomic preferences
     pie_menu_type: bpy.props.StringProperty(
         default="D"
@@ -455,6 +591,21 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             remove_idname="atomic.remap_prefs_path_remove",
         )
 
+        # Filename renames that should still count as exact hits (#21)
+        layout.separator()
+        box = layout.box()
+        box.label(text="Filename Hit Equivalents (Remap)")
+        box.label(
+            text="When a .blend was renamed but the library path was not updated",
+            icon="INFO",
+        )
+        draw_remap_filename_equivalent_list(
+            box,
+            self.remap_filename_equivalents,
+            add_idname="atomic.remap_prefs_equiv_add",
+            remove_idname="atomic.remap_prefs_equiv_remove",
+        )
+
         # pie menu settings
         pie_split = col.split(factor=0.55)  # nice
 
@@ -535,15 +686,53 @@ class ATOMIC_OT_remap_prefs_path_remove(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ATOMIC_OT_remap_prefs_equiv_add(bpy.types.Operator):
+    """Add a filename-equivalent row to remap defaults"""
+    bl_idname = "atomic.remap_prefs_equiv_add"
+    bl_label = "Add Filename Equivalent"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if not prefs:
+            return {"CANCELLED"}
+        prefs.remap_filename_equivalents.add()
+        copy_prefs_to_config(None, None)
+        return {"FINISHED"}
+
+
+class ATOMIC_OT_remap_prefs_equiv_remove(bpy.types.Operator):
+    """Remove a filename-equivalent row from remap defaults"""
+    bl_idname = "atomic.remap_prefs_equiv_remove"
+    bl_label = "Remove Filename Equivalent"
+    bl_options = {"INTERNAL"}
+
+    index: bpy.props.IntProperty(default=0)
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if not prefs:
+            return {"CANCELLED"}
+        if len(prefs.remap_filename_equivalents) <= 1:
+            return {"CANCELLED"}
+        if 0 <= self.index < len(prefs.remap_filename_equivalents):
+            prefs.remap_filename_equivalents.remove(self.index)
+            copy_prefs_to_config(None, None)
+        return {"FINISHED"}
+
+
 keymaps = []
 
 
 def register():
-    # PropertyGroup + prefs path ops before AddonPreferences
+    # PropertyGroups + prefs list ops before AddonPreferences
     for cls in (
         ATOMIC_PG_remap_search_path,
+        ATOMIC_PG_remap_filename_equivalent,
         ATOMIC_OT_remap_prefs_path_add,
         ATOMIC_OT_remap_prefs_path_remove,
+        ATOMIC_OT_remap_prefs_equiv_add,
+        ATOMIC_OT_remap_prefs_equiv_remove,
         ATOMIC_PT_preferences_panel,
     ):
         try:
@@ -569,6 +758,10 @@ def register():
     prefs = _get_addon_prefs()
     if prefs and hasattr(prefs, "remap_search_paths"):
         ensure_remap_search_path_collection(prefs.remap_search_paths)
+    if prefs and hasattr(prefs, "remap_filename_equivalents"):
+        ensure_remap_filename_equivalent_collection(
+            prefs.remap_filename_equivalents
+        )
 
     # update keymaps
     add_pie_menu_hotkeys()
@@ -577,8 +770,11 @@ def register():
 def unregister():
     for cls in (
         ATOMIC_PT_preferences_panel,
+        ATOMIC_OT_remap_prefs_equiv_remove,
+        ATOMIC_OT_remap_prefs_equiv_add,
         ATOMIC_OT_remap_prefs_path_remove,
         ATOMIC_OT_remap_prefs_path_add,
+        ATOMIC_PG_remap_filename_equivalent,
         ATOMIC_PG_remap_search_path,
     ):
         compat.safe_unregister_class(cls)

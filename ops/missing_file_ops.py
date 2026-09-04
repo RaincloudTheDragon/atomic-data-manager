@@ -413,47 +413,55 @@ def _process_library_search_step():
 def _match_libraries():
     """Match missing libraries to found .blend files"""
     global _library_search_state
-    
+
+    from ..ui.preferences_ui import build_filename_equivalence_map
+
     missing_libs = missing.libraries()
     found_files = _library_search_state['found_blend_files']
     matches = {}
-    
+    # missing basename -> set of acceptable exact-hit basenames (incl. renames)
+    equiv_map = build_filename_equivalence_map()
+
     for lib_key in missing_libs:
         lib_info = missing.get_missing_library_info(lib_key)
         if not lib_info:
             continue
-        
+
         target_filename = lib_info['filename'].lower()
+        acceptable = equiv_map.get(target_filename, {target_filename})
         exact_match = None
+        via_equivalent = False
         candidates = []
-        
-        # Try exact match first (case-insensitive)
+
+        # Exact match first (case-insensitive), including configured renames
         for filepath in found_files:
             filename = os.path.basename(filepath).lower()
-            if filename == target_filename:
+            if filename in acceptable:
                 exact_match = filepath
+                via_equivalent = filename != target_filename
                 break
-        
-        # If no exact match, collect candidates (partial matches)
+
+        # If no exact/equivalent match, collect fuzzy candidates
         if not exact_match:
             for filepath in found_files:
                 filename = os.path.basename(filepath).lower()
                 # Simple fuzzy matching: check if target filename is in candidate or vice versa
                 if target_filename in filename or filename in target_filename:
                     candidates.append(filepath)
-        
+
         matches[lib_key] = {
             'exact': exact_match,
+            'via_equivalent': via_equivalent,
             'candidates': candidates[:10],  # Limit to 10 candidates
             'warnings': [],
             'selected_match': exact_match if exact_match else (candidates[0] if candidates else None)
         }
-        
+
         # Validate if we have a match
         if matches[lib_key]['selected_match']:
             warnings = _validate_replacement_library(lib_key, matches[lib_key]['selected_match'], lib_info)
             matches[lib_key]['warnings'] = warnings
-    
+
     _library_search_state['matches'] = matches
 
 
@@ -577,7 +585,11 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
         layout = self.layout
         global _library_search_state
 
-        from ..ui.preferences_ui import draw_remap_search_path_list
+        from ..ui.preferences_ui import (
+            draw_remap_search_path_list,
+            draw_remap_filename_equivalent_list,
+            _get_addon_prefs,
+        )
 
         state = _library_search_state
         atom = context.scene.atomic
@@ -604,6 +616,18 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
             text="Load Defaults",
             icon='FILE_REFRESH',
         )
+
+        # Filename hit equivalents — edits prefs directly (same list as addon prefs)
+        prefs = _get_addon_prefs()
+        if prefs and hasattr(prefs, "remap_filename_equivalents"):
+            box = layout.box()
+            box.label(text="Filename Hit Equivalents:", icon='FILE_TICK')
+            draw_remap_filename_equivalent_list(
+                box,
+                prefs.remap_filename_equivalents,
+                add_idname="atomic.remap_prefs_equiv_add",
+                remove_idname="atomic.remap_prefs_equiv_remove",
+            )
 
         # Relative path checkbox
         row = layout.row()
@@ -663,6 +687,7 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
 
                 match_info = matches.get(lib_key, {})
                 exact_match = match_info.get('exact')
+                via_equivalent = match_info.get('via_equivalent', False)
                 candidates = match_info.get('candidates', [])
                 warnings = match_info.get('warnings', [])
                 selected_match = match_info.get('selected_match')
@@ -670,10 +695,19 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                 # Show match status
                 if exact_match:
                     row = box.row()
-                    row.label(
-                        text=f"✓ Exact match: {os.path.basename(exact_match)}",
-                        icon='CHECKMARK',
-                    )
+                    if via_equivalent:
+                        row.label(
+                            text=(
+                                f"✓ Equivalent match: "
+                                f"{os.path.basename(exact_match)}"
+                            ),
+                            icon='CHECKMARK',
+                        )
+                    else:
+                        row.label(
+                            text=f"✓ Exact match: {os.path.basename(exact_match)}",
+                            icon='CHECKMARK',
+                        )
                 elif candidates:
                     row = box.row()
                     row.label(
