@@ -100,31 +100,83 @@ class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
     )
 
 
-class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
-    """One missing-filename ↔ on-disk-filename equivalence for remap search."""
+def _missing_library_enum_items(self, context):
+    """
+    Enum items for currently missing library filepaths.
 
-    missing: bpy.props.StringProperty(
+    Identifier is the path string (basename used at match time). Includes any
+    already-saved value so rows stay valid when that library is no longer missing.
+
+    Important: do not read ``self.missing`` here — that re-enters this callback.
+    Use ``self.get("missing")`` for the raw stored identifier.
+    """
+    items = [
+        ("NONE", "Select missing…", "Choose a library that is currently missing"),
+    ]
+    seen = {"none"}
+
+    try:
+        from ..stats import missing as missing_stats
+
+        for key in missing_stats.libraries():
+            info = missing_stats.get_missing_library_info(key)
+            if not info:
+                continue
+            filepath = (info.get("filepath") or "").strip()
+            filename = (info.get("filename") or "").strip()
+            ident = filepath or filename
+            if not ident:
+                continue
+            key_id = ident.lower()
+            if key_id in seen:
+                continue
+            seen.add(key_id)
+            label = filepath or filename
+            items.append((ident, label, f"Missing library: {label}"))
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] Missing-library enum: {e}")
+
+    # Keep a saved selection visible even if it is not missing right now
+    # (raw get — never self.missing, or items recurses)
+    current = ""
+    try:
+        current = (self.get("missing", "") or "").strip()
+    except Exception:
+        current = ""
+    # Ignore legacy bad default from default=0 (stored as identifier "0")
+    if current in ("0", "NONE"):
+        current = ""
+    if current and current.lower() not in seen:
+        items.append((current, current, "Saved filename equivalent"))
+
+    return items
+
+
+class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
+    """One missing-library path ↔ on-disk .blend equivalence for remap search."""
+
+    missing: bpy.props.EnumProperty(
         name="Missing",
-        description="Filename as referenced by the missing library "
-                    "(e.g. old_name.blend)",
-        default="",
+        description="Currently missing library path to treat as renamed",
+        items=_missing_library_enum_items,
         update=lambda self, context: _persist_prefs_sidecar(),
     )
     equivalent: bpy.props.StringProperty(
         name="Equivalent",
-        description="Renamed file on disk that should count as an exact hit "
-                    "(e.g. new_name.blend)",
+        description="On-disk .blend that should count as an exact hit for the "
+                    "missing library (basename is used when matching)",
         default="",
+        subtype="FILE_PATH",
         update=lambda self, context: _persist_prefs_sidecar(),
     )
 
 
 def _normalize_blend_filename(raw):
-    """Basename only, stripped; empty if blank."""
+    """Basename only, stripped; empty if blank or enum placeholder."""
     raw = (raw or "").strip()
-    if not raw:
+    if not raw or raw.upper() == "NONE":
         return ""
-    # Allow pasted paths; match logic compares basenames only
+    # Allow pasted / enum paths; match logic compares basenames only
     return os.path.basename(raw.replace("\\", "/"))
 
 
@@ -276,8 +328,10 @@ def draw_remap_filename_equivalent_list(
     layout, collection, *, add_idname, remove_idname
 ):
     """
-    Draw missing ↔ equivalent filename rows.
+    Draw missing ↔ equivalent rows.
 
+    Missing: dropdown of currently missing library paths.
+    Equivalent: FILE_PATH picker for the on-disk .blend.
     First row: fields + Add (+ Remove only when more than one row).
     Extra rows: fields + Remove. Always keeps at least one row.
     """
@@ -285,7 +339,7 @@ def draw_remap_filename_equivalent_list(
     count = len(collection)
 
     header = layout.row(align=True)
-    header.label(text="Missing filename")
+    header.label(text="Missing library")
     header.label(text="Equivalent on disk")
 
     for i, item in enumerate(collection):
