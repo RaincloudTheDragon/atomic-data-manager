@@ -1,3 +1,9 @@
+## [v2.10.1] - 2026-09-08
+
+### Fixes
+
+- **Remap**: filename hit equivalents use a missing-library dropdown and an on-disk file picker (no more free-text / enum recursion crash).
+
 ## [v2.10.0] - 2026-09-04
 
 ### Features
