@@ -1226,7 +1226,26 @@ def graph_category_batch_size(category):
     """Return timer-tick batch size for a generic graph category scan."""
     return GRAPH_CATEGORY_BATCH_SIZES.get(category, GRAPH_CATEGORY_BATCH_SIZE)
 
-_graph_used_cache = {'filepath': None, 'include_fake_users': None, 'used': None}
+_graph_used_cache = {
+    'filepath': None,
+    'signature': None,
+    'include_fake_users': None,
+    'used': None,
+}
+
+
+def _graph_used_signature():
+    """Cheap datablock counts so remaps/reloads invalidate without filepath change."""
+    try:
+        return (
+            len(bpy.data.scenes),
+            len(bpy.data.collections),
+            len(bpy.data.objects),
+            len(bpy.data.libraries),
+            len(bpy.data.node_groups),
+        )
+    except (AttributeError, RuntimeError, ReferenceError):
+        return None
 
 
 def _compositor_protected_node_groups(graph):
@@ -1922,19 +1941,22 @@ def _compute_graph_used_set(graph, include_fake_users=None):
 
 
 def get_cached_graph_used_set(graph, include_fake_users=None):
-    """Return graph reachability set, recomputing only when file or fake-user setting changes."""
+    """Return graph reachability set; recompute on file, counts, or fake-user change."""
     if include_fake_users is None:
         include_fake_users = config.include_fake_users
     filepath = bpy.data.filepath or ''
+    signature = _graph_used_signature()
     cache = _graph_used_cache
     if (
         cache['filepath'] == filepath
+        and cache['signature'] == signature
         and cache['include_fake_users'] == include_fake_users
         and cache['used'] is not None
     ):
         return cache['used']
     used = _compute_graph_used_set(graph, include_fake_users)
     _graph_used_cache['filepath'] = filepath
+    _graph_used_cache['signature'] = signature
     _graph_used_cache['include_fake_users'] = include_fake_users
     _graph_used_cache['used'] = used
     return used
@@ -1943,7 +1965,12 @@ def get_cached_graph_used_set(graph, include_fake_users=None):
 def clear_graph_used_cache():
     """Drop cached graph reachability (call on blend-file change or cache invalidation)."""
     global _graph_used_cache
-    _graph_used_cache = {'filepath': None, 'include_fake_users': None, 'used': None}
+    _graph_used_cache = {
+        'filepath': None,
+        'signature': None,
+        'include_fake_users': None,
+        'used': None,
+    }
 
 
 def begin_materials_analysis(graph, short_circuit=False, include_fake_users=None):
@@ -2128,6 +2155,13 @@ def step_graph_category_analysis(state, batch_size=None):
                     continue
             except (AttributeError, KeyError, RuntimeError, ReferenceError):
                 pass
+        elif category == 'collections':
+            # Scene hierarchy / instances may be missed by a stale used-set
+            try:
+                if users.collection_all(item_name):
+                    continue
+            except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                pass
         state['unused'].append(item_name)
         if state['short_circuit']:
             return True, state['unused'], 1.0, current_name
@@ -2243,6 +2277,14 @@ def analyze_unused_from_graph(
                     # Keep actions that still have scene/object users (NLA, shape keys, etc.)
                     try:
                         if users.action_all(item_name):
+                            continue
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+                if category == 'collections':
+                    # Keep collections still linked to a scene / instance / contents
+                    # when the cached used-set is stale or incomplete after remap.
+                    try:
+                        if users.collection_all(item_name):
                             continue
                     except (AttributeError, KeyError, RuntimeError, ReferenceError):
                         pass

@@ -268,7 +268,11 @@ def _on_undo_pre(scene):
 
 
 def _load_post_invalidate_storage(_dummy):
+    # Drop unused/RNA caches on file load — same filepath can keep a stale
+    # graph used-set after revert/reload/remap otherwise.
+    from .ops import main_ops
     from .utils.compat import invalidate_cache
+    main_ops._invalidate_cache()
     invalidate_cache()
 
 

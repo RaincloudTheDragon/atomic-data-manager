@@ -334,13 +334,13 @@ def collection_children_recursive(collection_key):
     if not collection.children:
         return [collection.name]
 
-    # recursion case
-    else:
-        children = []
-        for child in collection.children:
-            children += collection_children(child.name)
-        children.append(collection.name)
-        return children
+    # recursion case — must call recursive helper, not collection_children
+    # (that strips self and would drop every child name)
+    children = []
+    for child in collection.children:
+        children += collection_children_recursive(child.name)
+    children.append(collection.name)
+    return children
 
 
 def collection_lights(collection_key):
