@@ -1,3 +1,9 @@
+## [v2.10.2] - 2026-09-10
+
+### Fixes
+
+- **Collections**: stale RNA used-set no longer flags in-scene collections after remap/reload (cache cleared on load, count signature, `collection_all` fallback; child-collection recursion fixed).
+
 ## [v2.10.1] - 2026-09-08
 
 ### Fixes
