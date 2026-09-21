@@ -21,8 +21,8 @@ with Atomic Data Manager.  If not, see <https://www.gnu.org/licenses/>.
 This file contains the primary Atomic Data Manager panel that will
 appear in the Scene tab of the Properties panel.
 
-This panel contains the Nuke/Clean/Undo buttons as well as the data
-category toggles and the category selection tools.
+This panel contains the Nuke/Clean/Undo buttons, the Include Fake Users
+detection toggle (addon preference), category toggles, and selection tools.
 
 """
 
@@ -96,7 +96,17 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
         row.operator("atomic.clean", text="Clean", icon="PARTICLEMODE")
         row.operator("atomic.undo", text="Undo", icon="LOOP_BACK")
 
-        row = layout.row()
+        # Detection scope — same AddonPreferences flag as Preferences panel
+        from .preferences_ui import _get_addon_prefs
+        prefs = _get_addon_prefs()
+        if prefs is not None:
+            row = layout.row(align=True)
+            row.prop(
+                prefs,
+                "include_fake_users",
+                text="Include Fake Users",
+                icon='FAKE_USER_ON',
+            )
 
         # category toggles
         split = layout.split(align=False)

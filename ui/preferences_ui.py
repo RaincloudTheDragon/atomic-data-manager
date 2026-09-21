@@ -88,6 +88,25 @@ def _on_visible_pref_update(self, context):
     _persist_prefs_sidecar()
 
 
+def _on_include_fake_users_update(self, context):
+    """Sync fake-user detection pref and drop stale unused/graph caches."""
+    try:
+        from ..utils.prefs_sidecar import is_restoring
+        restoring = is_restoring()
+    except Exception:
+        restoring = False
+    if restoring:
+        return
+    _persist_prefs_sidecar()
+    try:
+        from ..ops.main_ops import _invalidate_cache
+        _invalidate_cache()
+    except Exception as e:
+        config.debug_print(
+            f"[Atomic Debug] Cache invalidate after include_fake_users: {e}"
+        )
+
+
 class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
     """One search-root folder for missing-library remap."""
 
@@ -384,9 +403,8 @@ def set_include_fake_users(value):
     ap = _get_addon_prefs()
     if not ap:
         return
+    # BoolProperty update syncs config/sidecar and invalidates unused caches.
     ap.include_fake_users = value
-    copy_prefs_to_config(None, None)
-    _save_after_pref_change()
 
 
 def set_enable_pie_menu_ui(value):
@@ -546,10 +564,12 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
     )
 
     include_fake_users: bpy.props.BoolProperty(
-        description="Include data-blocks with only fake users in unused "
-                    "data detection",
+        name="Include Fake Users",
+        description="Include data-blocks kept only by fake users in unused "
+                    "detection (Smart Select / Clean). Off: fake-user trees "
+                    "are treated as used roots",
         default=False,
-        update=_on_visible_pref_update,
+        update=_on_include_fake_users_update,
     )
 
     enable_pie_menu_ui: bpy.props.BoolProperty(
