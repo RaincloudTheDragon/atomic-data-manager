@@ -788,12 +788,7 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                         if hasattr(datablock, 'modifiers'):
                             # Create a snapshot to avoid iteration issues
                             modifiers = _safe_snapshot(datablock.modifiers)
-                            
-                            # Debug: Log modifier count for Turf objects
-                            if item_name in ('Turf.001', 'Turf'):
-                                mod_names = [m.name if m else 'None' for m in modifiers]
-                                config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifiers count={len(modifiers)}, names={mod_names}")
-                            
+
                             for modifier in modifiers:
                                 if modifier is None:
                                     continue
@@ -837,11 +832,7 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                                 try:
                                     has_texture_attr = hasattr(modifier, 'texture')
                                     texture_value = modifier.texture if has_texture_attr else None
-                                    
-                                    # Debug: Log modifier texture access for Turf objects
-                                    if item_name in ('Turf.001', 'Turf'):
-                                        config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifier '{modifier.name}' has_texture={has_texture_attr}, texture={texture_value}")
-                                    
+
                                     if has_texture_attr and texture_value:
                                         # Access texture.name in try-except in case texture is linked/inaccessible
                                         try:
@@ -865,29 +856,18 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                                                 ref.get('type', '').lower() in ('texture', 'texturedatablock', 'bpy.types.texture')
                                                 for ref in references
                                             )
-                                            
-                                            # Debug: Log texture reference capture for Turf objects
-                                            if item_name in ('Turf.001', 'Turf'):
-                                                config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifier '{modifier.name}' texture_name={texture_name}, ref_exists={ref_exists}")
-                                            
+
                                             if not ref_exists:
                                                 references.append({
                                                     'property': 'modifiers.texture',
                                                     'type': texture_type,
                                                     'name': texture_name
                                                 })
-                                                # Debug: Confirm reference was added
-                                                if item_name in ('Turf.001', 'Turf'):
-                                                    config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} ADDED modifiers.texture -> {texture_name}")
-                                        except (AttributeError, RuntimeError, ReferenceError) as e:
+                                        except (AttributeError, RuntimeError, ReferenceError):
                                             # Texture.name access failed - texture may be linked/inaccessible
-                                            if item_name in ('Turf.001', 'Turf'):
-                                                config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} texture.name access failed: {e}")
                                             pass
-                                except (AttributeError, RuntimeError, ReferenceError) as e:
+                                except (AttributeError, RuntimeError, ReferenceError):
                                     # Modifier.texture may be inaccessible (e.g., linked modifier/texture)
-                                    if item_name in ('Turf.001', 'Turf'):
-                                        config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} modifier texture access failed: {e}")
                                     pass
                         
                         # Objects have material slots that reference materials
@@ -1000,7 +980,7 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
                 
-                # Special handling for textures (legacy .image → Image; e.g. rippleblur.png via Texture used by Turf)
+                # Special handling for textures (legacy .image → Image)
                 try:
                     if data_type == 'textures' and hasattr(datablock, 'image') and datablock.image and not compat.is_library_or_override(datablock.image):
                         references.append({
@@ -1010,12 +990,6 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                         })
                 except (AttributeError, RuntimeError, ReferenceError):
                     pass
-                
-                # Debug: Log references for Turf objects to trace the modifiers.texture issue
-                if item_name in ('Turf.001', 'Turf') and data_type == 'objects':
-                    config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} references BEFORE storing: {references}")
-                    texture_refs = [r for r in references if 'texture' in r.get('property', '').lower()]
-                    config.debug_print(f"[Atomic Debug] RNA Analysis: {item_name} texture-related refs: {texture_refs}")
                 
                 # Store references
                 rna_data[data_type][item_name] = {

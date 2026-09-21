@@ -140,8 +140,8 @@ def _get_gn_usage_sets():
 
     Covers Blender 5 modifier Collection/Object inputs and Object Info /
     Collection Info sockets inside (nested) node groups on those hosts and on
-    objects inside referenced collections (e.g. Package-Filler → shuttle-filler
-    → package.001 → AmazonSmile).
+    objects inside referenced collections (host → Collection input → members →
+    nested Object Info targets).
     """
     global _gn_usage_cache
     filepath = getattr(bpy.data, 'filepath', '') or ''
@@ -661,7 +661,7 @@ def collection_geometry_nodes(collection_key):
     """
     Scene-seeded Geometry Nodes hosts that reference this collection.
 
-    Blender 5 Package-Filler-style modifiers bind the collection on
+    Blender 5 Geometry Nodes modifiers often bind the collection on
     ``modifier.properties.inputs`` rather than Collection Info defaults or
     ``instance_collection``.
     """
@@ -1982,8 +1982,7 @@ def object_all(object_key, _visited_objects=None):
                             users.append(scene_name)
 
         # Geometry Nodes: Collection Info / Object Info / modifier Collection
-        # inputs pull objects that are outside the scene hierarchy (e.g.
-        # Shuttle_cut → Package-Filler → shuttle-filler → package Object Info).
+        # inputs pull objects that are outside the scene hierarchy.
         if not users:
             gn_objects, _gn_collections = _get_gn_usage_sets()
             if object_key in gn_objects:
