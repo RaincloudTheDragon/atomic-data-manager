@@ -1,3 +1,9 @@
+## [v2.10.3] - 2026-09-21
+
+### Fixes
+
+- **Clean / Geometry Nodes**: collections and objects reached only via Geometry Nodes modifier Collection/Object inputs (and Object Info sockets) stay marked used; Clean skips linked/override namesakes from stale lists.
+
 ## [v2.10.2] - 2026-09-10
 
 ### Fixes
