@@ -25,6 +25,7 @@ This file contains functions for cleaning out specific data categories.
 import bpy
 from ...stats import unused
 from ...utils import compat
+from . import delete as delete_utils
 from . import safe_delete
 
 
@@ -73,155 +74,108 @@ def detach_scene_objects_from_removal_targets(object_names_to_remove):
     return reports
 
 
+def _clean_keys(data, keys):
+    """Remove each key from data, skipping linked/override IDs."""
+    with safe_delete.safe_datablock_removal():
+        for key in keys:
+            delete_utils.remove_if_local(data, key)
+
+
 def collections(cached_list=None):
     # removes all unused collections from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         collection_keys = cached_list
     else:
         collection_keys = unused.collections_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for collection_key in collection_keys:
-            if collection_key in bpy.data.collections:
-                bpy.data.collections.remove(bpy.data.collections[collection_key])
+    _clean_keys(bpy.data.collections, collection_keys)
 
 
 def images(cached_list=None):
     # removes all unused images from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         image_keys = cached_list
     else:
         image_keys = unused.images_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for image_key in image_keys:
-            if image_key in bpy.data.images:
-                bpy.data.images.remove(bpy.data.images[image_key])
+    _clean_keys(bpy.data.images, image_keys)
 
 
 def lights(cached_list=None):
     # removes all unused lights from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         light_keys = cached_list
     else:
         light_keys = unused.lights_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for light_key in light_keys:
-            if light_key in bpy.data.lights:
-                bpy.data.lights.remove(bpy.data.lights[light_key])
+    _clean_keys(bpy.data.lights, light_keys)
 
 
 def materials(cached_list=None):
     # removes all unused materials from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         material_keys = cached_list
     else:
         material_keys = unused.materials_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for material_key in material_keys:
-            if material_key in bpy.data.materials:
-                bpy.data.materials.remove(bpy.data.materials[material_key])
+    _clean_keys(bpy.data.materials, material_keys)
 
 
 def node_groups(cached_list=None):
     # removes all unused node groups from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         node_group_keys = cached_list
     else:
         node_group_keys = unused.node_groups_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for node_group_key in node_group_keys:
-            if node_group_key in bpy.data.node_groups:
-                bpy.data.node_groups.remove(bpy.data.node_groups[node_group_key])
+    _clean_keys(bpy.data.node_groups, node_group_keys)
 
 
 def particles(cached_list=None):
     # removes all unused particle systems from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         particle_keys = cached_list
     else:
         particle_keys = unused.particles_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for particle_key in particle_keys:
-            if particle_key in bpy.data.particles:
-                bpy.data.particles.remove(bpy.data.particles[particle_key])
+    _clean_keys(bpy.data.particles, particle_keys)
 
 
 def textures(cached_list=None):
     # removes all unused textures from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         texture_keys = cached_list
     else:
         texture_keys = unused.textures_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for texture_key in texture_keys:
-            if texture_key in bpy.data.textures:
-                bpy.data.textures.remove(bpy.data.textures[texture_key])
+    _clean_keys(bpy.data.textures, texture_keys)
 
 
 def worlds(cached_list=None):
     # removes all unused worlds from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         world_keys = cached_list
     else:
         world_keys = unused.worlds()
-
-    with safe_delete.safe_datablock_removal():
-        for world_key in world_keys:
-            if world_key in bpy.data.worlds:
-                bpy.data.worlds.remove(bpy.data.worlds[world_key])
+    _clean_keys(bpy.data.worlds, world_keys)
 
 
 def objects(cached_list=None):
     # removes all unused objects from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         object_keys = cached_list
     else:
         object_keys = unused.objects_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for object_key in object_keys:
-            if object_key in bpy.data.objects:
-                bpy.data.objects.remove(bpy.data.objects[object_key])
+    _clean_keys(bpy.data.objects, object_keys)
 
 
 def armatures(cached_list=None):
     # removes all unused armatures from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         armature_keys = cached_list
     else:
         armature_keys = unused.armatures_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for armature_key in armature_keys:
-            if armature_key in bpy.data.armatures:
-                bpy.data.armatures.remove(bpy.data.armatures[armature_key])
+    _clean_keys(bpy.data.armatures, armature_keys)
 
 
 def actions(cached_list=None):
     # removes all unused actions from the project
-    # If cached_list is provided, use it instead of recalculating
     if cached_list is not None:
         action_keys = cached_list
     else:
         action_keys = unused.actions_deep()
-
-    with safe_delete.safe_datablock_removal():
-        for action_key in action_keys:
-            if hasattr(bpy.data, "actions") and action_key in bpy.data.actions:
-                bpy.data.actions.remove(bpy.data.actions[action_key])
+    if hasattr(bpy.data, "actions"):
+        _clean_keys(bpy.data.actions, action_keys)

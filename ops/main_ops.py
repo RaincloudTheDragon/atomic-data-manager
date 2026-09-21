@@ -39,6 +39,7 @@ from ..stats import unused
 from ..stats import unused_parallel
 from .. import config
 from .utils import clean
+from .utils import delete as delete_utils
 from .utils import nuke
 from .utils import safe_delete
 from ..ui.utils import ui_layouts
@@ -1179,50 +1180,9 @@ class ATOMIC_OT_clean(bpy.types.Operator):
 
                 for item_key in unused_list:
                     try:
-                        if category == 'collections':
-                            if item_key in bpy.data.collections:
-                                bpy.data.collections.remove(bpy.data.collections[item_key])
-                                deleted_count += 1
-                        elif category == 'images':
-                            if item_key in bpy.data.images:
-                                bpy.data.images.remove(bpy.data.images[item_key])
-                                deleted_count += 1
-                        elif category == 'lights':
-                            if item_key in bpy.data.lights:
-                                bpy.data.lights.remove(bpy.data.lights[item_key])
-                                deleted_count += 1
-                        elif category == 'materials':
-                            if item_key in bpy.data.materials:
-                                bpy.data.materials.remove(bpy.data.materials[item_key])
-                                deleted_count += 1
-                        elif category == 'node_groups':
-                            if item_key in bpy.data.node_groups:
-                                bpy.data.node_groups.remove(bpy.data.node_groups[item_key])
-                                deleted_count += 1
-                        elif category == 'objects':
-                            if item_key in bpy.data.objects:
-                                bpy.data.objects.remove(bpy.data.objects[item_key])
-                                deleted_count += 1
-                        elif category == 'particles':
-                            if item_key in bpy.data.particles:
-                                bpy.data.particles.remove(bpy.data.particles[item_key])
-                                deleted_count += 1
-                        elif category == 'textures':
-                            if item_key in bpy.data.textures:
-                                bpy.data.textures.remove(bpy.data.textures[item_key])
-                                deleted_count += 1
-                        elif category == 'armatures':
-                            if item_key in bpy.data.armatures:
-                                bpy.data.armatures.remove(bpy.data.armatures[item_key])
-                                deleted_count += 1
-                        elif category == 'actions':
-                            if hasattr(bpy.data, 'actions') and item_key in bpy.data.actions:
-                                bpy.data.actions.remove(bpy.data.actions[item_key])
-                                deleted_count += 1
-                        elif category == 'worlds':
-                            if item_key in bpy.data.worlds:
-                                bpy.data.worlds.remove(bpy.data.worlds[item_key])
-                                deleted_count += 1
+                        # Skip linked/override even if a stale unused list has the name
+                        if delete_utils.remove_category_item(category, item_key):
+                            deleted_count += 1
                     except Exception:
                         pass  # Item may have been deleted already or doesn't exist
 
@@ -1356,41 +1316,8 @@ def _process_clean_execute_step():
             _safe_set_atom_property(atom, 'operation_status', f"Removing {category}: {item_key}...")
 
             try:
-                if category == 'collections':
-                    if item_key in bpy.data.collections:
-                        bpy.data.collections.remove(bpy.data.collections[item_key])
-                elif category == 'images':
-                    if item_key in bpy.data.images:
-                        bpy.data.images.remove(bpy.data.images[item_key])
-                elif category == 'lights':
-                    if item_key in bpy.data.lights:
-                        bpy.data.lights.remove(bpy.data.lights[item_key])
-                elif category == 'materials':
-                    if item_key in bpy.data.materials:
-                        bpy.data.materials.remove(bpy.data.materials[item_key])
-                elif category == 'node_groups':
-                    if item_key in bpy.data.node_groups:
-                        bpy.data.node_groups.remove(bpy.data.node_groups[item_key])
-                elif category == 'objects':
-                    if item_key in bpy.data.objects:
-                        bpy.data.objects.remove(bpy.data.objects[item_key])
-                elif category == 'particles':
-                    if item_key in bpy.data.particles:
-                        bpy.data.particles.remove(bpy.data.particles[item_key])
-                elif category == 'textures':
-                    if item_key in bpy.data.textures:
-                        bpy.data.textures.remove(bpy.data.textures[item_key])
-                elif category == 'armatures':
-                    if item_key in bpy.data.armatures:
-                        bpy.data.armatures.remove(bpy.data.armatures[item_key])
-                elif category == 'actions':
-                    if hasattr(bpy.data, 'actions') and item_key in bpy.data.actions:
-                        bpy.data.actions.remove(bpy.data.actions[item_key])
-                elif category == 'worlds':
-                    if item_key in bpy.data.worlds:
-                        bpy.data.worlds.remove(bpy.data.worlds[item_key])
-
-                _clean_execute_state['deleted_count'] += 1
+                if delete_utils.remove_category_item(category, item_key):
+                    _clean_execute_state['deleted_count'] += 1
             except Exception:
                 pass  # Item may have been deleted already or doesn't exist
 
@@ -1487,7 +1414,8 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     Processes full scan results, caches them, and updates UI toggles."""
     global _smart_select_state, _unused_cache, _cache_valid, _scan_state
     
-    # Store results
+    # Store results (strip protected / already-gone names)
+    results = delete_utils.sanitize_unused_results(results)
     _smart_select_state['all_unused'] = results
     
     # Cache the results
@@ -1967,8 +1895,11 @@ def _process_unified_scan_step():
         if _scan_state['results'] is None:
             _scan_state['results'] = {}
         
-        # Cache results if full scan
+        # Cache results if full scan (strip protected names before caching)
         if _scan_state['mode'] == 'full':
+            _scan_state['results'] = delete_utils.sanitize_unused_results(
+                _scan_state['results']
+            )
             _unused_cache = _scan_state['results']
             _cache_valid = True
         
@@ -1980,7 +1911,11 @@ def _process_unified_scan_step():
             )
             old_mode = _scan_state.get('mode')
             old_categories = _scan_state.get('categories_to_scan', [])[:]  # Copy list
-            _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
+            # Ensure callback also sees sanitized lists
+            callback_results = delete_utils.sanitize_unused_results(
+                _scan_state['results']
+            )
+            _scan_state['callback'](callback_results, **_scan_state['callback_data'])
             
             # Check if callback started a new scan (callback may have set up new _scan_state)
             # If _scan_state still exists and has different mode/categories, callback started new scan
@@ -2033,29 +1968,51 @@ def _populate_unused_lists(operator_instance, atom, all_unused):
     """Helper to populate unused lists from all_unused dict"""
     config.debug_print(f"[Atomic Debug] _populate_unused_lists: all_unused keys = {list(all_unused.keys()) if all_unused else 'None'}")
     if atom.collections:
-        operator_instance.unused_collections = all_unused.get('collections', [])
+        operator_instance.unused_collections = delete_utils.filter_unused_names(
+            'collections', all_unused.get('collections', [])
+        )
     if atom.images:
-        images_result = all_unused.get('images', [])
+        images_result = delete_utils.filter_unused_names(
+            'images', all_unused.get('images', [])
+        )
         operator_instance.unused_images = images_result
         config.debug_print(f"[Atomic Debug] _populate_unused_lists: images result = {len(images_result) if images_result else 'None'} items")
     if atom.lights:
-        operator_instance.unused_lights = all_unused.get('lights', [])
+        operator_instance.unused_lights = delete_utils.filter_unused_names(
+            'lights', all_unused.get('lights', [])
+        )
     if atom.materials:
-        operator_instance.unused_materials = all_unused.get('materials', [])
+        operator_instance.unused_materials = delete_utils.filter_unused_names(
+            'materials', all_unused.get('materials', [])
+        )
     if atom.node_groups:
-        operator_instance.unused_node_groups = all_unused.get('node_groups', [])
+        operator_instance.unused_node_groups = delete_utils.filter_unused_names(
+            'node_groups', all_unused.get('node_groups', [])
+        )
     if atom.objects:
-        operator_instance.unused_objects = all_unused.get('objects', [])
+        operator_instance.unused_objects = delete_utils.filter_unused_names(
+            'objects', all_unused.get('objects', [])
+        )
     if atom.particles:
-        operator_instance.unused_particles = all_unused.get('particles', [])
+        operator_instance.unused_particles = delete_utils.filter_unused_names(
+            'particles', all_unused.get('particles', [])
+        )
     if atom.textures:
-        operator_instance.unused_textures = all_unused.get('textures', [])
+        operator_instance.unused_textures = delete_utils.filter_unused_names(
+            'textures', all_unused.get('textures', [])
+        )
     if atom.armatures:
-        operator_instance.unused_armatures = all_unused.get('armatures', [])
+        operator_instance.unused_armatures = delete_utils.filter_unused_names(
+            'armatures', all_unused.get('armatures', [])
+        )
     if atom.actions:
-        operator_instance.unused_actions = all_unused.get('actions', [])
+        operator_instance.unused_actions = delete_utils.filter_unused_names(
+            'actions', all_unused.get('actions', [])
+        )
     if atom.worlds:
-        operator_instance.unused_worlds = all_unused.get('worlds', [])
+        operator_instance.unused_worlds = delete_utils.filter_unused_names(
+            'worlds', all_unused.get('worlds', [])
+        )
 
 
 def _process_clean_invoke_step():

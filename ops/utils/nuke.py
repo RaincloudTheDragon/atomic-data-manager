@@ -30,7 +30,8 @@ from . import safe_delete
 
 def nuke_data(data):
     # removes all data-blocks from the indicated set of data
-    # Skip library-linked and override datablocks
+    # Skip library-linked and override datablocks (re-checked at remove time)
+    from . import delete as delete_utils
     keys_to_remove = []
     for key in data.keys():
         datablock = data[key]
@@ -38,7 +39,7 @@ def nuke_data(data):
             keys_to_remove.append(key)
     with safe_delete.safe_datablock_removal():
         for key in keys_to_remove:
-            data.remove(data[key])
+            delete_utils.remove_if_local(data, key)
 
 
 def collections():

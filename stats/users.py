@@ -39,11 +39,209 @@ from ..utils import compat
 # without rescanning the scene per material.
 _material_rna_session = None
 
+# Objects/collections reachable only via Geometry Nodes (modifier Collection
+# inputs, Object Info, nested groups) from scene-seeded hosts.
+_gn_usage_cache = {
+    'filepath': None,
+    'objects': None,
+    'collections': None,
+}
+
 
 def clear_material_scan_caches():
     """Drop RNA material fallback session caches (before each materials pass)."""
     global _material_rna_session
     _material_rna_session = None
+    clear_gn_usage_cache()
+
+
+def clear_gn_usage_cache():
+    """Drop Geometry Nodes indirect object/collection reachability cache."""
+    global _gn_usage_cache
+    _gn_usage_cache = {
+        'filepath': None,
+        'objects': None,
+        'collections': None,
+    }
+
+
+def _collect_gn_tree_object_collection_names(node_group, objects_out, collections_out, visited_ng):
+    """Add Object/Collection socket defaults from a node tree (recursive)."""
+    if node_group is None:
+        return
+    try:
+        ng_name = node_group.name
+    except (AttributeError, ReferenceError):
+        return
+    if ng_name in visited_ng:
+        return
+    visited_ng.add(ng_name)
+
+    try:
+        nodes = list(node_group.nodes)
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return
+
+    for node in nodes:
+        if node is None:
+            continue
+        try:
+            nested = getattr(node, 'node_tree', None)
+            if nested is not None:
+                _collect_gn_tree_object_collection_names(
+                    nested, objects_out, collections_out, visited_ng
+                )
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
+        try:
+            for sock in list(getattr(node, 'inputs', []) or []):
+                try:
+                    st = str(getattr(sock, 'type', '')).upper()
+                    if st not in ('OBJECT', 'COLLECTION'):
+                        continue
+                    dv = getattr(sock, 'default_value', None)
+                    if dv is None or not hasattr(dv, 'name'):
+                        continue
+                    if st == 'OBJECT':
+                        objects_out.add(dv.name)
+                    else:
+                        collections_out.add(dv.name)
+                except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                    continue
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            continue
+
+
+def _scene_seed_object_names():
+    """Object names present in any scene collection hierarchy (no object_all)."""
+    names = set()
+    for scene in bpy.data.scenes:
+        try:
+            root = scene.collection
+        except (AttributeError, ReferenceError):
+            continue
+        try:
+            for obj in root.all_objects:
+                if obj is not None and hasattr(obj, 'name'):
+                    names.add(obj.name)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            try:
+                for obj in root.objects:
+                    if obj is not None and hasattr(obj, 'name'):
+                        names.add(obj.name)
+            except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                pass
+    return names
+
+
+def _get_gn_usage_sets():
+    """
+    Objects and collections pulled into use by Geometry Nodes from scene seeds.
+
+    Covers Blender 5 modifier Collection/Object inputs and Object Info /
+    Collection Info sockets inside (nested) node groups on those hosts and on
+    objects inside referenced collections (e.g. Package-Filler → shuttle-filler
+    → package.001 → AmazonSmile).
+    """
+    global _gn_usage_cache
+    filepath = getattr(bpy.data, 'filepath', '') or ''
+    if (
+        _gn_usage_cache['objects'] is not None
+        and _gn_usage_cache['filepath'] == filepath
+    ):
+        return _gn_usage_cache['objects'], _gn_usage_cache['collections']
+
+    gn_objects = set()
+    gn_collections = set()
+    queue = list(_scene_seed_object_names())
+    seen_objects = set()
+    pending_collections = set()
+    processed_collections = set()
+    visited_ng = set()
+
+    while queue or pending_collections:
+        while queue:
+            obj_name = queue.pop()
+            if obj_name in seen_objects:
+                continue
+            seen_objects.add(obj_name)
+            obj = bpy.data.objects.get(obj_name)
+            if obj is None:
+                continue
+            if compat.is_object_linked_without_override(obj):
+                continue
+            if not hasattr(obj, 'modifiers'):
+                continue
+            try:
+                modifiers = list(obj.modifiers)
+            except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                continue
+            for modifier in modifiers:
+                if not compat.is_geometry_nodes_modifier(modifier):
+                    continue
+                for val in compat.iter_geometry_nodes_modifier_id_values(modifier):
+                    try:
+                        type_id = val.bl_rna.identifier
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        continue
+                    if type_id == 'Collection':
+                        pending_collections.add(val.name)
+                        gn_collections.add(val.name)
+                    elif type_id == 'Object':
+                        gn_objects.add(val.name)
+                        queue.append(val.name)
+                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
+                if ng is None:
+                    continue
+                tree_objs = set()
+                tree_cols = set()
+                _collect_gn_tree_object_collection_names(
+                    ng, tree_objs, tree_cols, visited_ng
+                )
+                for name in tree_objs:
+                    gn_objects.add(name)
+                    queue.append(name)
+                for name in tree_cols:
+                    gn_collections.add(name)
+                    pending_collections.add(name)
+
+        while pending_collections:
+            col_name = pending_collections.pop()
+            if col_name in processed_collections:
+                continue
+            processed_collections.add(col_name)
+            col = bpy.data.collections.get(col_name)
+            if col is None:
+                continue
+            gn_collections.add(col_name)
+            try:
+                for child in col.children:
+                    if child is not None and hasattr(child, 'name'):
+                        pending_collections.add(child.name)
+            except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                pass
+            try:
+                for obj in col.all_objects:
+                    if obj is None or not hasattr(obj, 'name'):
+                        continue
+                    gn_objects.add(obj.name)
+                    queue.append(obj.name)
+            except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                try:
+                    for obj in col.objects:
+                        if obj is None or not hasattr(obj, 'name'):
+                            continue
+                        gn_objects.add(obj.name)
+                        queue.append(obj.name)
+                except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                    pass
+
+    _gn_usage_cache = {
+        'filepath': filepath,
+        'objects': frozenset(gn_objects),
+        'collections': frozenset(gn_collections),
+    }
+    return _gn_usage_cache['objects'], _gn_usage_cache['collections']
 
 
 def _resolve_material(material_key, material=None):
@@ -285,7 +483,8 @@ def collection_all(collection_key):
            collection_others(collection_key) + \
            collection_rigidbody_world(collection_key) + \
            collection_scenes(collection_key) + \
-           collection_instances(collection_key)
+           collection_instances(collection_key) + \
+           collection_geometry_nodes(collection_key)
 
 
 def collection_cameras(collection_key):
@@ -449,7 +648,7 @@ def collection_instances(collection_key):
         # Check if object is a collection instance
         if hasattr(obj, 'instance_type') and obj.instance_type == 'COLLECTION':
             if hasattr(obj, 'instance_collection') and obj.instance_collection:
-                if obj.instance_collection.name == collection.name:
+                if obj.instance_collection == collection:
                     # Only count if the instance object is in a scene
                     # (otherwise the collection isn't really being used)
                     if object_all(obj.name):
@@ -458,12 +657,31 @@ def collection_instances(collection_key):
     return distinct(users)
 
 
-def _scene_collection_contains(parent_collection, target_collection):
-    # helper that checks whether target_collection exists inside the
-    # parent_collection hierarchy
+def collection_geometry_nodes(collection_key):
+    """
+    Scene-seeded Geometry Nodes hosts that reference this collection.
 
-    if parent_collection.name == target_collection.name:
-        return True
+    Blender 5 Package-Filler-style modifiers bind the collection on
+    ``modifier.properties.inputs`` rather than Collection Info defaults or
+    ``instance_collection``.
+    """
+    _gn_objects, gn_collections = _get_gn_usage_sets()
+    if collection_key not in gn_collections:
+        return []
+    # Synthetic user so collection_all / unused.collections stay truthy when
+    # the only path is a GN Collection socket on a scene object.
+    return ['<geometry_nodes>']
+
+
+def _scene_collection_contains(parent_collection, target_collection):
+    # Identity match — name collisions between linked and override collections
+    # make string compare unsafe.
+    try:
+        if parent_collection.as_pointer() == target_collection.as_pointer():
+            return True
+    except (AttributeError, ReferenceError):
+        if parent_collection.name == target_collection.name:
+            return True
 
     for child in parent_collection.children:
         if _scene_collection_contains(child, target_collection):
@@ -1694,6 +1912,7 @@ def object_all(object_key, _visited_objects=None):
     # returns a list of scene names where the object is used
     # An object is "used" if it's in any collection that's part of any scene's collection hierarchy
     # OR if it's in a collection that is instanced (and that instance is in a scene)
+    # — including nested children of the instanced collection tree.
     # _visited_objects is used to prevent infinite recursion when checking instanced collections
 
     if _visited_objects is None:
@@ -1708,6 +1927,25 @@ def object_all(object_key, _visited_objects=None):
         users = []
         obj = bpy.data.objects[object_key]
 
+        def _collection_in_tree(root, target):
+            try:
+                if root.as_pointer() == target.as_pointer():
+                    return True
+            except (AttributeError, ReferenceError):
+                if root.name == target.name:
+                    return True
+            try:
+                for child in root.children_recursive:
+                    try:
+                        if child.as_pointer() == target.as_pointer():
+                            return True
+                    except (AttributeError, ReferenceError):
+                        if child.name == target.name:
+                            return True
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
+            return False
+
         # Get all collections that contain this object
         for collection in obj.users_collection:
             # Check if this collection is in any scene's hierarchy
@@ -1716,38 +1954,41 @@ def object_all(object_key, _visited_objects=None):
                     if scene.name not in users:
                         users.append(scene.name)
             
-            # Also check if this collection is instanced (and the instance is in a scene)
-            # Get all objects that instance this collection
+            # Instanced collection trees (root or any nested child)
             for instance_obj in bpy.data.objects:
-                # Skip library-linked and override objects
-                if compat.is_library_or_override(instance_obj):
+                if compat.is_object_linked_without_override(instance_obj):
                     continue
-                
-                # Check if object is a collection instance
-                if hasattr(instance_obj, 'instance_type') and instance_obj.instance_type == 'COLLECTION':
-                    if hasattr(instance_obj, 'instance_collection') and instance_obj.instance_collection:
-                        if instance_obj.instance_collection.name == collection.name:
-                            # Check if the instance object is in a scene (using visited set to prevent recursion)
-                            # First check if instance object is directly in a scene collection
-                            instance_direct_scenes = []
-                            for instance_collection in instance_obj.users_collection:
-                                for scene in bpy.data.scenes:
-                                    if _scene_collection_contains(scene.collection, instance_collection):
-                                        if scene.name not in instance_direct_scenes:
-                                            instance_direct_scenes.append(scene.name)
-                            
-                            # If instance object is directly in a scene, the instanced collection's objects are used
-                            if instance_direct_scenes:
-                                for scene_name in instance_direct_scenes:
-                                    if scene_name not in users:
-                                        users.append(scene_name)
-                            else:
-                                # Instance object is not directly in a scene, but might be in an instanced collection
-                                # Recursively check (with visited set to prevent infinite loops)
-                                instance_scenes = object_all(instance_obj.name, _visited_objects)
-                                for scene_name in instance_scenes:
-                                    if scene_name not in users:
-                                        users.append(scene_name)
+                if getattr(instance_obj, 'instance_type', None) != 'COLLECTION':
+                    continue
+                inst_col = getattr(instance_obj, 'instance_collection', None)
+                if not inst_col or not _collection_in_tree(inst_col, collection):
+                    continue
+
+                instance_direct_scenes = []
+                for instance_collection in instance_obj.users_collection:
+                    for scene in bpy.data.scenes:
+                        if _scene_collection_contains(scene.collection, instance_collection):
+                            if scene.name not in instance_direct_scenes:
+                                instance_direct_scenes.append(scene.name)
+
+                if instance_direct_scenes:
+                    for scene_name in instance_direct_scenes:
+                        if scene_name not in users:
+                            users.append(scene_name)
+                else:
+                    instance_scenes = object_all(instance_obj.name, _visited_objects)
+                    for scene_name in instance_scenes:
+                        if scene_name not in users:
+                            users.append(scene_name)
+
+        # Geometry Nodes: Collection Info / Object Info / modifier Collection
+        # inputs pull objects that are outside the scene hierarchy (e.g.
+        # Shuttle_cut → Package-Filler → shuttle-filler → package Object Info).
+        if not users:
+            gn_objects, _gn_collections = _get_gn_usage_sets()
+            if object_key in gn_objects:
+                for scene in bpy.data.scenes:
+                    users.append(scene.name)
         
         return distinct(users)
     finally:

@@ -58,8 +58,7 @@ def collections_deep():
     unused = []
 
     for collection in bpy.data.collections:
-        # Skip library-linked and override datablocks
-        if compat.is_library_or_override(collection):
+        if compat.is_protected_from_clean(collection):
             continue
         if not users.collection_all(collection.name):
             unused.append(collection.name)
@@ -620,8 +619,7 @@ def objects_deep():
     unused = []
 
     for obj in bpy.data.objects:
-        # Skip library-linked and override datablocks
-        if compat.is_library_or_override(obj):
+        if compat.is_protected_from_clean(obj):
             continue
         if not users.object_all(obj.name):
 

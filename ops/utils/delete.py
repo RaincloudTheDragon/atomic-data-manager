@@ -24,11 +24,124 @@ Atomic's inspection inteface.
 """
 
 import bpy
+from ...utils import compat
+
+
+# Category name -> bpy.data collection (Clean / Nuke / stepped purge).
+CATEGORY_DATA = {
+    'collections': lambda: bpy.data.collections,
+    'images': lambda: bpy.data.images,
+    'lights': lambda: bpy.data.lights,
+    'materials': lambda: bpy.data.materials,
+    'node_groups': lambda: bpy.data.node_groups,
+    'objects': lambda: bpy.data.objects,
+    'particles': lambda: bpy.data.particles,
+    'textures': lambda: bpy.data.textures,
+    'armatures': lambda: bpy.data.armatures,
+    'actions': lambda: getattr(bpy.data, 'actions', None),
+    'worlds': lambda: bpy.data.worlds,
+}
+
+
+def remove_if_local(data, key):
+    """Remove a datablock by name only if it is safe to clean.
+
+    Uses is_protected_from_clean plus a live scene-reachability check so
+    instance-collection / override trees are never deleted mid-chain.
+
+    Returns:
+        True if removed, False if missing or skipped.
+    """
+    if data is None or key not in data:
+        return False
+    datablock = data[key]
+    try:
+        if compat.is_protected_from_clean(datablock):
+            return False
+    except (AttributeError, RuntimeError, ReferenceError):
+        return False
+
+    # Live scene anchor — never delete something still reachable from a scene
+    try:
+        from ...stats import users as users_stats
+        import bpy
+        if isinstance(datablock, bpy.types.Object):
+            if users_stats.object_all(datablock.name):
+                return False
+            # Pointer-accurate scene membership (name lookup is ambiguous)
+            for scene in bpy.data.scenes:
+                try:
+                    for ob in scene.objects:
+                        if ob.as_pointer() == datablock.as_pointer():
+                            return False
+                except (AttributeError, RuntimeError, ReferenceError):
+                    continue
+        elif isinstance(datablock, bpy.types.Collection):
+            if users_stats.collection_all(datablock.name):
+                return False
+        elif isinstance(datablock, bpy.types.Material):
+            try:
+                if users_stats.material_has_scene_reachable_user(
+                    datablock.name, material=datablock
+                ):
+                    return False
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    data.remove(datablock)
+    return True
+
+
+def remove_category_item(category, key):
+    """Remove one unused item by Atomic category name; skips protected IDs."""
+    getter = CATEGORY_DATA.get(category)
+    if not getter:
+        return False
+    return remove_if_local(getter(), key)
+
+
+def filter_unused_names(category, names):
+    """Drop names that resolve to protected (linked/override/namesake) IDs."""
+    if not names:
+        return []
+    getter = CATEGORY_DATA.get(category)
+    if not getter:
+        return list(names)
+    data = getter()
+    if data is None:
+        return list(names)
+    kept = []
+    for key in names:
+        if key not in data:
+            # Already gone — omit from Clean UI
+            continue
+        try:
+            if compat.is_protected_from_clean(data[key]):
+                continue
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+        kept.append(key)
+    return kept
+
+
+def sanitize_unused_results(all_unused):
+    """Filter every category list in a scan-results dict."""
+    if not isinstance(all_unused, dict):
+        return all_unused
+    cleaned = {}
+    for category, value in all_unused.items():
+        if isinstance(value, list) and category in CATEGORY_DATA:
+            cleaned[category] = filter_unused_names(category, value)
+        else:
+            cleaned[category] = value
+    return cleaned
 
 
 def delete_datablock(data, key):
-    # deletes a specific data-block from a set of data
-    data.remove(data[key])
+    # deletes a specific data-block from a set of data (local only)
+    remove_if_local(data, key)
 
 
 def collection(key):

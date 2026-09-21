@@ -99,6 +99,56 @@ def is_geometry_nodes_modifier(modifier):
     return modifier.type == 'NODES'
 
 
+def iter_geometry_nodes_modifier_id_values(modifier):
+    """
+    Yield ID datablocks bound on a Geometry Nodes modifier's inputs.
+
+    Blender 5.x stores overrides on ``modifier.properties.inputs.<Socket_N>.value``.
+    Older builds may expose socket IDProperties on the modifier itself
+    (``Input_*`` / ``Socket_*`` keys).
+    """
+    if modifier is None or not is_geometry_nodes_modifier(modifier):
+        return
+
+    # Blender 5.x GeometryNodesModifierInterface inputs
+    try:
+        props = getattr(modifier, 'properties', None)
+        inputs = getattr(props, 'inputs', None) if props is not None else None
+        if inputs is not None and hasattr(inputs, 'bl_rna'):
+            for prop in inputs.bl_rna.properties:
+                if prop.identifier in ('rna_type', 'name') or prop.type != 'POINTER':
+                    continue
+                try:
+                    sock = getattr(inputs, prop.identifier, None)
+                    if sock is None:
+                        continue
+                    val = getattr(sock, 'value', None)
+                    if val is not None and hasattr(val, 'name') and hasattr(val, 'bl_rna'):
+                        yield val
+                except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
+                    continue
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        pass
+
+    # Legacy: modifier IDProperties keyed by socket identifier
+    try:
+        keys = modifier.keys()
+    except (AttributeError, TypeError, RuntimeError):
+        keys = []
+
+    for key in keys:
+        if not isinstance(key, str):
+            continue
+        if not (key.startswith('Input_') or key.startswith('Socket_')):
+            continue
+        try:
+            val = modifier.get(key)
+            if val is not None and hasattr(val, 'name') and hasattr(val, 'bl_rna'):
+                yield val
+        except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
+            continue
+
+
 def get_node_tree_from_node(node):
     """
     Get the node tree from a node, handling version differences.
@@ -178,6 +228,111 @@ def is_library_or_override(datablock):
     if hasattr(datablock, 'override_library') and datablock.override_library:
         return True
     
+    return False
+
+
+def _bpy_data_collection_for(datablock):
+    """Return the bpy.data collection that owns this ID, or None."""
+    try:
+        id_type = getattr(datablock, 'id_type', None)
+    except (AttributeError, ReferenceError):
+        return None
+    # Common ID types Atomic cleans
+    mapping = {
+        'OB': 'objects',
+        'GR': 'collections',  # Collection (legacy id_type)
+        'MC': 'collections',  # Collection in some versions
+        'MA': 'materials',
+        'IM': 'images',
+        'LA': 'lights',
+        'NT': 'node_groups',
+        'AC': 'actions',
+        'AR': 'armatures',
+        'WO': 'worlds',
+        'TE': 'textures',
+        'PA': 'particles',
+    }
+    attr = mapping.get(id_type)
+    if not attr:
+        # Blender 3+ Collection id_type is often 'GR'; also try by RNA type name
+        try:
+            type_name = type(datablock).__name__
+        except Exception:
+            return None
+        type_map = {
+            'Object': 'objects',
+            'Collection': 'collections',
+            'Material': 'materials',
+            'Image': 'images',
+            'Light': 'lights',
+            'NodeTree': 'node_groups',
+            'Action': 'actions',
+            'Armature': 'armatures',
+            'World': 'worlds',
+            'Texture': 'textures',
+            'ParticleSettings': 'particles',
+        }
+        attr = type_map.get(type_name)
+    if not attr:
+        return None
+    return getattr(bpy.data, attr, None)
+
+
+def is_protected_from_clean(datablock):
+    """
+    True if Atomic must never flag-as-unused or delete this datablock.
+
+    Stronger than is_library_or_override: also blocks locals that share a .name
+    with a linked/override ID (ambiguous bpy.data[name] after paste/remap), and
+    objects that live in an override collection hierarchy.
+    """
+    if datablock is None:
+        return True
+    try:
+        if is_library_or_override(datablock):
+            return True
+    except (AttributeError, RuntimeError, ReferenceError):
+        return True
+
+    # Namesake linked/override — deleting the local would be wrong after the
+    # linked ID reclaims the bare name (or bpy.data[name] is ambiguous).
+    try:
+        name = datablock.name
+    except (AttributeError, ReferenceError):
+        return True
+    data = _bpy_data_collection_for(datablock)
+    if data is not None:
+        try:
+            for other in data:
+                if other is datablock:
+                    continue
+                try:
+                    if other.name == name and is_library_or_override(other):
+                        return True
+                except (AttributeError, RuntimeError, ReferenceError):
+                    continue
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
+
+    # Objects housed by an override collection are part of a lib-override tree
+    try:
+        if isinstance(datablock, bpy.types.Object):
+            for col in datablock.users_collection:
+                try:
+                    if col.override_library:
+                        return True
+                except (AttributeError, RuntimeError, ReferenceError):
+                    continue
+            # Linked/override object data (mesh/armature) — don't yank the container
+            try:
+                ob_data = datablock.data
+                if ob_data is not None and is_library_or_override(ob_data):
+                    return True
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
+    except Exception:
+        pass
+
     return False
 
 

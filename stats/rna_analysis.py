@@ -37,7 +37,7 @@ from ..utils import compat
 _DATA_BLOCK_TYPE_NAMES = [
     'images', 'materials', 'objects', 'collections', 'node_groups',
     'textures', 'lights', 'armatures', 'actions', 'worlds', 'particles',
-    'meshes', 'scenes'
+    'meshes', 'scenes', 'fonts',
 ]
 
 
@@ -61,6 +61,7 @@ def _get_data_block_types():
             'particles': bpy.data.particles,
             'meshes': bpy.data.meshes,
             'scenes': bpy.data.scenes,
+            'fonts': getattr(bpy.data, 'fonts', None),
         }
         return {k: v for k, v in raw.items() if v is not None}
     except Exception:
@@ -304,6 +305,9 @@ def _id_ref_from_value(value, property_name, skip_library_types=None):
         'Armature': 'Armature',
         'Action': 'Action',
         'Mesh': 'Mesh',
+        'Curve': 'Curve',
+        'TextCurve': 'Curve',
+        'VectorFont': 'Font',
         'World': 'World',
         'Light': 'Light',
         'ParticleSettings': 'ParticleSettings',
@@ -336,50 +340,13 @@ def _extract_geometry_nodes_modifier_input_refs(modifier):
     Older builds may expose socket IDProperties on the modifier itself.
     """
     references = []
-
-    # Blender 5.x GeometryNodesModifierInterface inputs
-    try:
-        props = getattr(modifier, 'properties', None)
-        inputs = getattr(props, 'inputs', None) if props is not None else None
-        if inputs is not None and hasattr(inputs, 'bl_rna'):
-            for prop in inputs.bl_rna.properties:
-                if prop.identifier in ('rna_type', 'name') or prop.type != 'POINTER':
-                    continue
-                try:
-                    sock = getattr(inputs, prop.identifier, None)
-                    if sock is None:
-                        continue
-                    val = getattr(sock, 'value', None)
-                    ref = _id_ref_from_value(
-                        val,
-                        f'modifiers.properties.inputs.{prop.identifier}',
-                    )
-                    if ref:
-                        references.append(ref)
-                except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
-                    continue
-    except (AttributeError, RuntimeError, ReferenceError, TypeError):
-        pass
-
-    # Legacy: modifier IDProperties keyed by socket identifier (Input_*/Socket_*)
-    try:
-        keys = modifier.keys()
-    except (AttributeError, TypeError, RuntimeError):
-        keys = []
-
-    for key in keys:
-        if not isinstance(key, str):
-            continue
-        if not (key.startswith('Input_') or key.startswith('Socket_')):
-            continue
+    for val in compat.iter_geometry_nodes_modifier_id_values(modifier):
         try:
-            val = modifier.get(key)
-            ref = _id_ref_from_value(val, f'modifiers["{key}"]')
+            ref = _id_ref_from_value(val, 'modifiers.properties.inputs')
             if ref:
                 references.append(ref)
         except (AttributeError, RuntimeError, ReferenceError, TypeError, KeyError):
             continue
-
     return references
 
 
@@ -465,15 +432,16 @@ def _extract_node_tree_references(node_tree):
                     except (AttributeError, RuntimeError, ReferenceError):
                         pass
                 
-                # ID input sockets: Material, Object, Collection, Image
-                # (Object Info, Collection Info, Set Material, Menu Switch, etc.)
+                # ID input sockets: Material, Object, Collection, Image, Font
+                # (Object Info, Collection Info, Set Material, String to Curves, etc.)
                 if hasattr(node, 'inputs'):
                     try:
                         for input_socket in node.inputs:
                             try:
                                 socket_type = str(getattr(input_socket, 'type', '')).upper()
                                 if socket_type not in (
-                                    'MATERIAL', 'OBJECT', 'COLLECTION', 'IMAGE', 'TEXTURE'
+                                    'MATERIAL', 'OBJECT', 'COLLECTION', 'IMAGE',
+                                    'TEXTURE', 'FONT',
                                 ):
                                     continue
                                 if not hasattr(input_socket, 'default_value'):
@@ -790,6 +758,32 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                         except (AttributeError, RuntimeError, ReferenceError):
                             pass
 
+                        # Child → parent: keeps armatures/empties when a mesh is scene-used
+                        try:
+                            parent = getattr(datablock, 'parent', None)
+                            if parent is not None and hasattr(parent, 'name'):
+                                references.append({
+                                    'property': 'parent',
+                                    'type': 'Object',
+                                    'name': parent.name,
+                                })
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+
+                        # Object.data is RNA-readonly so generic prop walk skips it;
+                        # Object Info targets still need mesh/curve edges to stay used.
+                        try:
+                            ob_data = getattr(datablock, 'data', None)
+                            ref = _id_ref_from_value(
+                                ob_data,
+                                'data',
+                                skip_library_types=set(),
+                            )
+                            if ref:
+                                references.append(ref)
+                        except (AttributeError, RuntimeError, ReferenceError):
+                            pass
+
                         # Objects can have modifiers that reference node groups (e.g., Geometry Nodes modifiers)
                         if hasattr(datablock, 'modifiers'):
                             # Create a snapshot to avoid iteration issues
@@ -820,6 +814,19 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                                         )
                                 except (AttributeError, RuntimeError, ReferenceError):
                                     # Geometry nodes modifier access may fail
+                                    pass
+
+                                # Armature modifier target — keep the deform armature used
+                                try:
+                                    if getattr(modifier, 'type', None) == 'ARMATURE':
+                                        arm_obj = getattr(modifier, 'object', None)
+                                        if arm_obj is not None and hasattr(arm_obj, 'name'):
+                                            references.append({
+                                                'property': 'modifiers.object',
+                                                'type': 'Object',
+                                                'name': arm_obj.name,
+                                            })
+                                except (AttributeError, RuntimeError, ReferenceError):
                                     pass
                                 
                                 # Modifiers with .texture (e.g. Displace) reference Texture datablocks
@@ -1053,6 +1060,8 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                         ref_type_normalized = 'mesh'
                     elif 'scene' in ref_type and 'datablock' not in ref_type:
                         ref_type_normalized = 'scene'
+                    elif ref_type in ('font', 'vectorfont') or 'vectorfont' in ref_type:
+                        ref_type_normalized = 'font'
                     
                     # Map type names to our data_type keys
                     type_mapping = {
@@ -1069,6 +1078,7 @@ def dump_rna_references(output_path=None, only_type=None, rna_data=None, referen
                         'particlesettings': 'particles',
                         'mesh': 'meshes',
                         'scene': 'scenes',
+                        'font': 'fonts',
                     }
                     
                     mapped_type = type_mapping.get(ref_type_normalized, ref_type_normalized)
@@ -1129,6 +1139,8 @@ def finalize_rna_reference_dump(rna_data, reference_map):
 
 def begin_rna_graph_build():
     """Start an incremental RNA reference dump + dependency graph build."""
+    # Never reuse a reachability set from a prior hierarchy (remap/paste/clean).
+    clear_graph_used_cache()
     try:
         type_names = list(_get_data_block_types().keys())
     except Exception:
@@ -1710,6 +1722,8 @@ def build_dependency_graph(rna_data):
                     ref_type_normalized = 'mesh'
                 elif 'scene' in ref_type and 'datablock' not in ref_type:
                     ref_type_normalized = 'scene'
+                elif ref_type in ('font', 'vectorfont') or 'vectorfont' in ref_type:
+                    ref_type_normalized = 'font'
                 
                 # Map type names
                 type_mapping = {
@@ -1726,6 +1740,7 @@ def build_dependency_graph(rna_data):
                     'particlesettings': 'particles',
                     'mesh': 'meshes',
                     'scene': 'scenes',
+                    'font': 'fonts',
                 }
                 
                 mapped_type = type_mapping.get(ref_type_normalized, ref_type_normalized)
@@ -1775,25 +1790,29 @@ def _compute_graph_used_set(graph, include_fake_users=None):
     roots = []
 
     def get_all_scene_collections(root_collection):
-        """Recursively get all collections in the scene hierarchy."""
+        """All collections in the scene outliner, including overrides/linked.
+
+        Skipping overrides here previously dropped entire character/lib-override
+        trees from collection roots so only scene.objects kept them alive.
+        """
         collections = []
-        if root_collection and not compat.is_library_or_override(root_collection):
+        if not root_collection:
+            return collections
+        try:
+            collections.append(root_collection)
             try:
-                collections.append(root_collection)
+                children = list(root_collection.children_recursive)
+            except (RuntimeError, ReferenceError):
+                children = []
+            for child in children:
+                if child is None:
+                    continue
                 try:
-                    children = list(root_collection.children_recursive)
-                except (RuntimeError, ReferenceError):
-                    children = []
-                for child in children:
-                    if child is None:
-                        continue
-                    try:
-                        if not compat.is_library_or_override(child):
-                            collections.append(child)
-                    except (AttributeError, RuntimeError, ReferenceError):
-                        continue
-            except (AttributeError, RuntimeError, ReferenceError):
-                pass
+                    collections.append(child)
+                except (AttributeError, RuntimeError, ReferenceError):
+                    continue
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
         return collections
 
     for scene in bpy.data.scenes:
@@ -1825,9 +1844,9 @@ def _compute_graph_used_set(graph, include_fake_users=None):
                         }
                         obj_type = obj.type
                         if obj_type in data_type_map:
-                            data_type = data_type_map[obj_type]
-                            if not compat.is_library_or_override(obj.data):
-                                roots.append((data_type, obj.data.name))
+                            # Keep mesh/armature data rooted even when linked so
+                            # local materials/images hanging off overrides stay reachable.
+                            roots.append((data_type_map[obj_type], obj.data.name))
                     except (AttributeError, RuntimeError, ReferenceError):
                         pass
                 if hasattr(obj, 'modifiers'):
@@ -1841,25 +1860,35 @@ def _compute_graph_used_set(graph, include_fake_users=None):
                         try:
                             if compat.is_geometry_nodes_modifier(modifier):
                                 ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                if ng and not compat.is_library_or_override(ng):
+                                if ng:
                                     roots.append(('node_groups', ng.name))
                         except (AttributeError, RuntimeError, ReferenceError):
                             continue
             except (AttributeError, RuntimeError, ReferenceError):
                 continue
 
-        if scene.world and not compat.is_library_or_override(scene.world):
-            roots.append(('worlds', scene.world.name))
+        if scene.world:
+            try:
+                roots.append(('worlds', scene.world.name))
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
 
         scene_collections = get_all_scene_collections(scene.collection)
         for collection in scene_collections:
-            if collection and not compat.is_library_or_override(collection):
-                roots.append(('collections', collection.name))
+            if collection:
+                try:
+                    roots.append(('collections', collection.name))
+                except (AttributeError, RuntimeError, ReferenceError):
+                    continue
 
         if hasattr(scene, 'rigidbody_world') and scene.rigidbody_world:
             if hasattr(scene.rigidbody_world, 'collection') and scene.rigidbody_world.collection:
-                if not compat.is_library_or_override(scene.rigidbody_world.collection):
-                    roots.append(('collections', scene.rigidbody_world.collection.name))
+                try:
+                    roots.append(
+                        ('collections', scene.rigidbody_world.collection.name)
+                    )
+                except (AttributeError, RuntimeError, ReferenceError):
+                    pass
 
         for collection in scene_collections:
             collection_objects = _safe_snapshot(collection.objects)
@@ -1883,9 +1912,7 @@ def _compute_graph_used_set(graph, include_fake_users=None):
                             }
                             obj_type = obj.type
                             if obj_type in data_type_map:
-                                data_type = data_type_map[obj_type]
-                                if not compat.is_library_or_override(obj.data):
-                                    roots.append((data_type, obj.data.name))
+                                roots.append((data_type_map[obj_type], obj.data.name))
                         except (AttributeError, RuntimeError, ReferenceError):
                             pass
                     if hasattr(obj, 'modifiers'):
@@ -1899,7 +1926,7 @@ def _compute_graph_used_set(graph, include_fake_users=None):
                             try:
                                 if compat.is_geometry_nodes_modifier(modifier):
                                     ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                                    if ng and not compat.is_library_or_override(ng):
+                                    if ng:
                                         roots.append(('node_groups', ng.name))
                             except (AttributeError, RuntimeError, ReferenceError):
                                 continue
@@ -1971,6 +1998,11 @@ def clear_graph_used_cache():
         'include_fake_users': None,
         'used': None,
     }
+    try:
+        from . import users as users_stats
+        users_stats.clear_gn_usage_cache()
+    except Exception:
+        pass
 
 
 def begin_materials_analysis(graph, short_circuit=False, include_fake_users=None):
@@ -2077,7 +2109,7 @@ def begin_graph_category_analysis(
                     if datablock is None:
                         continue
                     try:
-                        if compat.is_library_or_override(datablock):
+                        if compat.is_protected_from_clean(datablock):
                             continue
                         item_name = datablock.name
                         if item_name in skip_names:
@@ -2142,6 +2174,15 @@ def step_graph_category_analysis(state, batch_size=None):
                 f"[Atomic Debug] {category} scan: {offset + 1}/{total} '{item_name}'"
             )
         if (category, item_name) in used:
+            continue
+        # Re-resolve by name at step time — refuse linked/override/namesakes
+        try:
+            data_block_types = _get_data_block_types()
+            coll = data_block_types.get(category)
+            datablock = coll[item_name] if coll is not None and item_name in coll else None
+            if datablock is not None and compat.is_protected_from_clean(datablock):
+                continue
+        except (AttributeError, KeyError, RuntimeError, ReferenceError):
             continue
         if category == 'objects':
             try:
@@ -2257,7 +2298,7 @@ def analyze_unused_from_graph(
         if datablock is None:
             continue
         try:
-            if compat.is_library_or_override(datablock):
+            if compat.is_protected_from_clean(datablock):
                 continue
             
             item_name = datablock.name
