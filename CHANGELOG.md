@@ -1,3 +1,13 @@
+## [v2.11.0] - 2026-09-21
+
+### Features
+
+- **Main panel**: Include Fake Users toggle (same preference as Addon Preferences); changing it invalidates unused caches.
+
+### Fixes
+
+- **Clean / Smart Select**: orphaned local namesakes (objects/materials that only share a name with linked/override IDs) are cleanable via pointer-safe remove; category toggles follow sanitized unused lists.
+
 ## [v2.10.3] - 2026-09-21
 
 ### Fixes
