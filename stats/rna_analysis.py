@@ -2042,7 +2042,9 @@ def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
                 f"[Atomic Debug] materials scan: {offset + 1}/{total} '{item_name}'"
             )
         if ('materials', item_name) in state['used']:
-            continue
+            # Linked namesake may be scene-used while a local leftover remains
+            if not compat.is_cleanable_orphaned_local_namesake(material):
+                continue
         try:
             if users_stats.material_has_scene_reachable_user(
                 item_name, material=material
@@ -2050,7 +2052,13 @@ def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
                 continue
         except (AttributeError, KeyError, RuntimeError, ReferenceError):
             pass
-        state['unused'].append(item_name)
+        try:
+            if compat.is_protected_from_clean(material):
+                continue
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+        if item_name not in state['unused']:
+            state['unused'].append(item_name)
         if state['short_circuit']:
             users_stats.clear_material_scan_caches()
             return True, state['unused'], 1.0, current_name
@@ -2148,20 +2156,36 @@ def step_graph_category_analysis(state, batch_size=None):
                 f"[Atomic Debug] {category} scan: {offset + 1}/{total} '{item_name}'"
             )
         if (category, item_name) in used:
-            continue
-        # Re-resolve by name at step time — refuse linked/override/namesakes
+            # Name may be scene-used via a linked/override ID while a local
+            # orphaned namesake remains purgeable.
+            if category == 'objects':
+                try:
+                    coll = _get_data_block_types().get('objects')
+                    cand = compat.resolve_cleanable_datablock(coll, item_name)
+                    if cand is None or not compat.is_cleanable_orphaned_local_namesake(cand):
+                        continue
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    continue
+            else:
+                continue
+        # Re-resolve by name at step time — refuse linked/override; allow
+        # orphaned local namesakes via resolve_cleanable_datablock.
         try:
             data_block_types = _get_data_block_types()
             coll = data_block_types.get(category)
-            datablock = coll[item_name] if coll is not None and item_name in coll else None
-            if datablock is not None and compat.is_protected_from_clean(datablock):
+            datablock = (
+                compat.resolve_cleanable_datablock(coll, item_name)
+                if coll is not None else None
+            )
+            if datablock is None:
                 continue
         except (AttributeError, KeyError, RuntimeError, ReferenceError):
             continue
         if category == 'objects':
             try:
-                if users.object_all(item_name):
-                    continue
+                if not compat.is_scene_orphaned_local_object(datablock):
+                    if users.object_all(item_name):
+                        continue
             except (AttributeError, KeyError, RuntimeError, ReferenceError):
                 pass
         elif category == 'actions':
@@ -2279,51 +2303,58 @@ def analyze_unused_from_graph(
             if item_name in category_do_not_flag:
                 continue
 
-            if (category, item_name) not in used:
-                # Objects that appear in a scene collection must stay (traceable to a scene), even
-                # if the RNA graph missed them (e.g. mesh parented to an out-of-scene armature).
-                if category == 'objects':
-                    try:
-                        if users.object_all(item_name):
-                            continue
-                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                        pass
-                if category == 'actions':
-                    # Keep actions that still have scene/object users (NLA, shape keys, etc.)
-                    try:
-                        if users.action_all(item_name):
-                            continue
-                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                        pass
-                if category == 'collections':
-                    # Keep collections still linked to a scene / instance / contents
-                    # when the cached used-set is stale or incomplete after remap.
-                    try:
-                        if users.collection_all(item_name):
-                            continue
-                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                        pass
-                if category == 'materials':
-                    # Cleanability rule (issue #5): keep only when a
-                    # scene-reachable object or brush still uses this material
-                    # (RNA graph miss). Session cache matches material_objects /
-                    # material_geometry_nodes / material_brushes semantics.
-                    try:
-                        if users.material_has_scene_reachable_user(
-                            item_name, material=datablock
-                        ):
-                            continue
-                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                        pass
+            orphan_namesake = (
+                category == 'objects'
+                and compat.is_cleanable_orphaned_local_namesake(datablock)
+            )
+            if (category, item_name) in used and not orphan_namesake:
+                continue
+
+            # Objects that appear in a scene collection must stay (traceable to a scene), even
+            # if the RNA graph missed them (e.g. mesh parented to an out-of-scene armature).
+            if category == 'objects':
+                try:
+                    if not orphan_namesake and users.object_all(item_name):
+                        continue
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    pass
+            if category == 'actions':
+                # Keep actions that still have scene/object users (NLA, shape keys, etc.)
+                try:
+                    if users.action_all(item_name):
+                        continue
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    pass
+            if category == 'collections':
+                # Keep collections still linked to a scene / instance / contents
+                # when the cached used-set is stale or incomplete after remap.
+                try:
+                    if users.collection_all(item_name):
+                        continue
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    pass
+            if category == 'materials':
+                # Cleanability rule (issue #5): keep only when a
+                # scene-reachable object or brush still uses this material
+                # (RNA graph miss). Session cache matches material_objects /
+                # material_geometry_nodes / material_brushes semantics.
+                try:
+                    if users.material_has_scene_reachable_user(
+                        item_name, material=datablock
+                    ):
+                        continue
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    pass
+            if item_name not in unused:
                 unused.append(item_name)
-                if short_circuit:
-                    config.debug_print(
-                        f"[Atomic Debug] RNA Analysis: Short-circuit unused "
-                        f"{category} (found '{item_name}')"
-                    )
-                    if category == 'materials':
-                        users.clear_material_scan_caches()
-                    return unused
+            if short_circuit:
+                config.debug_print(
+                    f"[Atomic Debug] RNA Analysis: Short-circuit unused "
+                    f"{category} (found '{item_name}')"
+                )
+                if category == 'materials':
+                    users.clear_material_scan_caches()
+                return unused
         except (AttributeError, RuntimeError, ReferenceError):
             # Datablock may be invalid
             continue

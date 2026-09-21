@@ -213,6 +213,9 @@ def materials_deep():
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(material):
             continue
+        # Namesake locals that are not orphan-cleanable stay protected
+        if compat.is_protected_from_clean(material):
+            continue
         
         # Check if material is used by brushes - these should always be ignored
         if users.material_brushes(material.name, material=material):
@@ -621,12 +624,19 @@ def objects_deep():
     for obj in bpy.data.objects:
         if compat.is_protected_from_clean(obj):
             continue
+        # Orphaned local namesakes: name-based object_all may see the linked ID
+        if compat.is_cleanable_orphaned_local_namesake(obj):
+            if not obj.use_fake_user or config.include_fake_users:
+                if obj.name not in unused:
+                    unused.append(obj.name)
+            continue
         if not users.object_all(obj.name):
 
             # check if object has a fake user or if ignore fake users
             # is enabled
             if not obj.use_fake_user or config.include_fake_users:
-                unused.append(obj.name)
+                if obj.name not in unused:
+                    unused.append(obj.name)
 
     return unused
 

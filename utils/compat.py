@@ -278,6 +278,161 @@ def _bpy_data_collection_for(datablock):
     return getattr(bpy.data, attr, None)
 
 
+def has_linked_or_override_namesake(datablock):
+    """True if another ID in the same bpy.data collection shares this name and is linked/override."""
+    if datablock is None:
+        return False
+    try:
+        name = datablock.name
+    except (AttributeError, ReferenceError):
+        return False
+    data = _bpy_data_collection_for(datablock)
+    if data is None:
+        return False
+    try:
+        for other in data:
+            if other is datablock:
+                continue
+            try:
+                if other.name == name and is_library_or_override(other):
+                    return True
+            except (AttributeError, RuntimeError, ReferenceError):
+                continue
+    except (AttributeError, RuntimeError, ReferenceError):
+        return False
+    return False
+
+
+def is_scene_orphaned_local_object(obj):
+    """
+    Local non-override object with no collection membership and no scene base.
+
+    Typical leftover after linking/overriding a character: a full local mesh
+    object remains under the same name as the library ID but is not in the
+    scene hierarchy.
+    """
+    if obj is None:
+        return False
+    try:
+        if not isinstance(obj, bpy.types.Object):
+            return False
+        if is_library_or_override(obj):
+            return False
+        if obj.users_collection:
+            return False
+        ptr = obj.as_pointer()
+        for scene in bpy.data.scenes:
+            try:
+                for ob in scene.objects:
+                    if ob.as_pointer() == ptr:
+                        return False
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
+            try:
+                for ob in scene.collection.all_objects:
+                    if ob.as_pointer() == ptr:
+                        return False
+            except (AttributeError, RuntimeError, ReferenceError):
+                pass
+        return True
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return False
+
+
+def is_cleanable_orphaned_local_namesake(datablock):
+    """
+    Local ID that shares a name with a linked/override ID but is safe to purge.
+
+    - Objects: not in any collection / scene base.
+    - Materials: no scene-reachable user; any object users are themselves
+      cleanable orphaned local namesakes (leftovers after linking/override).
+    """
+    try:
+        if isinstance(datablock, bpy.types.Object):
+            if not has_linked_or_override_namesake(datablock):
+                return False
+            return is_scene_orphaned_local_object(datablock)
+
+        if isinstance(datablock, bpy.types.Material):
+            if is_library_or_override(datablock):
+                return False
+            if not has_linked_or_override_namesake(datablock):
+                return False
+            # Lazy import: users <-> compat
+            from ..stats import users as users_stats
+            if users_stats.material_has_scene_reachable_user(
+                datablock.name, material=datablock
+            ):
+                return False
+            obj_names = users_stats.material_objects(
+                datablock.name, material=datablock
+            )
+            if not obj_names:
+                # No object slots — ghost/CC3-only users are fine to purge
+                return True
+            for obj_name in obj_names:
+                matched = None
+                for candidate in bpy.data.objects:
+                    try:
+                        if candidate.name != obj_name:
+                            continue
+                        if is_library_or_override(candidate):
+                            continue
+                        slots = getattr(candidate, 'material_slots', None)
+                        if slots and any(s.material == datablock for s in slots):
+                            matched = candidate
+                            break
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        continue
+                if matched is None:
+                    # Name hit without a local slot user — treat as unsafe
+                    return False
+                if not is_cleanable_orphaned_local_namesake(matched):
+                    return False
+            return True
+
+        return False
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return False
+
+
+def iter_datablocks_named(data, key):
+    """Yield all IDs in a bpy.data collection whose .name equals key."""
+    if data is None:
+        return
+    try:
+        for db in data:
+            try:
+                if db is not None and db.name == key:
+                    yield db
+            except (AttributeError, RuntimeError, ReferenceError):
+                continue
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        return
+
+
+def resolve_cleanable_datablock(data, key):
+    """
+    Pick a non-protected local ID for this name (pointer-safe among namesakes).
+
+    Prefer an orphaned local namesake when several unprotected locals share a name.
+    """
+    if data is None:
+        return None
+    fallback = None
+    for db in iter_datablocks_named(data, key):
+        try:
+            if is_protected_from_clean(db):
+                continue
+        except (AttributeError, RuntimeError, ReferenceError):
+            continue
+        if is_cleanable_orphaned_local_namesake(db):
+            return db
+        if fallback is None:
+            fallback = db
+    return fallback
+
+
 def is_protected_from_clean(datablock):
     """
     True if Atomic must never flag-as-unused or delete this datablock.
@@ -285,6 +440,10 @@ def is_protected_from_clean(datablock):
     Stronger than is_library_or_override: also blocks locals that share a .name
     with a linked/override ID (ambiguous bpy.data[name] after paste/remap), and
     objects that live in an override collection hierarchy.
+
+    Exception: scene-orphaned local objects (and materials only used by them)
+    that only collide by name with a linked/override ID are cleanable via
+    pointer remove.
     """
     if datablock is None:
         return True
@@ -295,24 +454,15 @@ def is_protected_from_clean(datablock):
         return True
 
     # Namesake linked/override — deleting the local would be wrong after the
-    # linked ID reclaims the bare name (or bpy.data[name] is ambiguous).
+    # linked ID reclaims the bare name (or bpy.data[name] is ambiguous),
+    # unless this is an orphaned local leftover (pointer-safe purge).
     try:
-        name = datablock.name
-    except (AttributeError, ReferenceError):
-        return True
-    data = _bpy_data_collection_for(datablock)
-    if data is not None:
-        try:
-            for other in data:
-                if other is datablock:
-                    continue
-                try:
-                    if other.name == name and is_library_or_override(other):
-                        return True
-                except (AttributeError, RuntimeError, ReferenceError):
-                    continue
-        except (AttributeError, RuntimeError, ReferenceError):
-            pass
+        if has_linked_or_override_namesake(datablock):
+            if is_cleanable_orphaned_local_namesake(datablock):
+                return False
+            return True
+    except (AttributeError, RuntimeError, ReferenceError):
+        pass
 
     # Objects housed by an override collection are part of a lib-override tree
     try:

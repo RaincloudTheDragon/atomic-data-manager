@@ -1424,20 +1424,22 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     
     atom = bpy.context.scene.atomic
     _safe_set_atom_property(atom, 'operation_progress', SCAN_PROGRESS_FINISH)
-
-    # Update UI toggles
     _safe_set_atom_property(atom, 'operation_status', "Updating selection...")
-    atom.collections = _smart_select_state['unused_flags'].get('collections', False)
-    atom.images = _smart_select_state['unused_flags'].get('images', False)
-    atom.lights = _smart_select_state['unused_flags'].get('lights', False)
-    atom.materials = _smart_select_state['unused_flags'].get('materials', False)
-    atom.node_groups = _smart_select_state['unused_flags'].get('node_groups', False)
-    atom.objects = _smart_select_state['unused_flags'].get('objects', False)
-    atom.particles = _smart_select_state['unused_flags'].get('particles', False)
-    atom.textures = _smart_select_state['unused_flags'].get('textures', False)
-    atom.armatures = _smart_select_state['unused_flags'].get('armatures', False)
-    atom.actions = _smart_select_state['unused_flags'].get('actions', False)
-    atom.worlds = _smart_select_state['unused_flags'].get('worlds', False)
+
+    # Update UI toggles from the full sanitized unused lists — not quick-scan
+    # flags, which can stay True after sanitize empties a category (e.g. namesake
+    # locals that were short-circuit detected then filtered out).
+    atom.collections = bool(results.get('collections'))
+    atom.images = bool(results.get('images'))
+    atom.lights = bool(results.get('lights'))
+    atom.materials = bool(results.get('materials'))
+    atom.node_groups = bool(results.get('node_groups'))
+    atom.objects = bool(results.get('objects'))
+    atom.particles = bool(results.get('particles'))
+    atom.textures = bool(results.get('textures'))
+    atom.armatures = bool(results.get('armatures'))
+    atom.actions = bool(results.get('actions'))
+    atom.worlds = bool(results.get('worlds'))
     
     # Operation complete
     category_count = len(_smart_select_state['detected_categories'])

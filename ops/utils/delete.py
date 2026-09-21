@@ -46,36 +46,35 @@ CATEGORY_DATA = {
 def remove_if_local(data, key):
     """Remove a datablock by name only if it is safe to clean.
 
-    Uses is_protected_from_clean plus a live scene-reachability check so
-    instance-collection / override trees are never deleted mid-chain.
+    Resolves among same-named linked/local IDs by pointer (orphaned local
+    namesakes first). Uses is_protected_from_clean plus a live scene-
+    reachability check so instance-collection / override trees are never
+    deleted mid-chain.
 
     Returns:
         True if removed, False if missing or skipped.
     """
-    if data is None or key not in data:
+    if data is None:
         return False
-    datablock = data[key]
-    try:
-        if compat.is_protected_from_clean(datablock):
-            return False
-    except (AttributeError, RuntimeError, ReferenceError):
+    datablock = compat.resolve_cleanable_datablock(data, key)
+    if datablock is None:
         return False
 
     # Live scene anchor — never delete something still reachable from a scene
     try:
         from ...stats import users as users_stats
-        import bpy
         if isinstance(datablock, bpy.types.Object):
-            if users_stats.object_all(datablock.name):
-                return False
-            # Pointer-accurate scene membership (name lookup is ambiguous)
-            for scene in bpy.data.scenes:
-                try:
-                    for ob in scene.objects:
-                        if ob.as_pointer() == datablock.as_pointer():
-                            return False
-                except (AttributeError, RuntimeError, ReferenceError):
-                    continue
+            # Pointer-accurate only: name-based object_all is wrong with namesakes
+            if not compat.is_scene_orphaned_local_object(datablock):
+                if users_stats.object_all(datablock.name):
+                    return False
+                for scene in bpy.data.scenes:
+                    try:
+                        for ob in scene.objects:
+                            if ob.as_pointer() == datablock.as_pointer():
+                                return False
+                    except (AttributeError, RuntimeError, ReferenceError):
+                        continue
         elif isinstance(datablock, bpy.types.Collection):
             if users_stats.collection_all(datablock.name):
                 return False
@@ -90,7 +89,31 @@ def remove_if_local(data, key):
     except Exception:
         pass
 
-    data.remove(datablock)
+    # Capture local mesh/armature data before object removal (may become orphaned)
+    ob_data = None
+    try:
+        if isinstance(datablock, bpy.types.Object):
+            ob_data = datablock.data
+            if ob_data is not None and compat.is_library_or_override(ob_data):
+                ob_data = None
+    except (AttributeError, RuntimeError, ReferenceError):
+        ob_data = None
+
+    try:
+        data.remove(datablock)
+    except (ReferenceError, RuntimeError):
+        return False
+
+    # Drop leftover local obdata if nothing else uses it
+    if ob_data is not None:
+        try:
+            if ob_data.users == 0 and not compat.is_library_or_override(ob_data):
+                if isinstance(ob_data, bpy.types.Mesh):
+                    bpy.data.meshes.remove(ob_data)
+                elif isinstance(ob_data, bpy.types.Armature):
+                    bpy.data.armatures.remove(ob_data)
+        except (AttributeError, ReferenceError, RuntimeError, KeyError):
+            pass
     return True
 
 
@@ -114,11 +137,8 @@ def filter_unused_names(category, names):
         return list(names)
     kept = []
     for key in names:
-        if key not in data:
-            # Already gone — omit from Clean UI
-            continue
         try:
-            if compat.is_protected_from_clean(data[key]):
+            if compat.resolve_cleanable_datablock(data, key) is None:
                 continue
         except (AttributeError, RuntimeError, ReferenceError):
             continue
