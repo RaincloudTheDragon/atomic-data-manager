@@ -306,6 +306,16 @@ def _material_session_ng_has_material(state, ng_name, material):
     return memo[key]
 
 
+def _add_materials_from_gn_modifier_inputs(modifier, gn_material_ids):
+    """Record Material IDs bound on a GN modifier's input sockets (Blender 5.x)."""
+    for val in compat.iter_geometry_nodes_modifier_id_values(modifier):
+        try:
+            if getattr(val.bl_rna, 'identifier', None) == 'Material':
+                gn_material_ids.add(id(val))
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            continue
+
+
 def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH):
     """
     Advance material session build by one object batch.
@@ -359,6 +369,10 @@ def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH)
             for modifier in obj.modifiers:
                 if not compat.is_geometry_nodes_modifier(modifier):
                     continue
+                # Per-modifier Material socket overrides (shared trees differ per object)
+                _add_materials_from_gn_modifier_inputs(
+                    modifier, state['gn_material_ids']
+                )
                 ng = compat.get_geometry_nodes_modifier_node_group(modifier)
                 if ng is None or ng.name in state['visited_gn_roots']:
                     continue
@@ -435,6 +449,8 @@ def _build_material_rna_session():
         for modifier in obj.modifiers:
             if not compat.is_geometry_nodes_modifier(modifier):
                 continue
+            # Per-object Material socket overrides (must not skip via visited_gn_roots)
+            _add_materials_from_gn_modifier_inputs(modifier, gn_material_ids)
             ng = compat.get_geometry_nodes_modifier_node_group(modifier)
             if ng is None or ng.name in visited_gn_roots:
                 continue
@@ -1059,11 +1075,20 @@ def material_geometry_nodes(material_key, material=None):
 
         if hasattr(obj, 'modifiers'):
             for modifier in obj.modifiers:
-                if compat.is_geometry_nodes_modifier(modifier):
+                if not compat.is_geometry_nodes_modifier(modifier):
+                    continue
+                # Material bound on this modifier's input sockets (Blender 5.x)
+                for val in compat.iter_geometry_nodes_modifier_id_values(modifier):
+                    try:
+                        if val == material:
+                            users.append(obj.name)
+                            break
+                    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+                        continue
+                else:
                     ng = compat.get_geometry_nodes_modifier_node_group(modifier)
                     if ng:
-                        # Check if this node group or any nested node groups contain the material
-                        # Pass material datablock reference to ensure we match the correct material
+                        # Material embedded in the node tree / nested groups
                         if node_group_has_material_by_ref(ng.name, material):
                             users.append(obj.name)
 
