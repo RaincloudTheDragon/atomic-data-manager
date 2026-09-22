@@ -339,11 +339,38 @@ def is_scene_orphaned_local_object(obj):
         return False
 
 
+def _orphaned_object_has_blocking_users(obj):
+    """
+    True when user_map lists a real keeper for a collection-less local object.
+
+    Scene-only hits are ignored: link/override leftovers often retain a Scene
+    user without appearing in scene.objects / collections. Node trees (Object
+    Info), other objects, collections, etc. still block cleanup.
+    """
+    try:
+        user_map = bpy.data.user_map(subset=[obj])
+        refs = user_map.get(obj) or set()
+    except (AttributeError, RuntimeError, TypeError, ReferenceError):
+        return getattr(obj, 'users', 0) > 0
+
+    for user in refs:
+        try:
+            if isinstance(user, bpy.types.Scene):
+                continue
+            return True
+        except (ReferenceError, AttributeError):
+            continue
+    return False
+
+
 def is_cleanable_orphaned_local_namesake(datablock):
     """
     Local ID that shares a name with a linked/override ID but is safe to purge.
 
-    - Objects: not in any collection / scene base.
+    - Objects: not in any collection / scene base, and no *blocking* ID users.
+      Geometry Nodes Object Info (and similar) count as blocking. A lone Scene
+      entry in user_map does not — Blender often leaves that on link/override
+      leftovers that are already outside the hierarchy.
     - Materials: no scene-reachable user; any object users are themselves
       cleanable orphaned local namesakes (leftovers after linking/override).
     """
@@ -351,7 +378,13 @@ def is_cleanable_orphaned_local_namesake(datablock):
         if isinstance(datablock, bpy.types.Object):
             if not has_linked_or_override_namesake(datablock):
                 return False
-            return is_scene_orphaned_local_object(datablock)
+            if not is_scene_orphaned_local_object(datablock):
+                return False
+            # Pointer-safe keepers (Object Info, parents, etc.). Name-based
+            # object_all is unsafe here: a linked namesake may be the scene hit.
+            if _orphaned_object_has_blocking_users(datablock):
+                return False
+            return True
 
         if isinstance(datablock, bpy.types.Material):
             if is_library_or_override(datablock):
