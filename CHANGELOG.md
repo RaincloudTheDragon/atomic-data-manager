@@ -1,3 +1,9 @@
+## [v2.11.1] - 2026-09-22
+
+### Fixes
+
+- **Materials**: Geometry Nodes modifier Material socket overrides (Blender 5.x) count as used, so local namesakes are not falsely cleanable.
+
 ## [v2.11.0] - 2026-09-21
 
 ### Features
