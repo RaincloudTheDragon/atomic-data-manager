@@ -1,3 +1,10 @@
+## [v2.12.0] - 2026-09-22
+
+### Fixes
+
+- **Remap (#23)**: Search/Replace prefer blend-relative library paths and fall back to absolute when anchors differ (no Relative Path checkbox).
+- **Objects**: Geometry Nodes Object Info targets stay used; collection-less local namesakes with only phantom Scene users remain cleanable.
+
 ## [v2.11.1] - 2026-09-22
 
 ### Fixes
