@@ -558,57 +558,68 @@ def _validate_replacement_library(library_key, replacement_path, original_info):
     return warnings
 
 
+def _library_filepath_prefer_relative(abs_path):
+    """
+    Prefer a blend-relative ``//`` path for library.filepath (#23).
+
+    Falls back to the absolute path when the blend is unsaved or the hit sits
+    on a different drive/root anchor (Windows ``ValueError`` from relpath).
+    """
+    abs_path = os.path.normpath(abs_path)
+    if not bpy.data.filepath:
+        return abs_path
+    try:
+        return bpy.path.relpath(abs_path)
+    except (ValueError, OSError, TypeError, RuntimeError):
+        return abs_path
+
+
 def _relink_library(library_key, new_filepath, use_relative_path=True):
-    """Relink a library to a new filepath
-    
+    """Relink a library to a new filepath.
+
     Args:
         library_key: Key of the library to relink
-        new_filepath: New filepath (can be absolute or relative)
-        use_relative_path: If True, use relative path when available (default: True)
+        new_filepath: New filepath (absolute or blend-relative)
+        use_relative_path: If True (default), prefer ``//`` relative when the
+            blend and hit share an anchor; otherwise store an absolute path.
+            If False, always store absolute.
     """
     if library_key not in bpy.data.libraries:
         return False, "Library not found"
-    
+
     library = bpy.data.libraries[library_key]
-    
+
     try:
-        # Convert to absolute path
         if not new_filepath:
             return False, "No filepath provided"
-        
-        abs_path = bpy.path.abspath(new_filepath)
-        
+
+        abs_path = os.path.normpath(bpy.path.abspath(new_filepath))
+
         if not os.path.exists(abs_path):
             return False, f"File does not exist: {abs_path}"
-        
+
         if not os.path.isfile(abs_path):
             return False, f"Path is not a file: {abs_path}"
-        
+
         if not abs_path.lower().endswith('.blend'):
             return False, f"File is not a .blend file: {abs_path}"
-        
-        # Check if file is readable
+
         if not os.access(abs_path, os.R_OK):
             return False, f"Cannot read file (permission denied): {abs_path}"
-        
-        # Update library filepath
+
         try:
             if use_relative_path:
-                # Use relative path when available (bpy.path.relpath returns relative if possible, absolute otherwise)
-                library.filepath = bpy.path.relpath(abs_path)
+                library.filepath = _library_filepath_prefer_relative(abs_path)
             else:
-                # Use absolute path
                 library.filepath = abs_path
         except Exception as e:
             return False, f"Error setting library filepath: {str(e)}"
-        
-        # Reload the library
+
         try:
             library.reload()
         except Exception as e:
-            # Filepath was set, but reload failed (might be corrupted or incompatible)
             return False, f"Library filepath updated but reload failed: {str(e)}"
-        
+
         return True, "Library relinked successfully"
     except Exception as e:
         return False, f"Error relinking library: {str(e)}"
@@ -632,13 +643,6 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
     bl_idname = "atomic.search_missing"
     bl_label = "Search for Missing Libraries"
     bl_options = {'REGISTER', 'UNDO'}
-
-    # Relative path option
-    relative_path: bpy.props.BoolProperty(
-        name="Relative Path",
-        description="Select the file relative to the blend file",
-        default=True
-    )
 
     # Selected matches for libraries with multiple candidates
     selected_matches: bpy.props.StringProperty(default="")  # JSON-like storage
@@ -694,11 +698,7 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                 remove_idname="atomic.remap_prefs_equiv_remove",
             )
 
-        # Relative path checkbox
-        row = layout.row()
-        row.prop(self, 'relative_path', text="Relative Path")
-
-        # Search button
+        # Search button — relink prefers // relative, falls back to absolute (#23)
         if not state['is_searching']:
             row = layout.row()
             valid = [
@@ -821,7 +821,6 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                         op.library_key = lib_key
                         op.filepath = selected_match
                         op.ignore_warnings = True
-                        op.use_relative_path = self.relative_path
                     else:
                         op = row.operator(
                             "atomic.search_missing_relink",
@@ -830,7 +829,6 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                         op.library_key = lib_key
                         op.filepath = selected_match
                         op.ignore_warnings = False
-                        op.use_relative_path = self.relative_path
 
             # Relink All: show when at least one library has a relinkable match
             relinkable = [
@@ -846,7 +844,6 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                     text="Relink All",
                     icon='LINKED',
                 )
-                op.use_relative_path = self.relative_path
 
         # Error display
         if state.get('search_error'):
@@ -1122,10 +1119,9 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
     library_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
     ignore_warnings: bpy.props.BoolProperty(default=False)
-    use_relative_path: bpy.props.BoolProperty(default=True)
-    
+
     def execute(self, context):
-        success, message = _relink_library(self.library_key, self.filepath, self.use_relative_path)
+        success, message = _relink_library(self.library_key, self.filepath)
         
         if success:
             self.report({'INFO'}, f"Library relinked: {message}")
@@ -1156,9 +1152,7 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
     bl_idname = "atomic.search_missing_relink_all"
     bl_label = "Relink All"
     bl_options = {'INTERNAL'}
-    
-    use_relative_path: bpy.props.BoolProperty(default=True)
-    
+
     def execute(self, context):
         global _library_search_state
         matches = _library_search_state.get('matches', {})
@@ -1172,7 +1166,7 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
             return {'CANCELLED'}
         ok, fail = 0, 0
         for lib_key, filepath in to_relink:
-            success, _ = _relink_library(lib_key, filepath, self.use_relative_path)
+            success, _ = _relink_library(lib_key, filepath)
             if success:
                 ok += 1
                 del _library_search_state['matches'][lib_key]
@@ -1481,7 +1475,7 @@ class ATOMIC_OT_replace_missing_relink(bpy.types.Operator):
             self.report({'ERROR'}, "No filepath specified")
             return {'CANCELLED'}
         
-        success, message = _relink_library(self.library_key, self.filepath, use_relative_path=True)
+        success, message = _relink_library(self.library_key, self.filepath)
         
         if success:
             self.report({'INFO'}, f"Library relinked: {message}")
@@ -1515,7 +1509,7 @@ class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
         
         ok, fail = 0, 0
         for lib_key, filepath in to_relink:
-            success, _ = _relink_library(lib_key, filepath, use_relative_path=True)
+            success, _ = _relink_library(lib_key, filepath)
             if success:
                 ok += 1
                 del _replace_missing_state[lib_key]
