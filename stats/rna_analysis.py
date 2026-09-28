@@ -2303,8 +2303,10 @@ def analyze_unused_from_graph(
             if item_name in category_do_not_flag:
                 continue
 
+            # Objects/images sharing a name with a used linked twin still need
+            # to surface when the local ID is a Scene-phantom leftover.
             orphan_namesake = (
-                category == 'objects'
+                category in ('objects', 'images')
                 and compat.is_cleanable_orphaned_local_namesake(datablock)
             )
             if (category, item_name) in used and not orphan_namesake:

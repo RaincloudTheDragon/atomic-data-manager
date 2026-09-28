@@ -339,19 +339,19 @@ def is_scene_orphaned_local_object(obj):
         return False
 
 
-def _orphaned_object_has_blocking_users(obj):
+def _orphaned_id_has_blocking_users(datablock):
     """
-    True when user_map lists a real keeper for a collection-less local object.
+    True when user_map lists a real keeper for an orphaned local namesake.
 
     Scene-only hits are ignored: link/override leftovers often retain a Scene
-    user without appearing in scene.objects / collections. Node trees (Object
-    Info), other objects, collections, etc. still block cleanup.
+    user without real hierarchy use. Node trees, materials, objects, etc. still
+    block cleanup.
     """
     try:
-        user_map = bpy.data.user_map(subset=[obj])
-        refs = user_map.get(obj) or set()
+        user_map = bpy.data.user_map(subset=[datablock])
+        refs = user_map.get(datablock) or set()
     except (AttributeError, RuntimeError, TypeError, ReferenceError):
-        return getattr(obj, 'users', 0) > 0
+        return getattr(datablock, 'users', 0) > 0
 
     for user in refs:
         try:
@@ -361,6 +361,11 @@ def _orphaned_object_has_blocking_users(obj):
         except (ReferenceError, AttributeError):
             continue
     return False
+
+
+# Back-compat alias
+def _orphaned_object_has_blocking_users(obj):
+    return _orphaned_id_has_blocking_users(obj)
 
 
 def is_cleanable_orphaned_local_namesake(datablock):
@@ -373,6 +378,7 @@ def is_cleanable_orphaned_local_namesake(datablock):
       leftovers that are already outside the hierarchy.
     - Materials: no scene-reachable user; any object users are themselves
       cleanable orphaned local namesakes (leftovers after linking/override).
+    - Images: same Scene-phantom rule; no material/node/world/compositor keepers.
     """
     try:
         if isinstance(datablock, bpy.types.Object):
@@ -382,7 +388,7 @@ def is_cleanable_orphaned_local_namesake(datablock):
                 return False
             # Pointer-safe keepers (Object Info, parents, etc.). Name-based
             # object_all is unsafe here: a linked namesake may be the scene hit.
-            if _orphaned_object_has_blocking_users(datablock):
+            if _orphaned_id_has_blocking_users(datablock):
                 return False
             return True
 
@@ -422,6 +428,20 @@ def is_cleanable_orphaned_local_namesake(datablock):
                     return False
                 if not is_cleanable_orphaned_local_namesake(matched):
                     return False
+            return True
+
+        if isinstance(datablock, bpy.types.Image):
+            if is_library_or_override(datablock):
+                return False
+            if not has_linked_or_override_namesake(datablock):
+                return False
+            # Built-in / viewport images must never be carved out
+            if datablock.name in ("Render Result", "Viewer Node", "D-NOISE Export"):
+                return False
+            # Linked namesake may still be used by linked materials; only this
+            # local ID's user_map matters (Scene phantoms ignored).
+            if _orphaned_id_has_blocking_users(datablock):
+                return False
             return True
 
         return False
@@ -474,8 +494,8 @@ def is_protected_from_clean(datablock):
     with a linked/override ID (ambiguous bpy.data[name] after paste/remap), and
     objects that live in an override collection hierarchy.
 
-    Exception: scene-orphaned local objects (and materials only used by them)
-    that only collide by name with a linked/override ID are cleanable via
+    Exception: scene-orphaned local objects/images (and materials only used by
+    them) that only collide by name with a linked/override ID are cleanable via
     pointer remove.
     """
     if datablock is None:
