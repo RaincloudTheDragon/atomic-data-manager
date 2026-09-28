@@ -339,14 +339,20 @@ def is_scene_orphaned_local_object(obj):
         return False
 
 
-def _orphaned_id_has_blocking_users(datablock):
+def _orphaned_id_has_blocking_users(datablock, _memo=None):
     """
     True when user_map lists a real keeper for an orphaned local namesake.
 
     Scene-only hits are ignored: link/override leftovers often retain a Scene
-    user without real hierarchy use. Node trees, materials, objects, etc. still
-    block cleanup.
+    user without real hierarchy use.
+
+    Keepers that are themselves cleanable orphaned local namesakes are also
+    ignored (recursive): e.g. a local image held only by a cleanable material
+    namesake must purge in the same Smart Select as that material, not a
+    second pass after Clean.
     """
+    if _memo is None:
+        _memo = {}
     try:
         user_map = bpy.data.user_map(subset=[datablock])
         refs = user_map.get(datablock) or set()
@@ -356,6 +362,9 @@ def _orphaned_id_has_blocking_users(datablock):
     for user in refs:
         try:
             if isinstance(user, bpy.types.Scene):
+                continue
+            # Transitive namesake leftovers are co-purged — not blockers
+            if is_cleanable_orphaned_local_namesake(user, _memo=_memo):
                 continue
             return True
         except (ReferenceError, AttributeError):
@@ -368,7 +377,7 @@ def _orphaned_object_has_blocking_users(obj):
     return _orphaned_id_has_blocking_users(obj)
 
 
-def is_cleanable_orphaned_local_namesake(datablock):
+def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
     """
     Local ID that shares a name with a linked/override ID but is safe to purge.
 
@@ -378,36 +387,65 @@ def is_cleanable_orphaned_local_namesake(datablock):
       leftovers that are already outside the hierarchy.
     - Materials: no scene-reachable user; any object users are themselves
       cleanable orphaned local namesakes (leftovers after linking/override).
-    - Images: same Scene-phantom rule; no material/node/world/compositor keepers.
+    - Images: Scene phantoms ignored; keepers that are cleanable namesakes
+      (materials, etc.) are also ignored so chains purge in one pass.
+
+    ``_memo`` is an optional pointer→bool cache for recursive co-namesake walks
+    (avoids cycles and duplicate work within one decision).
     """
+    if datablock is None:
+        return False
+    if _memo is None:
+        _memo = {}
+
+    try:
+        ptr = datablock.as_pointer()
+    except (AttributeError, ReferenceError, RuntimeError):
+        return False
+
+    if ptr in _memo:
+        return _memo[ptr]
+
+    # Assume cleanable while evaluating so mutual namesake keepers (A↔B)
+    # do not permanently block each other.
+    _memo[ptr] = True
+
     try:
         if isinstance(datablock, bpy.types.Object):
             if not has_linked_or_override_namesake(datablock):
+                _memo[ptr] = False
                 return False
             if not is_scene_orphaned_local_object(datablock):
+                _memo[ptr] = False
                 return False
             # Pointer-safe keepers (Object Info, parents, etc.). Name-based
             # object_all is unsafe here: a linked namesake may be the scene hit.
-            if _orphaned_id_has_blocking_users(datablock):
+            if _orphaned_id_has_blocking_users(datablock, _memo=_memo):
+                _memo[ptr] = False
                 return False
+            _memo[ptr] = True
             return True
 
         if isinstance(datablock, bpy.types.Material):
             if is_library_or_override(datablock):
+                _memo[ptr] = False
                 return False
             if not has_linked_or_override_namesake(datablock):
+                _memo[ptr] = False
                 return False
             # Lazy import: users <-> compat
             from ..stats import users as users_stats
             if users_stats.material_has_scene_reachable_user(
                 datablock.name, material=datablock
             ):
+                _memo[ptr] = False
                 return False
             obj_names = users_stats.material_objects(
                 datablock.name, material=datablock
             )
             if not obj_names:
                 # No object slots — ghost/CC3-only users are fine to purge
+                _memo[ptr] = True
                 return True
             for obj_name in obj_names:
                 matched = None
@@ -425,27 +463,38 @@ def is_cleanable_orphaned_local_namesake(datablock):
                         continue
                 if matched is None:
                     # Name hit without a local slot user — treat as unsafe
+                    _memo[ptr] = False
                     return False
-                if not is_cleanable_orphaned_local_namesake(matched):
+                if not is_cleanable_orphaned_local_namesake(matched, _memo=_memo):
+                    _memo[ptr] = False
                     return False
+            _memo[ptr] = True
             return True
 
         if isinstance(datablock, bpy.types.Image):
             if is_library_or_override(datablock):
+                _memo[ptr] = False
                 return False
             if not has_linked_or_override_namesake(datablock):
+                _memo[ptr] = False
                 return False
             # Built-in / viewport images must never be carved out
             if datablock.name in ("Render Result", "Viewer Node", "D-NOISE Export"):
+                _memo[ptr] = False
                 return False
             # Linked namesake may still be used by linked materials; only this
-            # local ID's user_map matters (Scene phantoms ignored).
-            if _orphaned_id_has_blocking_users(datablock):
+            # local ID's user_map matters (Scene phantoms + cleanable namesake
+            # keepers ignored so material→image chains clear in one pass).
+            if _orphaned_id_has_blocking_users(datablock, _memo=_memo):
+                _memo[ptr] = False
                 return False
+            _memo[ptr] = True
             return True
 
+        _memo[ptr] = False
         return False
     except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        _memo[ptr] = False
         return False
 
 
