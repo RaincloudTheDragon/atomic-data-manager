@@ -80,3 +80,20 @@ def textures():
 def worlds():
     # removes all worlds from the project
     nuke_data(bpy.data.worlds)
+
+
+def objects():
+    # removes all local objects from the project
+    nuke_data(bpy.data.objects)
+
+
+def armatures():
+    # removes all local armatures from the project
+    if hasattr(bpy.data, "armatures"):
+        nuke_data(bpy.data.armatures)
+
+
+def actions():
+    # removes all local actions from the project
+    if hasattr(bpy.data, "actions"):
+        nuke_data(bpy.data.actions)

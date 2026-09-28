@@ -822,10 +822,11 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
         col = layout.column()
         col.label(text="Remove the following data-blocks?")
 
-        # No Data Section
+        # No Data Section — match main-panel categories
         if not (atom.collections or atom.images or atom.lights or
-                atom.materials or atom.node_groups or atom.particles or
-                atom.textures or atom.worlds):
+                atom.materials or atom.node_groups or atom.objects or
+                atom.particles or atom.textures or atom.armatures or
+                atom.actions or atom.worlds):
 
             ui_layouts.box_list(
                 layout=layout,
@@ -891,6 +892,18 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
                 icon="NODETREE"
             )
 
+        # display when the main panel objects property is toggled
+        if atom.objects:
+            from ..utils import compat
+            objects = sorted([o.name for o in bpy.data.objects
+                             if not compat.is_library_or_override(o)])
+            ui_layouts.box_list(
+                layout=layout,
+                title="Objects",
+                items=objects,
+                icon="OBJECT_DATA"
+            )
+
         # display when the main panel particle systems property is toggled
         if atom.particles:
             from ..utils import compat
@@ -915,6 +928,34 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
                 icon="TEXTURE"
             )
 
+        # display when the main panel armatures property is toggled
+        if atom.armatures:
+            from ..utils import compat
+            armatures = sorted([
+                a.name for a in getattr(bpy.data, "armatures", [])
+                if not compat.is_library_or_override(a)
+            ])
+            ui_layouts.box_list(
+                layout=layout,
+                title="Armatures",
+                items=armatures,
+                icon="ARMATURE_DATA"
+            )
+
+        # display when the main panel actions property is toggled
+        if atom.actions:
+            from ..utils import compat
+            actions = sorted([
+                a.name for a in getattr(bpy.data, "actions", [])
+                if not compat.is_library_or_override(a)
+            ])
+            ui_layouts.box_list(
+                layout=layout,
+                title="Actions",
+                items=actions,
+                icon="ACTION"
+            )
+
         # display when the main panel worlds property is toggled
         if atom.worlds:
             from ..utils import compat
@@ -931,6 +972,7 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
 
     def execute(self, context):
         atom = bpy.context.scene.atomic
+        from .utils import clean as clean_utils
 
         # One empty-scene session for the whole Nuke (nuke.* helpers nest re-entrantly)
         with safe_delete.safe_datablock_removal():
@@ -949,11 +991,29 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
             if atom.node_groups:
                 nuke.node_groups()
 
+            if atom.objects:
+                from ..utils import compat
+                object_keys = [
+                    o.name for o in bpy.data.objects
+                    if not compat.is_library_or_override(o)
+                ]
+                for msg in clean_utils.detach_scene_objects_from_removal_targets(
+                    object_keys
+                ):
+                    self.report({'INFO'}, msg)
+                nuke.objects()
+
             if atom.particles:
                 nuke.particles()
 
             if atom.textures:
                 nuke.textures()
+
+            if atom.armatures:
+                nuke.armatures()
+
+            if atom.actions:
+                nuke.actions()
 
             if atom.worlds:
                 nuke.worlds()

@@ -60,11 +60,15 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
 
     def draw(self, context):
         layout = self.layout
+        from ..utils import compat
 
         col = layout.column()
         col.label(text="Remove the following data-blocks?")
 
-        collections = sorted(bpy.data.collections.keys())
+        collections = sorted([
+            c.name for c in bpy.data.collections
+            if not compat.is_library_or_override(c)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Collections",
@@ -72,7 +76,10 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="OUTLINER_OB_GROUP_INSTANCE"
         )
 
-        images = sorted(bpy.data.images.keys())
+        images = sorted([
+            i.name for i in bpy.data.images
+            if not compat.is_library_or_override(i)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Images",
@@ -80,7 +87,10 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="IMAGE_DATA"
         )
 
-        lights = sorted(bpy.data.lights.keys())
+        lights = sorted([
+            l.name for l in bpy.data.lights
+            if not compat.is_library_or_override(l)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Lights",
@@ -88,7 +98,10 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="OUTLINER_OB_LIGHT"
         )
 
-        materials = sorted(bpy.data.materials.keys())
+        materials = sorted([
+            m.name for m in bpy.data.materials
+            if not compat.is_library_or_override(m)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Materials",
@@ -96,7 +109,10 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="MATERIAL"
         )
 
-        node_groups = sorted(bpy.data.node_groups.keys())
+        node_groups = sorted([
+            ng.name for ng in bpy.data.node_groups
+            if not compat.is_library_or_override(ng)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Node Groups",
@@ -104,7 +120,21 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="NODETREE"
         )
 
-        particles = sorted(bpy.data.particles.keys())
+        objects = sorted([
+            o.name for o in bpy.data.objects
+            if not compat.is_library_or_override(o)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            title="Objects",
+            items=objects,
+            icon="OBJECT_DATA"
+        )
+
+        particles = sorted([
+            p.name for p in bpy.data.particles
+            if not compat.is_library_or_override(p)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Particle Systems",
@@ -112,7 +142,10 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="PARTICLES"
         )
 
-        textures = sorted(bpy.data.textures.keys())
+        textures = sorted([
+            t.name for t in bpy.data.textures
+            if not compat.is_library_or_override(t)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Textures",
@@ -120,7 +153,32 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="TEXTURE"
         )
 
-        worlds = sorted(bpy.data.worlds.keys())
+        armatures = sorted([
+            a.name for a in getattr(bpy.data, "armatures", [])
+            if not compat.is_library_or_override(a)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            title="Armatures",
+            items=armatures,
+            icon="ARMATURE_DATA"
+        )
+
+        actions = sorted([
+            a.name for a in getattr(bpy.data, "actions", [])
+            if not compat.is_library_or_override(a)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            title="Actions",
+            items=actions,
+            icon="ACTION"
+        )
+
+        worlds = sorted([
+            w.name for w in bpy.data.worlds
+            if not compat.is_library_or_override(w)
+        ])
         ui_layouts.box_list(
             layout=layout,
             title="Worlds",
@@ -131,6 +189,8 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
         row = layout.row()  # extra spacing
 
     def execute(self, context):
+        from ..utils import compat
+        from .utils import clean as clean_utils
 
         with safe_delete.safe_datablock_removal():
             nuke.collections()
@@ -138,8 +198,19 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             nuke.lights()
             nuke.materials()
             nuke.node_groups()
+            object_keys = [
+                o.name for o in bpy.data.objects
+                if not compat.is_library_or_override(o)
+            ]
+            for msg in clean_utils.detach_scene_objects_from_removal_targets(
+                object_keys
+            ):
+                self.report({'INFO'}, msg)
+            nuke.objects()
             nuke.particles()
             nuke.textures()
+            nuke.armatures()
+            nuke.actions()
             nuke.worlds()
 
         return {'FINISHED'}
@@ -533,6 +604,119 @@ class ATOMIC_OT_nuke_worlds(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+# Atomic Data Manager Nuke Objects Operator
+class ATOMIC_OT_nuke_objects(bpy.types.Operator):
+    """Remove all objects from this project"""
+    bl_idname = "atomic.nuke_objects"
+    bl_label = "Nuke Objects"
+
+    def draw(self, context):
+        layout = self.layout
+        from ..utils import compat
+
+        row = layout.row()
+        row.label(text="Remove the following data-blocks?")
+
+        objects = sorted([
+            o.name for o in bpy.data.objects
+            if not compat.is_library_or_override(o)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            items=objects,
+            icon="OBJECT_DATA"
+        )
+
+        row = layout.row()  # extra space
+
+    def execute(self, context):
+        from ..utils import compat
+        from .utils import clean as clean_utils
+
+        object_keys = [
+            o.name for o in bpy.data.objects
+            if not compat.is_library_or_override(o)
+        ]
+        for msg in clean_utils.detach_scene_objects_from_removal_targets(
+            object_keys
+        ):
+            self.report({'INFO'}, msg)
+        nuke.objects()
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
+# Atomic Data Manager Nuke Armatures Operator
+class ATOMIC_OT_nuke_armatures(bpy.types.Operator):
+    """Remove all armatures from this project"""
+    bl_idname = "atomic.nuke_armatures"
+    bl_label = "Nuke Armatures"
+
+    def draw(self, context):
+        layout = self.layout
+        from ..utils import compat
+
+        row = layout.row()
+        row.label(text="Remove the following data-blocks?")
+
+        armatures = sorted([
+            a.name for a in getattr(bpy.data, "armatures", [])
+            if not compat.is_library_or_override(a)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            items=armatures,
+            icon="ARMATURE_DATA"
+        )
+
+        row = layout.row()  # extra space
+
+    def execute(self, context):
+        nuke.armatures()
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
+# Atomic Data Manager Nuke Actions Operator
+class ATOMIC_OT_nuke_actions(bpy.types.Operator):
+    """Remove all actions from this project"""
+    bl_idname = "atomic.nuke_actions"
+    bl_label = "Nuke Actions"
+
+    def draw(self, context):
+        layout = self.layout
+        from ..utils import compat
+
+        row = layout.row()
+        row.label(text="Remove the following data-blocks?")
+
+        actions = sorted([
+            a.name for a in getattr(bpy.data, "actions", [])
+            if not compat.is_library_or_override(a)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            items=actions,
+            icon="ACTION"
+        )
+
+        row = layout.row()  # extra space
+
+    def execute(self, context):
+        nuke.actions()
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
 # Atomic Data Manager Clean Collections Operator
 class ATOMIC_OT_clean_collections(bpy.types.Operator):
     """Remove all unused collections from this project"""
@@ -800,8 +984,11 @@ reg_list = [
     ATOMIC_OT_nuke_lights,
     ATOMIC_OT_nuke_materials,
     ATOMIC_OT_nuke_node_groups,
+    ATOMIC_OT_nuke_objects,
     ATOMIC_OT_nuke_particles,
     ATOMIC_OT_nuke_textures,
+    ATOMIC_OT_nuke_armatures,
+    ATOMIC_OT_nuke_actions,
     ATOMIC_OT_nuke_worlds,
 
     ATOMIC_OT_clean_collections,
