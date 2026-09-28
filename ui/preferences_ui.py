@@ -119,21 +119,14 @@ class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
     )
 
 
-def _missing_library_enum_items(self, context):
+def iter_missing_library_basenames():
     """
-    Enum items for currently missing library filepaths.
+    Yield unique basenames of currently missing libraries (open blend).
 
-    Identifier is the path string (basename used at match time). Includes any
-    already-saved value so rows stay valid when that library is no longer missing.
-
-    Important: do not read ``self.missing`` here — that re-enters this callback.
-    Use ``self.get("missing")`` for the raw stored identifier.
+    Used by the pick-from-missing helper; prefs storage itself is basename-stable
+    and does not depend on this list.
     """
-    items = [
-        ("NONE", "Select missing…", "Choose a library that is currently missing"),
-    ]
-    seen = {"none"}
-
+    seen = set()
     try:
         from ..stats import missing as missing_stats
 
@@ -141,44 +134,30 @@ def _missing_library_enum_items(self, context):
             info = missing_stats.get_missing_library_info(key)
             if not info:
                 continue
-            filepath = (info.get("filepath") or "").strip()
-            filename = (info.get("filename") or "").strip()
-            ident = filepath or filename
-            if not ident:
+            filename = _normalize_blend_filename(
+                info.get("filename") or info.get("filepath") or ""
+            )
+            if not filename:
                 continue
-            key_id = ident.lower()
+            key_id = filename.lower()
             if key_id in seen:
                 continue
             seen.add(key_id)
-            label = filepath or filename
-            items.append((ident, label, f"Missing library: {label}"))
+            yield filename
     except Exception as e:
-        config.debug_print(f"[Atomic Debug] Missing-library enum: {e}")
-
-    # Keep a saved selection visible even if it is not missing right now
-    # (raw get — never self.missing, or items recurses)
-    current = ""
-    try:
-        current = (self.get("missing", "") or "").strip()
-    except Exception:
-        current = ""
-    # Ignore legacy bad default from default=0 (stored as identifier "0")
-    if current in ("0", "NONE"):
-        current = ""
-    if current and current.lower() not in seen:
-        items.append((current, current, "Saved filename equivalent"))
-
-    return items
+        config.debug_print(f"[Atomic Debug] Missing-library basenames: {e}")
 
 
 class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
-    """One missing-library path ↔ on-disk .blend equivalence for remap search."""
+    """One missing-library basename ↔ on-disk .blend for remap search."""
 
-    missing: bpy.props.EnumProperty(
+    missing: bpy.props.StringProperty(
         name="Missing",
-        description="Currently missing library path to treat as renamed",
-        items=_missing_library_enum_items,
-        update=lambda self, context: _persist_prefs_sidecar(),
+        description="Missing library filename (basename) to treat as renamed. "
+                    "Permanent across blends; use Pick to fill from currently "
+                    "missing libraries",
+        default="",
+        update=lambda self, context: _on_equiv_missing_update(self, context),
     )
     equivalent: bpy.props.StringProperty(
         name="Equivalent",
@@ -190,12 +169,24 @@ class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
     )
 
 
+def _on_equiv_missing_update(self, context):
+    """Normalize missing to basename, then persist."""
+    try:
+        normalized = _normalize_blend_filename(self.get("missing", ""))
+        if self.get("missing", "") != normalized:
+            self["missing"] = normalized
+    except Exception:
+        pass
+    _persist_prefs_sidecar()
+
+
 def _normalize_blend_filename(raw):
     """Basename only, stripped; empty if blank or enum placeholder."""
     raw = (raw or "").strip()
-    if not raw or raw.upper() == "NONE":
+    # Legacy EnumProperty junk (default=0 → identifier "0", or NONE)
+    if not raw or raw.upper() == "NONE" or raw == "0":
         return ""
-    # Allow pasted / enum paths; match logic compares basenames only
+    # Allow pasted / full paths; match logic compares basenames only
     return os.path.basename(raw.replace("\\", "/"))
 
 
@@ -292,6 +283,48 @@ def set_prefs_filename_equivalents(pairs, prefs=None, ensure_one=True):
     return True
 
 
+def record_filename_equivalent(missing_path_or_name, equivalent_path, prefs=None):
+    """
+    Upsert one basename pair into preferences (permanent static map).
+
+    No-op when either side is empty or both basenames are identical (path-only
+    fix). Dedupes against existing pairs (either direction).
+    """
+    a = _normalize_blend_filename(missing_path_or_name)
+    b = _normalize_blend_filename(equivalent_path)
+    if not a or not b or a.lower() == b.lower():
+        return False
+
+    prefs = prefs or _get_addon_prefs()
+    if not prefs or not hasattr(prefs, "remap_filename_equivalents"):
+        return False
+
+    pairs = get_prefs_filename_equivalents(prefs)
+    key = (a.lower(), b.lower())
+    rev = (b.lower(), a.lower())
+    for existing_a, existing_b in pairs:
+        if (existing_a.lower(), existing_b.lower()) in (key, rev):
+            return False
+
+    # Prefer filling an empty trailing row over growing forever
+    filled = False
+    for item in prefs.remap_filename_equivalents:
+        if not _normalize_blend_filename(item.missing) and not _normalize_blend_filename(
+            item.equivalent
+        ):
+            item.missing = a
+            item.equivalent = b
+            filled = True
+            break
+    if not filled:
+        item = prefs.remap_filename_equivalents.add()
+        item.missing = a
+        item.equivalent = b
+
+    _persist_prefs_sidecar()
+    return True
+
+
 def build_filename_equivalence_map(pairs=None):
     """
     Map lowercased basename -> set of acceptable exact-match basenames
@@ -349,7 +382,7 @@ def draw_remap_filename_equivalent_list(
     """
     Draw missing ↔ equivalent rows.
 
-    Missing: dropdown of currently missing library paths.
+    Missing: permanent basename string (+ Pick from currently missing).
     Equivalent: FILE_PATH picker for the on-disk .blend.
     First row: fields + Add (+ Remove only when more than one row).
     Extra rows: fields + Remove. Always keeps at least one row.
@@ -364,6 +397,12 @@ def draw_remap_filename_equivalent_list(
     for i, item in enumerate(collection):
         row = layout.row(align=True)
         row.prop(item, "missing", text="")
+        pick = row.operator(
+            "atomic.remap_prefs_equiv_pick_missing",
+            text="",
+            icon="DOWNARROW_HLT",
+        )
+        pick.index = i
         row.prop(item, "equivalent", text="")
         if i == 0:
             row.operator(add_idname, text="", icon="ADD")
@@ -614,8 +653,8 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
     remap_filename_equivalents: bpy.props.CollectionProperty(
         type=ATOMIC_PG_remap_filename_equivalent,
         name="Filename Hit Equivalents",
-        description="Treat renamed .blend basenames as exact Search hits when "
-                    "the library path was never updated",
+        description="Permanent basename map: treat renamed .blend names as exact "
+                    "Search hits. Pairs are learned on Relink and stored across blends",
     )
 
     # hidden atomic preferences
@@ -710,7 +749,7 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         box = layout.box()
         box.label(text="Filename Hit Equivalents (Remap)")
         box.label(
-            text="When a .blend was renamed but the library path was not updated",
+            text="Permanent basename map (missing ↔ on-disk). Auto-learned on Relink",
             icon="INFO",
         )
         draw_remap_filename_equivalent_list(
@@ -777,6 +816,11 @@ class ATOMIC_OT_remap_prefs_path_add(bpy.types.Operator):
             return {"CANCELLED"}
         prefs.remap_search_paths.add()
         _persist_prefs_sidecar()
+        try:
+            from ..ops.missing_file_ops import clear_blend_search_index
+            clear_blend_search_index()
+        except Exception:
+            pass
         return {"FINISHED"}
 
 
@@ -797,6 +841,11 @@ class ATOMIC_OT_remap_prefs_path_remove(bpy.types.Operator):
         if 0 <= self.index < len(prefs.remap_search_paths):
             prefs.remap_search_paths.remove(self.index)
             _persist_prefs_sidecar()
+            try:
+                from ..ops.missing_file_ops import clear_blend_search_index
+                clear_blend_search_index()
+            except Exception:
+                pass
         return {"FINISHED"}
 
 
@@ -835,6 +884,55 @@ class ATOMIC_OT_remap_prefs_equiv_remove(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def _pick_missing_enum_items(self, context):
+    """Enum items for pick-from-missing dialog."""
+    items = []
+    for name in iter_missing_library_basenames():
+        items.append((name, name, f"Missing library: {name}"))
+    if not items:
+        items.append(("", "(none)", "No missing libraries"))
+    return items
+
+
+class ATOMIC_OT_remap_prefs_equiv_pick_missing(bpy.types.Operator):
+    """Fill Missing from a currently missing library basename"""
+    bl_idname = "atomic.remap_prefs_equiv_pick_missing"
+    bl_label = "Pick Missing Library"
+    bl_options = {"INTERNAL"}
+    bl_property = "basename"
+
+    index: bpy.props.IntProperty(default=0)
+    basename: bpy.props.EnumProperty(
+        name="Missing Library",
+        description="Choose a currently missing library basename",
+        items=_pick_missing_enum_items,
+    )
+
+    def invoke(self, context, event):
+        names = list(iter_missing_library_basenames())
+        if not names:
+            self.report({"WARNING"}, "No missing libraries in this blend")
+            return {"CANCELLED"}
+        return context.window_manager.invoke_props_dialog(self, width=360)
+
+    def draw(self, context):
+        self.layout.prop(self, "basename", text="")
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if not prefs:
+            return {"CANCELLED"}
+        name = _normalize_blend_filename(self.basename)
+        if not name:
+            return {"CANCELLED"}
+        coll = prefs.remap_filename_equivalents
+        if not (0 <= self.index < len(coll)):
+            return {"CANCELLED"}
+        coll[self.index].missing = name
+        _persist_prefs_sidecar()
+        return {"FINISHED"}
+
+
 keymaps = []
 
 
@@ -847,6 +945,7 @@ def register():
         ATOMIC_OT_remap_prefs_path_remove,
         ATOMIC_OT_remap_prefs_equiv_add,
         ATOMIC_OT_remap_prefs_equiv_remove,
+        ATOMIC_OT_remap_prefs_equiv_pick_missing,
         ATOMIC_PT_preferences_panel,
     ):
         try:
@@ -899,6 +998,7 @@ def unregister():
 
     for cls in (
         ATOMIC_PT_preferences_panel,
+        ATOMIC_OT_remap_prefs_equiv_pick_missing,
         ATOMIC_OT_remap_prefs_equiv_remove,
         ATOMIC_OT_remap_prefs_equiv_add,
         ATOMIC_OT_remap_prefs_path_remove,

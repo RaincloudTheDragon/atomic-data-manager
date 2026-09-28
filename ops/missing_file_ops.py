@@ -156,6 +156,55 @@ _library_search_state = {
     'search_error': None
 }
 
+# Session-scoped .blend file index from Search Missing walks.
+# Survives blend switches; cleared on Blender restart, root changes, or manual clear.
+_blend_search_index = {
+    'roots_key': None,  # tuple of uppercased normalized roots
+    'files': [],
+}
+
+
+def clear_blend_search_index():
+    """Drop the session search index (manual clear / Clear Cache / root change)."""
+    global _blend_search_index
+    _blend_search_index = {
+        'roots_key': None,
+        'files': [],
+    }
+    config.debug_print("[Atomic Debug] Blend search index cleared")
+
+
+def _search_roots_key(directories):
+    """Stable key for a set of search-root directories."""
+    return tuple(sorted(d.upper() for d in (directories or []) if d))
+
+
+def _cached_blend_files_for_roots(directories):
+    """Return a copy of indexed files when roots match; else None."""
+    key = _search_roots_key(directories)
+    if (
+        key
+        and _blend_search_index.get('roots_key') == key
+        and _blend_search_index.get('files') is not None
+    ):
+        return list(_blend_search_index['files'])
+    return None
+
+
+def _store_blend_search_index(directories, files):
+    """Remember walk results for this Blender session."""
+    global _blend_search_index
+    _blend_search_index = {
+        'roots_key': _search_roots_key(directories),
+        'files': list(files or []),
+    }
+    config.debug_print(
+        f"[Atomic Debug] Blend search index stored: "
+        f"{len(_blend_search_index['files'])} files for "
+        f"{len(_blend_search_index['roots_key'] or ())} roots"
+    )
+
+
 # Popup regions from Search dialog draw() — area.tag_redraw alone does not
 # refresh invoke_props_dialog; need Region.tag_refresh_ui (Blender 4.2+).
 # See bpy.types.Context.region_popup / Region.tag_refresh_ui.
@@ -444,7 +493,12 @@ def _process_library_search_step():
         state['is_searching'] = False
         _safe_set_atom_property(atom, 'operation_progress', 100.0)
         _safe_set_atom_property(atom, 'operation_status', f"Search complete! Found {len(state['found_blend_files'])} .blend files")
-        
+
+        # Persist walk results for this Blender session (roots from Start Search)
+        search_dirs = state.get('search_dirs') or []
+        if search_dirs:
+            _store_blend_search_index(search_dirs, state['found_blend_files'])
+
         # Match libraries
         _match_libraries()
         
@@ -607,6 +661,15 @@ def _relink_library(library_key, new_filepath, use_relative_path=True):
         if not os.access(abs_path, os.R_OK):
             return False, f"Cannot read file (permission denied): {abs_path}"
 
+        # Capture old basename before filepath rewrite (for permanent map)
+        try:
+            old_fp = library.filepath or ""
+            old_basename = os.path.basename(
+                bpy.path.abspath(old_fp) if old_fp else library_key
+            )
+        except Exception:
+            old_basename = os.path.basename(library_key) if library_key else ""
+
         try:
             if use_relative_path:
                 library.filepath = _library_filepath_prefer_relative(abs_path)
@@ -619,6 +682,15 @@ def _relink_library(library_key, new_filepath, use_relative_path=True):
             library.reload()
         except Exception as e:
             return False, f"Library filepath updated but reload failed: {str(e)}"
+
+        # Learn rename into permanent prefs map (no-op if same basename)
+        try:
+            from ..ui.preferences_ui import record_filename_equivalent
+            record_filename_equivalent(old_basename, abs_path)
+        except Exception as e:
+            config.debug_print(
+                f"[Atomic Debug] record_filename_equivalent skipped: {e}"
+            )
 
         return True, "Library relinked successfully"
     except Exception as e:
@@ -714,6 +786,22 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                 )
             else:
                 row.label(text="Please add at least one directory", icon='INFO')
+
+            # Session index status + clear (independent of Smart Select dirty)
+            idx_files = len(_blend_search_index.get('files') or [])
+            idx_row = layout.row(align=True)
+            if idx_files:
+                idx_row.label(
+                    text=f"Search index: {idx_files} .blend file(s)",
+                    icon='DOCUMENTS',
+                )
+            else:
+                idx_row.label(text="Search index: empty", icon='DOCUMENTS')
+            idx_row.operator(
+                "atomic.search_missing_clear_index",
+                text="Clear Search Index",
+                icon='TRASH',
+            )
         else:
             # Progress display
             row = layout.row()
@@ -870,6 +958,7 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
     def invoke(self, context, event):
         global _library_search_state
 
+        # Reset dialog/match state only — keep session _blend_search_index
         _search_popup_regions.clear()
         _library_search_state = {
             'is_searching': False,
@@ -900,6 +989,7 @@ class ATOMIC_OT_search_missing_path_add(bpy.types.Operator):
 
     def execute(self, context):
         _wm_search_paths(context).add()
+        clear_blend_search_index()
         for area in context.screen.areas:
             area.tag_redraw()
         return {'FINISHED'}
@@ -919,6 +1009,7 @@ class ATOMIC_OT_search_missing_path_remove(bpy.types.Operator):
             return {'CANCELLED'}
         if 0 <= self.index < len(coll):
             coll.remove(self.index)
+            clear_blend_search_index()
         for area in context.screen.areas:
             area.tag_redraw()
         return {'FINISHED'}
@@ -942,6 +1033,7 @@ class ATOMIC_OT_search_missing_path_save_defaults(bpy.types.Operator):
             return {'CANCELLED'}
         copy_prefs_to_config(None, None)
         _save_after_pref_change()
+        clear_blend_search_index()
         self.report(
             {'INFO'},
             f"Saved {len(dirs)} search root{'s' if len(dirs) != 1 else ''} "
@@ -959,6 +1051,7 @@ class ATOMIC_OT_search_missing_path_load_defaults(bpy.types.Operator):
     def execute(self, context):
         defaults = _default_search_directories_from_prefs()
         _fill_wm_search_paths(defaults, context, ensure_one=True)
+        clear_blend_search_index()
         for area in context.screen.areas:
             area.tag_redraw()
         count = len(defaults)
@@ -966,6 +1059,25 @@ class ATOMIC_OT_search_missing_path_load_defaults(bpy.types.Operator):
             {'INFO'},
             f"Loaded {count} default search root{'s' if count != 1 else ''}",
         )
+        return {'FINISHED'}
+
+
+class ATOMIC_OT_search_missing_clear_index(bpy.types.Operator):
+    """Clear the session Search Missing file index"""
+    bl_idname = "atomic.search_missing_clear_index"
+    bl_label = "Clear Search Index"
+    bl_description = (
+        "Forget cached .blend paths from Search Missing. The next Start Search "
+        "will re-walk directories. Does not clear Smart Select unused caches"
+    )
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        clear_blend_search_index()
+        self.report({'INFO'}, "Search index cleared")
+        _tag_search_ui_redraw()
+        for area in context.screen.areas:
+            area.tag_redraw()
         return {'FINISHED'}
 
 
@@ -999,8 +1111,37 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             self.report({'WARNING'}, "Search is already in progress")
             return {'CANCELLED'}
 
-        # Initialize search state
         atom = context.scene.atomic
+
+        # Session index hit: skip os.walk, still rematch for this blend
+        cached = _cached_blend_files_for_roots(valid)
+        if cached is not None:
+            _library_search_state['is_searching'] = False
+            _library_search_state['found_blend_files'] = cached
+            _library_search_state['matches'] = {}
+            _library_search_state['progress'] = 100.0
+            _library_search_state['status'] = (
+                f'Using session index ({len(cached)} .blend files)...'
+            )
+            _library_search_state['search_complete'] = True
+            _library_search_state['search_error'] = None
+            _library_search_state['search_dirs'] = list(valid)
+            _library_search_state['search_thread'] = None
+            _library_search_state['progress_queue'] = None
+            _match_libraries()
+            _safe_set_atom_property(atom, 'is_operation_running', False)
+            _safe_set_atom_property(atom, 'operation_progress', 0.0)
+            _safe_set_atom_property(atom, 'operation_status', "")
+            _safe_set_atom_property(atom, 'cancel_operation', False)
+            _library_search_state['_dialog_needs_redraw'] = True
+            _tag_search_ui_redraw()
+            self.report(
+                {'INFO'},
+                f"Matched from session index ({len(cached)} .blend files)",
+            )
+            return {'FINISHED'}
+
+        # Initialize search state for a fresh walk
         _library_search_state['is_searching'] = True
         _library_search_state['found_blend_files'] = []
         _library_search_state['matches'] = {}
@@ -1011,6 +1152,7 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
         )
         _library_search_state['search_complete'] = False
         _library_search_state['search_error'] = None
+        _library_search_state['search_dirs'] = list(valid)
 
         # Initialize progress tracking
         _safe_set_atom_property(atom, 'is_operation_running', True)
@@ -1534,6 +1676,7 @@ reg_list = [
     ATOMIC_OT_search_missing_path_remove,
     ATOMIC_OT_search_missing_path_save_defaults,
     ATOMIC_OT_search_missing_path_load_defaults,
+    ATOMIC_OT_search_missing_clear_index,
     ATOMIC_OT_search_missing_start,
     ATOMIC_OT_search_missing_cancel,
     ATOMIC_OT_search_missing_select,

@@ -766,15 +766,28 @@ def _check_single_image(image):
 
 # Atomic Data Manager Clear Cache Operator
 class ATOMIC_OT_clear_cache(bpy.types.Operator):
-    """Clear the unused data cache"""
+    """Clear the unused data cache and Search Missing session index"""
     bl_idname = "atomic.clear_cache"
     bl_label = "Clear Cache"
-    bl_description = "Manually clear the unused data cache. This forces a fresh scan on the next Smart Select or Clean operation"
+    bl_description = (
+        "Clear unused-data caches and the Search Missing session file index. "
+        "Forces a fresh Smart Select/Clean scan and a full directory re-walk "
+        "on the next Start Search"
+    )
 
     def execute(self, context):
         _invalidate_cache()
         _cleanup_old_job_files()
-        config.debug_print("[Atomic Debug] Cache cleared manually, old job files cleaned up")
+        try:
+            from .missing_file_ops import clear_blend_search_index
+            clear_blend_search_index()
+        except Exception as e:
+            config.debug_print(
+                f"[Atomic Debug] Search index clear skipped: {e}"
+            )
+        config.debug_print(
+            "[Atomic Debug] Cache cleared manually, old job files cleaned up"
+        )
         return {'FINISHED'}
 
 
