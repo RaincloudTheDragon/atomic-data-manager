@@ -537,6 +537,25 @@ def _invalidate_cache():
     # (We keep it for now to allow cache reuse across sessions)
 
 
+def _cache_covers_categories(categories):
+    """
+    True when the unused cache can answer every requested category.
+
+    Empty lists are not trusted: a prior scan may have filtered a category to
+    [] under older protection/namesake rules (e.g. armature leftovers). Reusing
+    that would leave Smart Select / Clean showing "none" for a cleanable ID.
+    """
+    if not _cache_valid or _unused_cache is None:
+        return False
+    for cat in categories or []:
+        if cat not in _unused_cache:
+            return False
+        cached = _unused_cache.get(cat)
+        if not cached:
+            return False
+    return True
+
+
 # Cache for expensive operations during image scanning
 _image_scan_cache = {
     'image_all_results': {},  # image_name -> bool (True if used, False if unused)
@@ -1297,14 +1316,10 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             selected_categories.append('worlds')
         
         # Check if cache is valid and contains all selected categories
-        global _unused_cache, _cache_valid
-        if _cache_valid and _unused_cache is not None:
-            # Check if cache has all selected categories
-            cache_has_all = all(cat in _unused_cache for cat in selected_categories)
-            if cache_has_all:
-                # Use cached results immediately
-                _populate_unused_lists(self, atom, _unused_cache)
-                return context.window_manager.invoke_props_dialog(self, width=1000)
+        if _cache_covers_categories(selected_categories):
+            # Use cached results immediately
+            _populate_unused_lists(self, atom, _unused_cache)
+            return context.window_manager.invoke_props_dialog(self, width=1000)
         
         # Need to scan - initialize progress tracking
         _safe_set_atom_property(atom, 'is_operation_running', True)
@@ -1644,25 +1659,27 @@ def _process_unified_scan_step():
             return None
         
         # Check cache first (only for full scans)
-        if _scan_state['mode'] == 'full' and _cache_valid and _unused_cache is not None:
+        if _scan_state['mode'] == 'full' and _cache_covers_categories(
+            _scan_state['categories_to_scan']
+        ):
             config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
-            # Check if cache has all requested categories
-            cache_has_all = all(cat in _unused_cache for cat in _scan_state['categories_to_scan'])
-            if cache_has_all:
-                # Filter cache to only include requested categories
-                filtered_results = {cat: _unused_cache[cat] for cat in _scan_state['categories_to_scan']}
-                _scan_state['results'] = filtered_results
-                progress_end = float(_scan_state.get('progress_end', SCAN_PROGRESS_FINISH))
-                _safe_set_atom_property(atom, 'operation_progress', progress_end)
-                _safe_set_atom_property(atom, 'operation_status', "Using cached results...")
-                config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
-                # Call callback with cached results
-                if _scan_state['callback']:
-                    _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
-                _scan_state = None
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
-                return None
+            # Filter cache to only include requested categories
+            filtered_results = {
+                cat: _unused_cache[cat]
+                for cat in _scan_state['categories_to_scan']
+            }
+            _scan_state['results'] = filtered_results
+            progress_end = float(_scan_state.get('progress_end', SCAN_PROGRESS_FINISH))
+            _safe_set_atom_property(atom, 'operation_progress', progress_end)
+            _safe_set_atom_property(atom, 'operation_status', "Using cached results...")
+            config.debug_print("[Atomic Debug] Unified Scanner: Using cached results")
+            # Call callback with cached results
+            if _scan_state['callback']:
+                _scan_state['callback'](_scan_state['results'], **_scan_state['callback_data'])
+            _scan_state = None
+            for area in bpy.context.screen.areas:
+                area.tag_redraw()
+            return None
         
         # Process categories one by one (sequentially, not in parallel)
         # NOTE: Categories are processed sequentially to avoid race conditions with Blender's data API.
@@ -2196,7 +2213,11 @@ class ATOMIC_OT_smart_select(bpy.types.Operator):
 
     def execute(self, context):
         atom = context.scene.atomic
-        
+
+        # Drop stale unused lists so this Smart Select always re-counts
+        # (empty cached categories were skipping cleanable armatures/etc.)
+        _invalidate_cache()
+
         # Initialize progress tracking
         _safe_set_atom_property(atom, 'is_operation_running', True)
         _safe_set_atom_property(atom, 'operation_progress', 0.0)

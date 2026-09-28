@@ -2157,10 +2157,11 @@ def step_graph_category_analysis(state, batch_size=None):
             )
         if (category, item_name) in used:
             # Name may be scene-used via a linked/override ID while a local
-            # orphaned namesake remains purgeable.
-            if category == 'objects':
+            # orphaned namesake remains purgeable (same carve-out as
+            # analyze_unused_from_graph for objects/images/armatures).
+            if category in ('objects', 'images', 'armatures'):
                 try:
-                    coll = _get_data_block_types().get('objects')
+                    coll = _get_data_block_types().get(category)
                     cand = compat.resolve_cleanable_datablock(coll, item_name)
                     if cand is None or not compat.is_cleanable_orphaned_local_namesake(cand):
                         continue
@@ -2303,10 +2304,10 @@ def analyze_unused_from_graph(
             if item_name in category_do_not_flag:
                 continue
 
-            # Objects/images sharing a name with a used linked twin still need
-            # to surface when the local ID is a Scene-phantom leftover.
+            # Objects/images/armatures sharing a name with a used linked twin
+            # still need to surface when the local ID is a Scene-phantom leftover.
             orphan_namesake = (
-                category in ('objects', 'images')
+                category in ('objects', 'images', 'armatures')
                 and compat.is_cleanable_orphaned_local_namesake(datablock)
             )
             if (category, item_name) in used and not orphan_namesake:

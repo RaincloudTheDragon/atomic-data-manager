@@ -343,16 +343,29 @@ def _orphaned_id_has_blocking_users(datablock, _memo=None):
     """
     True when user_map lists a real keeper for an orphaned local namesake.
 
-    Scene-only hits are ignored: link/override leftovers often retain a Scene
-    user without real hierarchy use.
-
-    Keepers that are themselves cleanable orphaned local namesakes are also
-    ignored (recursive): e.g. a local image held only by a cleanable material
-    namesake must purge in the same Smart Select as that material, not a
-    second pass after Clean.
+    Ignored (not blockers):
+    - Scene-only hits (link/override leftovers often retain a Scene user)
+    - The datablock itself (Blender sometimes lists self in user_map)
+    - An Object's own ``.data`` (mesh/armature/etc.) — ownership, not an
+      external keeper; otherwise orphan ARMATURE objects never clear
+    - Keepers that are themselves cleanable orphaned local namesakes
+      (recursive co-purge in one Smart Select)
     """
     if _memo is None:
         _memo = {}
+
+    self_ptr = None
+    own_data_ptr = None
+    try:
+        self_ptr = datablock.as_pointer()
+    except (AttributeError, ReferenceError, RuntimeError):
+        pass
+    try:
+        if isinstance(datablock, bpy.types.Object) and datablock.data is not None:
+            own_data_ptr = datablock.data.as_pointer()
+    except (AttributeError, ReferenceError, RuntimeError):
+        own_data_ptr = None
+
     try:
         user_map = bpy.data.user_map(subset=[datablock])
         refs = user_map.get(datablock) or set()
@@ -363,6 +376,30 @@ def _orphaned_id_has_blocking_users(datablock, _memo=None):
         try:
             if isinstance(user, bpy.types.Scene):
                 continue
+            try:
+                uptr = user.as_pointer()
+            except (AttributeError, ReferenceError, RuntimeError):
+                return True
+            # Self-ref in user_map
+            if self_ptr is not None and uptr == self_ptr:
+                continue
+            # Object ↔ its own data block (armature/mesh/…)
+            if own_data_ptr is not None and uptr == own_data_ptr:
+                continue
+            # Inverse: this ID is Object.data for a user Object
+            if (
+                isinstance(user, bpy.types.Object)
+                and getattr(user, 'data', None) is not None
+            ):
+                try:
+                    if user.data.as_pointer() == self_ptr:
+                        # Owned by that object — only block if the object
+                        # itself is not a cleanable namesake leftover
+                        if is_cleanable_orphaned_local_namesake(user, _memo=_memo):
+                            continue
+                        # Non-cleanable owner still blocks (fall through)
+                except (AttributeError, ReferenceError, RuntimeError):
+                    pass
             # Transitive namesake leftovers are co-purged — not blockers
             if is_cleanable_orphaned_local_namesake(user, _memo=_memo):
                 continue
@@ -384,11 +421,13 @@ def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
     - Objects: not in any collection / scene base, and no *blocking* ID users.
       Geometry Nodes Object Info (and similar) count as blocking. A lone Scene
       entry in user_map does not — Blender often leaves that on link/override
-      leftovers that are already outside the hierarchy.
+      leftovers that are already outside the hierarchy. Self-refs and the
+      object's own ``.data`` are not blockers.
     - Materials: no scene-reachable user; any object users are themselves
       cleanable orphaned local namesakes (leftovers after linking/override).
-    - Images: Scene phantoms ignored; keepers that are cleanable namesakes
-      (materials, etc.) are also ignored so chains purge in one pass.
+    - Images / Armatures: Scene phantoms ignored; keepers that are cleanable
+      namesakes (materials, orphan objects, etc.) are also ignored so chains
+      purge in one pass.
 
     ``_memo`` is an optional pointer→bool cache for recursive co-namesake walks
     (avoids cycles and duplicate work within one decision).
@@ -491,6 +530,21 @@ def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
             _memo[ptr] = True
             return True
 
+        if isinstance(datablock, bpy.types.Armature):
+            if is_library_or_override(datablock):
+                _memo[ptr] = False
+                return False
+            if not has_linked_or_override_namesake(datablock):
+                _memo[ptr] = False
+                return False
+            # Same Scene-phantom / co-namesake rule as images: orphan ARMATURE
+            # object leftovers that only share a name with a linked rig.
+            if _orphaned_id_has_blocking_users(datablock, _memo=_memo):
+                _memo[ptr] = False
+                return False
+            _memo[ptr] = True
+            return True
+
         _memo[ptr] = False
         return False
     except (AttributeError, RuntimeError, ReferenceError, TypeError):
@@ -543,9 +597,9 @@ def is_protected_from_clean(datablock):
     with a linked/override ID (ambiguous bpy.data[name] after paste/remap), and
     objects that live in an override collection hierarchy.
 
-    Exception: scene-orphaned local objects/images (and materials only used by
-    them) that only collide by name with a linked/override ID are cleanable via
-    pointer remove.
+    Exception: scene-orphaned local objects/images/armatures (and materials
+    only used by them) that only collide by name with a linked/override ID
+    are cleanable via pointer remove.
     """
     if datablock is None:
         return True

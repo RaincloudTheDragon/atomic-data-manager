@@ -89,29 +89,34 @@ def remove_if_local(data, key):
     except Exception:
         pass
 
-    # Capture local mesh/armature data before object removal (may become orphaned)
-    ob_data = None
+    # Capture local mesh data before object removal (may become orphaned).
+    # Only meshes are auto-purged: Atomic has no Meshes category. Armature
+    # (and other) object data must NOT be cascaded here — Armatures is its own
+    # Clean toggle; deleting an Object must not silently purge armature IDs the
+    # user did not select (e.g. namesake rig leftovers).
+    ob_mesh = None
     try:
         if isinstance(datablock, bpy.types.Object):
             ob_data = datablock.data
-            if ob_data is not None and compat.is_library_or_override(ob_data):
-                ob_data = None
+            if (
+                ob_data is not None
+                and isinstance(ob_data, bpy.types.Mesh)
+                and not compat.is_library_or_override(ob_data)
+            ):
+                ob_mesh = ob_data
     except (AttributeError, RuntimeError, ReferenceError):
-        ob_data = None
+        ob_mesh = None
 
     try:
         data.remove(datablock)
     except (ReferenceError, RuntimeError):
         return False
 
-    # Drop leftover local obdata if nothing else uses it
-    if ob_data is not None:
+    # Drop leftover local mesh if nothing else uses it
+    if ob_mesh is not None:
         try:
-            if ob_data.users == 0 and not compat.is_library_or_override(ob_data):
-                if isinstance(ob_data, bpy.types.Mesh):
-                    bpy.data.meshes.remove(ob_data)
-                elif isinstance(ob_data, bpy.types.Armature):
-                    bpy.data.armatures.remove(ob_data)
+            if ob_mesh.users == 0 and not compat.is_library_or_override(ob_mesh):
+                bpy.data.meshes.remove(ob_mesh)
         except (AttributeError, ReferenceError, RuntimeError, KeyError):
             pass
     return True
