@@ -1,3 +1,14 @@
+## [v2.13.0] - 2026-09-28
+
+### Features
+
+- **Remap**: permanent basename filename equivalents; session Search Missing file index (Clear Cache / Clear Search Index / root changes rebuild it).
+- **Nuke**: objects, armatures, and actions covered like Clean.
+
+### Fixes
+
+- **Clean / Smart Select**: orphaned local namesakes (objects/images/armatures) clear in one pass — recursive keepers, batched-scan carve-out, no armature cascade on Object remove; empty unused-cache entries are not trusted.
+
 ## [v2.12.0] - 2026-09-22
 
 ### Fixes
