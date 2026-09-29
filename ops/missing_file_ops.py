@@ -1306,7 +1306,7 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
     """Relink a library to the selected file"""
     bl_idname = "atomic.search_missing_relink"
     bl_label = "Relink Library"
-    bl_options = {'INTERNAL'}
+    bl_options = {'INTERNAL', 'UNDO'}
     
     library_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
@@ -1343,7 +1343,7 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
     """Relink all missing libraries that have a match selected"""
     bl_idname = "atomic.search_missing_relink_all"
     bl_label = "Relink All"
-    bl_options = {'INTERNAL'}
+    bl_options = {'INTERNAL', 'UNDO'}
 
     def execute(self, context):
         global _library_search_state
@@ -1667,7 +1667,7 @@ class ATOMIC_OT_replace_missing_relink(bpy.types.Operator):
     """Relink the library to the specified path"""
     bl_idname = "atomic.replace_missing_relink"
     bl_label = "Relink Library"
-    bl_options = {'INTERNAL'}
+    bl_options = {'INTERNAL', 'UNDO'}
     
     library_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
@@ -1701,7 +1701,7 @@ class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
     """Relink all missing libraries that have a replacement path set"""
     bl_idname = "atomic.replace_missing_relink_all"
     bl_label = "Relink All"
-    bl_options = {'INTERNAL'}
+    bl_options = {'INTERNAL', 'UNDO'}
     
     def execute(self, context):
         global _replace_missing_state
