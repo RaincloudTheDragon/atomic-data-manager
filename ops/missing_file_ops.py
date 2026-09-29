@@ -628,6 +628,28 @@ def _library_filepath_prefer_relative(abs_path):
         return abs_path
 
 
+def _library_filepath_exists(library):
+    """True when the library's resolved filepath is an existing file on disk."""
+    try:
+        fp = library.filepath or ""
+        if not fp:
+            return False
+        return os.path.isfile(os.path.normpath(bpy.path.abspath(fp)))
+    except Exception:
+        return False
+
+
+def _record_relink_equivalent(old_basename, abs_path):
+    """Learn rename into permanent prefs map (no-op if same basename)."""
+    try:
+        from ..ui.preferences_ui import record_filename_equivalent
+        record_filename_equivalent(old_basename, abs_path)
+    except Exception as e:
+        config.debug_print(
+            f"[Atomic Debug] record_filename_equivalent skipped: {e}"
+        )
+
+
 def _relink_library(library_key, new_filepath, use_relative_path=True):
     """Relink a library to a new filepath.
 
@@ -637,8 +659,14 @@ def _relink_library(library_key, new_filepath, use_relative_path=True):
         use_relative_path: If True (default), prefer ``//`` relative when the
             blend and hit share an anchor; otherwise store an absolute path.
             If False, always store absolute.
+
+    Returns:
+        (success, message). Success means the library is no longer missing
+        (path points at an existing .blend), even if reload() warned — detect
+        only checks filepath existence.
     """
     if library_key not in bpy.data.libraries:
+        # Mid-batch sibling reloads can merge/rename Library IDs.
         return False, "Library not found"
 
     library = bpy.data.libraries[library_key]
@@ -681,20 +709,42 @@ def _relink_library(library_key, new_filepath, use_relative_path=True):
         try:
             library.reload()
         except Exception as e:
+            # Path is already written; detect_missing only checks isfile.
+            if _library_filepath_exists(library):
+                config.debug_print(
+                    f"[Atomic Debug] Library '{library_key}' path ok after "
+                    f"reload warning: {e}"
+                )
+                _record_relink_equivalent(old_basename, abs_path)
+                return True, f"Path updated (reload warned: {e})"
             return False, f"Library filepath updated but reload failed: {str(e)}"
 
-        # Learn rename into permanent prefs map (no-op if same basename)
-        try:
-            from ..ui.preferences_ui import record_filename_equivalent
-            record_filename_equivalent(old_basename, abs_path)
-        except Exception as e:
-            config.debug_print(
-                f"[Atomic Debug] record_filename_equivalent skipped: {e}"
-            )
-
+        _record_relink_equivalent(old_basename, abs_path)
         return True, "Library relinked successfully"
     except Exception as e:
         return False, f"Error relinking library: {str(e)}"
+
+
+def _relink_library_batch_result(library_key, filepath):
+    """
+    Relink one library for Relink All.
+
+    Treats mid-batch "Library not found" as resolved when the ID is gone
+    (sibling reload merged it) — matches detect_missing afterwards.
+    """
+    success, message = _relink_library(library_key, filepath)
+    if success:
+        return True, message
+    if (
+        message == "Library not found"
+        and library_key not in bpy.data.libraries
+    ):
+        config.debug_print(
+            f"[Atomic Debug] Relink All: '{library_key}' already gone "
+            f"(resolved by sibling reload)"
+        )
+        return True, "Already resolved (library ID gone)"
+    return False, message
 
 
 def _safe_set_atom_property(atom, prop_name, value):
@@ -1307,17 +1357,29 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
             self.report({'WARNING'}, "No matches to relink")
             return {'CANCELLED'}
         ok, fail = 0, 0
+        fail_details = []
         for lib_key, filepath in to_relink:
-            success, _ = _relink_library(lib_key, filepath)
+            success, message = _relink_library_batch_result(lib_key, filepath)
             if success:
                 ok += 1
-                del _library_search_state['matches'][lib_key]
+                _library_search_state['matches'].pop(lib_key, None)
             else:
                 fail += 1
+                fail_details.append(f"{lib_key}: {message}")
         if ok:
-            self.report({'INFO'}, f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}" + (f", {fail} failed" if fail else ""))
+            self.report(
+                {'INFO'},
+                f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}"
+                + (f", {fail} failed" if fail else ""),
+            )
         if fail:
-            self.report({'ERROR'}, f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink")
+            self.report(
+                {'ERROR'},
+                f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink"
+                + (f" — {fail_details[0]}" if fail_details else ""),
+            )
+            for detail in fail_details[1:]:
+                self.report({'ERROR'}, detail)
         atom = context.scene.atomic
         if atom.is_operation_running:
             _safe_set_atom_property(atom, 'is_operation_running', False)
@@ -1650,18 +1712,30 @@ class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
             return {'CANCELLED'}
         
         ok, fail = 0, 0
+        fail_details = []
         for lib_key, filepath in to_relink:
-            success, _ = _relink_library(lib_key, filepath)
+            success, message = _relink_library_batch_result(lib_key, filepath)
             if success:
                 ok += 1
-                del _replace_missing_state[lib_key]
+                _replace_missing_state.pop(lib_key, None)
             else:
                 fail += 1
+                fail_details.append(f"{lib_key}: {message}")
         
         if ok:
-            self.report({'INFO'}, f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}" + (f", {fail} failed" if fail else ""))
+            self.report(
+                {'INFO'},
+                f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}"
+                + (f", {fail} failed" if fail else ""),
+            )
         if fail:
-            self.report({'ERROR'}, f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink")
+            self.report(
+                {'ERROR'},
+                f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink"
+                + (f" — {fail_details[0]}" if fail_details else ""),
+            )
+            for detail in fail_details[1:]:
+                self.report({'ERROR'}, detail)
         
         for area in context.screen.areas:
             area.tag_redraw()
