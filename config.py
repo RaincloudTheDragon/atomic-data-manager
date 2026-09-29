@@ -49,6 +49,34 @@ pie_menu_ctrl = False
 pie_menu_oskey = False
 pie_menu_shift = False
 
+# End the current scan batch after an ID that exceeds this (seconds) so the
+# status bar can name it — one extra timer tick per slow ID, not per item.
+SCAN_HANG_THRESHOLD_SEC = 0.5
+
+
+def note_scan_hang(state, phase, name, elapsed):
+    """Record a slow scan ID on state and log it (when debug prints are on)."""
+    if state is not None:
+        state['hang_phase'] = phase
+        state['hang_name'] = name
+        state['hang_elapsed'] = float(elapsed)
+    debug_print(
+        f"[Atomic Debug] SLOW {phase}: '{name}' took {elapsed:.2f}s"
+    )
+
+
+def hang_status_suffix(state):
+    """Status-bar fragment when the last batch ended on a slow ID."""
+    if not state:
+        return ""
+    name = state.get('hang_name')
+    if not name:
+        return ""
+    elapsed = state.get('hang_elapsed')
+    if elapsed is None:
+        return f" — slow: {name}"
+    return f" — slow: {name} ({elapsed:.1f}s)"
+
 
 def debug_print(*args, **kwargs):
     """
@@ -57,6 +85,10 @@ def debug_print(*args, **kwargs):
 
     Reads the live module attribute so `config.enable_debug_prints = ...`
     from preferences sync is always honoured.
+
+    Always flushes so mid-batch scan lines show the current ID before a hang
+    (stdout otherwise buffers until the timer tick ends).
     """
     if globals().get("enable_debug_prints"):
+        kwargs.setdefault("flush", True)
         print(*args, **kwargs)

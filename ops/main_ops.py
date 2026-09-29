@@ -327,6 +327,12 @@ def _material_session_scan_progress(
     status = (
         f"Building usage indices ({done_objs}/{total_objs}, {phase_name})..."
     )
+    hang_state = None
+    try:
+        hang_state = scan_state.get('mat_session_build_state')
+    except Exception:
+        hang_state = None
+    status = status[:-3] + config.hang_status_suffix(hang_state) + "..."
     _safe_set_atom_property(atom, 'operation_status', status)
     _safe_set_atom_property(atom, 'operation_progress', progress)
 
@@ -1799,13 +1805,18 @@ def _process_unified_scan_step():
                 if ng_state['indices'] is None:
                     built = ng_state['index_build_state']['obj_index']
                     total_objs = len(ng_state['index_build_state']['object_names'])
+                    current_obj = ng_state['index_build_state'].get('current_name') or ''
+                    status = f"Indexing scene objects ({built}/{total_objs})"
+                    if current_obj:
+                        status = f"{status}: {current_obj}"
+                    status += config.hang_status_suffix(
+                        ng_state['index_build_state']
+                    )
                     _unified_scan_progress(
                         atom,
                         _scan_state,
                         sub_fraction=ng_frac,
-                        status_text=(
-                            f"Indexing scene objects ({built}/{total_objs})..."
-                        ),
+                        status_text=f"{status}...",
                     )
                 else:
                     checked = ng_state['index']
@@ -1814,6 +1825,7 @@ def _process_unified_scan_step():
                     status = f"Checking node groups ({checked}/{total_ng})"
                     if ng_label:
                         status = f"{status}: {ng_label}"
+                    status += config.hang_status_suffix(ng_state)
                     _unified_scan_progress(
                         atom,
                         _scan_state,
@@ -1884,6 +1896,7 @@ def _process_unified_scan_step():
                 status = f"Analyzing materials ({checked}/{total_mats})"
                 if mat_label:
                     status = f"{status}: {mat_label}"
+                status += config.hang_status_suffix(mat_state)
                 mat_slice = MATERIAL_SESSION_PROGRESS_SLICE
                 _unified_scan_progress(
                     atom,
@@ -1935,6 +1948,7 @@ def _process_unified_scan_step():
                     status = f"Analyzing {category} ({checked}/{total_items})"
                     if item_label:
                         status = f"{status}: {item_label}"
+                    status += config.hang_status_suffix(cat_state)
                 _unified_scan_progress(
                     atom,
                     _scan_state,

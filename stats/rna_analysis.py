@@ -26,6 +26,7 @@ Uses Blender's RNA introspection system to build a dependency graph.
 import bpy
 import json
 import os
+import time
 from collections import defaultdict
 from .. import config
 from ..utils import compat
@@ -1197,14 +1198,16 @@ def step_rna_graph_build(state):
     return True, None, None
 
 
-NODE_GROUPS_BATCH_SIZE = 50
-MATERIALS_BATCH_SIZE = 8
-NODE_GROUP_INDEX_OBJECT_BATCH = 100
-GRAPH_CATEGORY_BATCH_SIZE = 50
+# Whole category (or index pass) per timer tick. Hang hunting
+# (SCAN_HANG_THRESHOLD_SEC) still ends a tick early after a slow ID.
+SCAN_BATCH_UNBOUNDED = 10 ** 9
+NODE_GROUPS_BATCH_SIZE = SCAN_BATCH_UNBOUNDED
+MATERIALS_BATCH_SIZE = SCAN_BATCH_UNBOUNDED
+NODE_GROUP_INDEX_OBJECT_BATCH = SCAN_BATCH_UNBOUNDED
+GRAPH_CATEGORY_BATCH_SIZE = SCAN_BATCH_UNBOUNDED
 GRAPH_CATEGORY_BATCH_SIZES = {
-    # action_all() walks every in-scene object per action — keep batches tiny for UI.
-    'actions': 1,
-    'objects': 20,
+    'actions': SCAN_BATCH_UNBOUNDED,
+    'objects': SCAN_BATCH_UNBOUNDED,
 }
 
 
@@ -1415,19 +1418,28 @@ def step_node_group_graph_index_build(state, batch_size=NODE_GROUP_INDEX_OBJECT_
     start = state['obj_index']
     end = min(start + batch_size, len(object_names))
     in_scene = state['in_scene_objects']
+    total = len(object_names)
     for offset in range(start, end):
         obj_name = object_names[offset]
+        state['current_name'] = obj_name
+        if config.enable_debug_prints:
+            config.debug_print(
+                f"[Atomic Debug] scene object index: {offset + 1}/{total} '{obj_name}'"
+            )
+        t0 = time.perf_counter()
         try:
             if users_stats.object_all(obj_name):
                 in_scene.add(obj_name)
         except (AttributeError, KeyError, RuntimeError, ReferenceError):
-            continue
+            pass
+        elapsed = time.perf_counter() - t0
+        if elapsed >= config.SCAN_HANG_THRESHOLD_SEC:
+            # End batch early so the UI can name this ID on the next redraw.
+            config.note_scan_hang(state, 'scene object index', obj_name, elapsed)
+            state['obj_index'] = offset + 1
+            return False, None
 
     state['obj_index'] = end
-    if config.enable_debug_prints:
-        config.debug_print(
-            f"[Atomic Debug] scene object index: {end}/{len(object_names)}"
-        )
     if end < len(object_names):
         return False, None
 
@@ -1581,26 +1593,39 @@ def step_node_groups_analysis(state, batch_size=NODE_GROUPS_BATCH_SIZE):
             config.debug_print(
                 f"[Atomic Debug] node_groups scan: {offset + 1}/{total} '{ng_name}'"
             )
+        t0 = time.perf_counter()
         try:
             if not is_node_group_cleanable_from_graph(
                 ng_name, indices, fake_user_map, memo
             ):
-                continue
-            # Live parity guard: graph can miss nested / linked-parent edges
-            # (e.g. local "get coordinate" inside an override GN tree).
-            if not unused_stats.is_node_group_cleanable(ng_name):
+                pass
+            elif not unused_stats.is_node_group_cleanable(ng_name):
+                # Live parity guard: graph can miss nested / linked-parent edges
+                # (e.g. local "get coordinate" inside an override GN tree).
                 if config.enable_debug_prints:
                     config.debug_print(
                         f"[Atomic Debug] node_groups: graph said cleanable but "
                         f"live kept '{ng_name}'"
                     )
-                continue
-            state['unused'].append(ng_name)
-            if state['short_circuit']:
-                unused_stats.clear_node_group_rna_cache()
-                return True, state['unused'], 1.0, current_name
+            else:
+                state['unused'].append(ng_name)
+                if state['short_circuit']:
+                    unused_stats.clear_node_group_rna_cache()
+                    return True, state['unused'], 1.0, current_name
         except (AttributeError, KeyError, RuntimeError, ReferenceError):
-            continue
+            pass
+        # Yield after a slow ID so status can name it (fast IDs stay batched).
+        elapsed = time.perf_counter() - t0
+        if elapsed >= config.SCAN_HANG_THRESHOLD_SEC:
+            config.note_scan_hang(state, 'node_groups', ng_name, elapsed)
+            state['index'] = offset + 1
+            scan_progress = state['index'] / total
+            return (
+                False,
+                state['unused'],
+                _node_group_scan_sub_fraction(state, scan_frac=scan_progress),
+                current_name,
+            )
 
     state['index'] = end
     done = end >= total
@@ -1624,7 +1649,7 @@ def analyze_node_groups_from_graph(graph, short_circuit=False):
     state = begin_node_groups_analysis(graph, short_circuit=short_circuit)
     while True:
         done, unused_list, _progress, _current = step_node_groups_analysis(
-            state, batch_size=NODE_GROUPS_BATCH_SIZE
+            state
         )
         if done:
             return unused_list
@@ -2041,27 +2066,39 @@ def step_materials_analysis(state, batch_size=MATERIALS_BATCH_SIZE):
             config.debug_print(
                 f"[Atomic Debug] materials scan: {offset + 1}/{total} '{item_name}'"
             )
-        if ('materials', item_name) in state['used']:
-            # Linked namesake may be scene-used while a local leftover remains
-            if not compat.is_cleanable_orphaned_local_namesake(material):
-                continue
+        t0 = time.perf_counter()
         try:
-            if users_stats.material_has_scene_reachable_user(
-                item_name, material=material
-            ):
-                continue
-        except (AttributeError, KeyError, RuntimeError, ReferenceError):
-            pass
-        try:
-            if compat.is_protected_from_clean(material):
-                continue
+            skip = False
+            if ('materials', item_name) in state['used']:
+                # Linked namesake may be scene-used while a local leftover remains
+                if not compat.is_cleanable_orphaned_local_namesake(material):
+                    skip = True
+            if not skip:
+                try:
+                    if users_stats.material_has_scene_reachable_user(
+                        item_name, material=material
+                    ):
+                        skip = True
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    pass
+            if not skip:
+                try:
+                    if compat.is_protected_from_clean(material):
+                        skip = True
+                except (AttributeError, RuntimeError, ReferenceError):
+                    skip = True
+            if not skip and item_name not in state['unused']:
+                state['unused'].append(item_name)
+            if not skip and state['short_circuit']:
+                users_stats.clear_material_scan_caches()
+                return True, state['unused'], 1.0, current_name
         except (AttributeError, RuntimeError, ReferenceError):
-            continue
-        if item_name not in state['unused']:
-            state['unused'].append(item_name)
-        if state['short_circuit']:
-            users_stats.clear_material_scan_caches()
-            return True, state['unused'], 1.0, current_name
+            pass
+        elapsed = time.perf_counter() - t0
+        if elapsed >= config.SCAN_HANG_THRESHOLD_SEC:
+            config.note_scan_hang(state, 'materials', item_name, elapsed)
+            state['index'] = offset + 1
+            return False, state['unused'], state['index'] / total, current_name
 
     state['index'] = end
     done = end >= total
@@ -2155,56 +2192,70 @@ def step_graph_category_analysis(state, batch_size=None):
             config.debug_print(
                 f"[Atomic Debug] {category} scan: {offset + 1}/{total} '{item_name}'"
             )
-        if (category, item_name) in used:
-            # Name may be scene-used via a linked/override ID while a local
-            # orphaned namesake remains purgeable (same carve-out as
-            # analyze_unused_from_graph for objects/images/armatures).
-            if category in ('objects', 'images', 'armatures'):
-                try:
-                    coll = _get_data_block_types().get(category)
-                    cand = compat.resolve_cleanable_datablock(coll, item_name)
-                    if cand is None or not compat.is_cleanable_orphaned_local_namesake(cand):
-                        continue
-                except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                    continue
-            else:
-                continue
-        # Re-resolve by name at step time — refuse linked/override; allow
-        # orphaned local namesakes via resolve_cleanable_datablock.
+        t0 = time.perf_counter()
         try:
-            data_block_types = _get_data_block_types()
-            coll = data_block_types.get(category)
-            datablock = (
-                compat.resolve_cleanable_datablock(coll, item_name)
-                if coll is not None else None
-            )
-            if datablock is None:
-                continue
-        except (AttributeError, KeyError, RuntimeError, ReferenceError):
-            continue
-        if category == 'objects':
-            try:
-                if not compat.is_scene_orphaned_local_object(datablock):
-                    if users.object_all(item_name):
-                        continue
-            except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                pass
-        elif category == 'actions':
-            try:
-                if users.action_all(item_name):
-                    continue
-            except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                pass
-        elif category == 'collections':
-            # Scene hierarchy / instances may be missed by a stale used-set
-            try:
-                if users.collection_all(item_name):
-                    continue
-            except (AttributeError, KeyError, RuntimeError, ReferenceError):
-                pass
-        state['unused'].append(item_name)
-        if state['short_circuit']:
-            return True, state['unused'], 1.0, current_name
+            skip = False
+            if (category, item_name) in used:
+                # Name may be scene-used via a linked/override ID while a local
+                # orphaned namesake remains purgeable (same carve-out as
+                # analyze_unused_from_graph for objects/images/armatures).
+                if category in ('objects', 'images', 'armatures'):
+                    try:
+                        coll = _get_data_block_types().get(category)
+                        cand = compat.resolve_cleanable_datablock(coll, item_name)
+                        if cand is None or not compat.is_cleanable_orphaned_local_namesake(cand):
+                            skip = True
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        skip = True
+                else:
+                    skip = True
+            if not skip:
+                # Re-resolve by name at step time — refuse linked/override; allow
+                # orphaned local namesakes via resolve_cleanable_datablock.
+                try:
+                    data_block_types = _get_data_block_types()
+                    coll = data_block_types.get(category)
+                    datablock = (
+                        compat.resolve_cleanable_datablock(coll, item_name)
+                        if coll is not None else None
+                    )
+                    if datablock is None:
+                        skip = True
+                except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                    skip = True
+                    datablock = None
+            if not skip:
+                if category == 'objects':
+                    try:
+                        if not compat.is_scene_orphaned_local_object(datablock):
+                            if users.object_all(item_name):
+                                skip = True
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+                elif category == 'actions':
+                    try:
+                        if users.action_all(item_name):
+                            skip = True
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+                elif category == 'collections':
+                    # Scene hierarchy / instances may be missed by a stale used-set
+                    try:
+                        if users.collection_all(item_name):
+                            skip = True
+                    except (AttributeError, KeyError, RuntimeError, ReferenceError):
+                        pass
+            if not skip:
+                state['unused'].append(item_name)
+                if state['short_circuit']:
+                    return True, state['unused'], 1.0, current_name
+        except (AttributeError, RuntimeError, ReferenceError):
+            pass
+        elapsed = time.perf_counter() - t0
+        if elapsed >= config.SCAN_HANG_THRESHOLD_SEC:
+            config.note_scan_hang(state, category, item_name, elapsed)
+            state['index'] = offset + 1
+            return False, state['unused'], state['index'] / total, current_name
 
     state['index'] = end
     done = end >= total

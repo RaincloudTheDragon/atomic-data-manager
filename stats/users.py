@@ -31,6 +31,7 @@ a material would be searching for the image_materials() function.
 """
 
 import bpy
+import time
 from .. import config
 from ..utils import compat
 
@@ -278,7 +279,8 @@ def material_from_ptr(id_ptr):
     return None
 
 
-MATERIAL_SESSION_OBJECT_BATCH = 75
+# Whole material-session phase per tick (hang hunting still yields on slow IDs).
+MATERIAL_SESSION_OBJECT_BATCH = 10 ** 9
 
 
 def begin_material_session_build():
@@ -335,19 +337,29 @@ def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH)
         object_in_scene = state['object_in_scene']
         slot_index = state['slot_index']
         for offset in range(start, end):
-            obj = bpy.data.objects.get(object_names[offset])
-            if obj is None or not hasattr(obj, 'material_slots'):
-                continue
-            for slot in obj.material_slots:
-                mat = slot.material
-                if mat is None:
-                    continue
-                slot_index.setdefault(id(mat), []).append(obj.name)
+            obj_name = object_names[offset]
+            state['current_name'] = obj_name
+            if config.enable_debug_prints:
+                config.debug_print(
+                    f"[Atomic Debug] material session slots: "
+                    f"{offset + 1}/{len(object_names)} '{obj_name}'"
+                )
+            t0 = time.perf_counter()
+            obj = bpy.data.objects.get(obj_name)
+            if obj is not None and hasattr(obj, 'material_slots'):
+                for slot in obj.material_slots:
+                    mat = slot.material
+                    if mat is None:
+                        continue
+                    slot_index.setdefault(id(mat), []).append(obj.name)
+            elapsed = time.perf_counter() - t0
+            if elapsed >= config.SCAN_HANG_THRESHOLD_SEC:
+                config.note_scan_hang(
+                    state, 'material session slots', obj_name, elapsed
+                )
+                state['obj_index'] = offset + 1
+                return False, 0.5 * state['obj_index'] / total_objects
         state['obj_index'] = end
-        if config.enable_debug_prints:
-            config.debug_print(
-                f"[Atomic Debug] material session slots: {end}/{len(object_names)}"
-            )
         if end >= len(object_names):
             state['phase'] = 'gn'
         return False, 0.5 * end / total_objects
@@ -357,34 +369,45 @@ def step_material_session_build(state, batch_size=MATERIAL_SESSION_OBJECT_BATCH)
         end = min(start + batch_size, len(object_names))
         object_in_scene = state['object_in_scene']
         for offset in range(start, end):
-            obj = bpy.data.objects.get(object_names[offset])
-            if obj is None:
-                continue
-            if compat.is_object_linked_without_override(obj):
-                continue
-            if not _object_in_scene_cached(obj.name, object_in_scene):
-                continue
-            if not hasattr(obj, 'modifiers'):
-                continue
-            for modifier in obj.modifiers:
-                if not compat.is_geometry_nodes_modifier(modifier):
-                    continue
-                # Per-modifier Material socket overrides (shared trees differ per object)
-                _add_materials_from_gn_modifier_inputs(
-                    modifier, state['gn_material_ids']
+            obj_name = object_names[offset]
+            state['current_name'] = obj_name
+            if config.enable_debug_prints:
+                config.debug_print(
+                    f"[Atomic Debug] material session geometry nodes: "
+                    f"{offset + 1}/{len(object_names)} '{obj_name}'"
                 )
-                ng = compat.get_geometry_nodes_modifier_node_group(modifier)
-                if ng is None or ng.name in state['visited_gn_roots']:
-                    continue
-                state['visited_gn_roots'].add(ng.name)
-                for material in state['materials']:
-                    if _material_session_ng_has_material(state, ng.name, material):
-                        state['gn_material_ids'].add(id(material))
+            t0 = time.perf_counter()
+            obj = bpy.data.objects.get(obj_name)
+            if obj is not None:
+                if not compat.is_object_linked_without_override(obj):
+                    if _object_in_scene_cached(obj.name, object_in_scene):
+                        if hasattr(obj, 'modifiers'):
+                            for modifier in obj.modifiers:
+                                if not compat.is_geometry_nodes_modifier(modifier):
+                                    continue
+                                # Per-modifier Material socket overrides
+                                _add_materials_from_gn_modifier_inputs(
+                                    modifier, state['gn_material_ids']
+                                )
+                                ng = compat.get_geometry_nodes_modifier_node_group(
+                                    modifier
+                                )
+                                if ng is None or ng.name in state['visited_gn_roots']:
+                                    continue
+                                state['visited_gn_roots'].add(ng.name)
+                                for material in state['materials']:
+                                    if _material_session_ng_has_material(
+                                        state, ng.name, material
+                                    ):
+                                        state['gn_material_ids'].add(id(material))
+            elapsed = time.perf_counter() - t0
+            if elapsed >= config.SCAN_HANG_THRESHOLD_SEC:
+                config.note_scan_hang(
+                    state, 'material session geometry nodes', obj_name, elapsed
+                )
+                state['gn_obj_index'] = offset + 1
+                return False, 0.5 + (0.5 * state['gn_obj_index'] / total_objects)
         state['gn_obj_index'] = end
-        if config.enable_debug_prints:
-            config.debug_print(
-                f"[Atomic Debug] material session geometry nodes: {end}/{len(object_names)}"
-            )
         if end >= len(object_names):
             _material_rna_session = {
                 'object_in_scene': state['object_in_scene'],
