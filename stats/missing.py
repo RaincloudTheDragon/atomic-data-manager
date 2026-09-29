@@ -103,6 +103,39 @@ def libraries():
     return get_missing(bpy.data.libraries)
 
 
+def get_missing_image_info(image_key):
+    """
+    Info for matching/relinking a missing image.
+
+    Returns:
+        dict with filepath, filename (basename), source, is_udim — or None.
+    """
+    if image_key not in bpy.data.images:
+        return None
+
+    image = bpy.data.images[image_key]
+    filepath = image.filepath or ""
+    try:
+        abs_path = bpy.path.abspath(filepath) if filepath else ""
+    except Exception:
+        abs_path = filepath
+    filename = os.path.basename(abs_path) if abs_path else ""
+
+    source = getattr(image, "source", "FILE") or "FILE"
+    is_udim = (
+        source == "TILED"
+        or "<UDIM>" in (filepath or "")
+        or "<UDIM>" in (abs_path or "")
+    )
+
+    return {
+        "filepath": filepath,
+        "filename": filename,
+        "source": source,
+        "is_udim": is_udim,
+    }
+
+
 def get_missing_library_info(library_key):
     """
     Get information about a missing library for matching and validation.

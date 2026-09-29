@@ -770,9 +770,9 @@ class ATOMIC_OT_clear_cache(bpy.types.Operator):
     bl_idname = "atomic.clear_cache"
     bl_label = "Clear Cache"
     bl_description = (
-        "Clear unused-data caches and the Search Missing session file index. "
-        "Forces a fresh Smart Select/Clean scan and a full directory re-walk "
-        "on the next Start Search"
+        "Clear unused-data caches and the Search Missing session file index "
+        "(.blend + images). Forces a fresh Smart Select/Clean scan and a full "
+        "directory re-walk on the next Start Search"
     )
 
     def execute(self, context):

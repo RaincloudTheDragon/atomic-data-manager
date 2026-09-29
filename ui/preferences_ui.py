@@ -108,20 +108,20 @@ def _on_include_fake_users_update(self, context):
 
 
 class ATOMIC_PG_remap_search_path(bpy.types.PropertyGroup):
-    """One search-root folder for missing-library remap."""
+    """One search-root folder for missing-file remap."""
 
     path: bpy.props.StringProperty(
         name="Folder",
-        description="Directory to search for missing .blend libraries",
+        description="Directory to search for missing .blend libraries and images",
         subtype="DIR_PATH",
         default="",
         update=lambda self, context: _persist_prefs_sidecar(),
     )
 
 
-def iter_missing_library_basenames():
+def iter_missing_file_basenames():
     """
-    Yield unique basenames of currently missing libraries (open blend).
+    Yield unique basenames of currently missing libraries and images.
 
     Used by the pick-from-missing helper; prefs storage itself is basename-stable
     and does not depend on this list.
@@ -144,25 +144,45 @@ def iter_missing_library_basenames():
                 continue
             seen.add(key_id)
             yield filename
+
+        for key in missing_stats.images():
+            info = missing_stats.get_missing_image_info(key)
+            if not info:
+                continue
+            filename = _normalize_blend_filename(
+                info.get("filename") or info.get("filepath") or ""
+            )
+            if not filename:
+                continue
+            key_id = filename.lower()
+            if key_id in seen:
+                continue
+            seen.add(key_id)
+            yield filename
     except Exception as e:
-        config.debug_print(f"[Atomic Debug] Missing-library basenames: {e}")
+        config.debug_print(f"[Atomic Debug] Missing-file basenames: {e}")
+
+
+def iter_missing_library_basenames():
+    """Backward-compatible alias for iter_missing_file_basenames."""
+    yield from iter_missing_file_basenames()
 
 
 class ATOMIC_PG_remap_filename_equivalent(bpy.types.PropertyGroup):
-    """One missing-library basename ↔ on-disk .blend for remap search."""
+    """One missing basename ↔ on-disk file for remap search (libs + images)."""
 
     missing: bpy.props.StringProperty(
         name="Missing",
-        description="Missing library filename (basename) to treat as renamed. "
-                    "Permanent across blends; use Pick to fill from currently "
-                    "missing libraries",
+        description="Missing library/image filename (basename) to treat as "
+                    "renamed. Permanent across blends; use Pick to fill from "
+                    "currently missing files",
         default="",
         update=lambda self, context: _on_equiv_missing_update(self, context),
     )
     equivalent: bpy.props.StringProperty(
         name="Equivalent",
-        description="On-disk .blend that should count as an exact hit for the "
-                    "missing library (basename is used when matching)",
+        description="On-disk file that should count as an exact hit for the "
+                    "missing basename (basename is used when matching)",
         default="",
         subtype="FILE_PATH",
         update=lambda self, context: _persist_prefs_sidecar(),
@@ -647,14 +667,15 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
         type=ATOMIC_PG_remap_search_path,
         name="Default Remap Search Roots",
         description="Folders used as the starting search roots when remapping "
-                    "missing libraries (Search dialog)",
+                    "missing libraries and images (Search dialog)",
     )
 
     remap_filename_equivalents: bpy.props.CollectionProperty(
         type=ATOMIC_PG_remap_filename_equivalent,
         name="Filename Hit Equivalents",
-        description="Permanent basename map: treat renamed .blend names as exact "
-                    "Search hits. Pairs are learned on Relink and stored across blends",
+        description="Permanent basename map: treat renamed library/image names "
+                    "as exact Search hits. Pairs are learned on Relink and "
+                    "stored across blends",
     )
 
     # hidden atomic preferences
@@ -733,10 +754,10 @@ class ATOMIC_PT_preferences_panel(bpy.types.AddonPreferences):
             text="Safe Clean (Empty Scene)",
         )
 
-        # Remap / missing-library search defaults
+        # Remap / missing-file search defaults
         layout.separator()
         box = layout.box()
-        box.label(text="Missing Library Search (Remap)")
+        box.label(text="Missing File Search (Remap)")
         draw_remap_search_path_list(
             box,
             self.remap_search_paths,
@@ -887,31 +908,31 @@ class ATOMIC_OT_remap_prefs_equiv_remove(bpy.types.Operator):
 def _pick_missing_enum_items(self, context):
     """Enum items for pick-from-missing dialog."""
     items = []
-    for name in iter_missing_library_basenames():
-        items.append((name, name, f"Missing library: {name}"))
+    for name in iter_missing_file_basenames():
+        items.append((name, name, f"Missing file: {name}"))
     if not items:
-        items.append(("", "(none)", "No missing libraries"))
+        items.append(("", "(none)", "No missing files"))
     return items
 
 
 class ATOMIC_OT_remap_prefs_equiv_pick_missing(bpy.types.Operator):
-    """Fill Missing from a currently missing library basename"""
+    """Fill Missing from a currently missing library or image basename"""
     bl_idname = "atomic.remap_prefs_equiv_pick_missing"
-    bl_label = "Pick Missing Library"
+    bl_label = "Pick Missing File"
     bl_options = {"INTERNAL"}
     bl_property = "basename"
 
     index: bpy.props.IntProperty(default=0)
     basename: bpy.props.EnumProperty(
-        name="Missing Library",
-        description="Choose a currently missing library basename",
+        name="Missing File",
+        description="Choose a currently missing library or image basename",
         items=_pick_missing_enum_items,
     )
 
     def invoke(self, context, event):
-        names = list(iter_missing_library_basenames())
+        names = list(iter_missing_file_basenames())
         if not names:
-            self.report({"WARNING"}, "No missing libraries in this blend")
+            self.report({"WARNING"}, "No missing files in this blend")
             return {"CANCELLED"}
         return context.window_manager.invoke_props_dialog(self, width=360)
 

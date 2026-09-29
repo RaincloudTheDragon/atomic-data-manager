@@ -143,11 +143,13 @@ class ATOMIC_OT_remove_missing(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-# Module-level state for library search
+# Module-level state for missing-file search (libraries + images)
 _library_search_state = {
     'is_searching': False,
     'found_blend_files': [],
-    'matches': {},  # {library_key: {'exact': path, 'candidates': [paths], 'warnings': [], 'selected_match': ''}}
+    'found_image_files': [],
+    'matches': {},  # library_key -> match info
+    'image_matches': {},  # image_key -> match info
     'progress': 0.0,
     'status': '',
     'search_thread': None,
@@ -156,22 +158,38 @@ _library_search_state = {
     'search_error': None
 }
 
-# Session-scoped .blend file index from Search Missing walks.
+# Session-scoped file index from Search Missing walks (.blend + images).
 # Survives blend switches; cleared on Blender restart, root changes, or manual clear.
-_blend_search_index = {
+_file_search_index = {
     'roots_key': None,  # tuple of uppercased normalized roots
-    'files': [],
+    'blends': [],
+    'images': [],
 }
+
+# Common Blender-loadable still/sequence image + movie extensions
+_IMAGE_EXTENSIONS = frozenset({
+    '.png', '.jpg', '.jpeg', '.jpe', '.jp2', '.j2c',
+    '.exr', '.hdr', '.tif', '.tiff', '.tga', '.bmp', '.webp',
+    '.psd', '.dpx', '.cin', '.rgb', '.rgba', '.sgi', '.iff',
+    '.pict', '.dds',
+    '.mp4', '.mov', '.avi', '.mkv', '.webm', '.mpg', '.mpeg', '.ogg', '.ogv',
+})
+
+
+def clear_file_search_index():
+    """Drop the session search index (manual clear / Clear Cache / root change)."""
+    global _file_search_index
+    _file_search_index = {
+        'roots_key': None,
+        'blends': [],
+        'images': [],
+    }
+    config.debug_print("[Atomic Debug] File search index cleared")
 
 
 def clear_blend_search_index():
-    """Drop the session search index (manual clear / Clear Cache / root change)."""
-    global _blend_search_index
-    _blend_search_index = {
-        'roots_key': None,
-        'files': [],
-    }
-    config.debug_print("[Atomic Debug] Blend search index cleared")
+    """Alias for clear_file_search_index (callers / Clear Cache)."""
+    clear_file_search_index()
 
 
 def _search_roots_key(directories):
@@ -179,30 +197,54 @@ def _search_roots_key(directories):
     return tuple(sorted(d.upper() for d in (directories or []) if d))
 
 
-def _cached_blend_files_for_roots(directories):
-    """Return a copy of indexed files when roots match; else None."""
+def _cached_files_for_roots(directories):
+    """
+    Return (blends, images) copies when roots match the session index.
+
+    None if cache miss.
+    """
     key = _search_roots_key(directories)
     if (
         key
-        and _blend_search_index.get('roots_key') == key
-        and _blend_search_index.get('files') is not None
+        and _file_search_index.get('roots_key') == key
+        and _file_search_index.get('blends') is not None
+        and _file_search_index.get('images') is not None
     ):
-        return list(_blend_search_index['files'])
+        return (
+            list(_file_search_index['blends']),
+            list(_file_search_index['images']),
+        )
     return None
 
 
-def _store_blend_search_index(directories, files):
+def _store_file_search_index(directories, blends, images):
     """Remember walk results for this Blender session."""
-    global _blend_search_index
-    _blend_search_index = {
+    global _file_search_index
+    _file_search_index = {
         'roots_key': _search_roots_key(directories),
-        'files': list(files or []),
+        'blends': list(blends or []),
+        'images': list(images or []),
     }
     config.debug_print(
-        f"[Atomic Debug] Blend search index stored: "
-        f"{len(_blend_search_index['files'])} files for "
-        f"{len(_blend_search_index['roots_key'] or ())} roots"
+        f"[Atomic Debug] File search index stored: "
+        f"{len(_file_search_index['blends'])} blends, "
+        f"{len(_file_search_index['images'])} images for "
+        f"{len(_file_search_index['roots_key'] or ())} roots"
     )
+
+
+def _file_ext(filename):
+    """Lowercase extension including the leading dot."""
+    return os.path.splitext(filename)[1].lower()
+
+
+def _is_image_filename(filename):
+    """True if filename looks like a still/sequence/movie Blender can load."""
+    return _file_ext(filename) in _IMAGE_EXTENSIONS
+
+
+def _is_blend_filename(filename):
+    return _file_ext(filename) == '.blend'
 
 
 # Popup regions from Search dialog draw() — area.tag_redraw alone does not
@@ -316,8 +358,10 @@ def _default_search_directories_from_prefs():
     return _normalize_search_directories(get_prefs_search_paths())
 
 
-def _search_blend_files_worker(directories, progress_queue, found_files, error_queue):
-    """Worker thread: recursively search one or more directories for .blend files."""
+def _search_files_worker(
+    directories, progress_queue, found_blends, found_images, error_queue
+):
+    """Worker thread: walk roots for .blend and image/movie files (skip .dirs)."""
     try:
         valid_dirs = []
         for directory in directories or []:
@@ -345,16 +389,16 @@ def _search_blend_files_worker(directories, progress_queue, found_files, error_q
         total_files = 0
         scanned_dirs = 0
 
-        # First pass: count files for progress (with error handling)
+        # First pass: count blend + image files for progress
         try:
             for directory in valid_dirs:
                 for root, dirs, files in os.walk(directory):
                     # Filter out directories starting with '.' (e.g., .git, .vscode)
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     try:
-                        total_files += len(
-                            [f for f in files if f.lower().endswith('.blend')]
-                        )
+                        for f in files:
+                            if _is_blend_filename(f) or _is_image_filename(f):
+                                total_files += 1
                         scanned_dirs += 1
                         if scanned_dirs % 10 == 0:
                             progress_queue.put((
@@ -371,7 +415,7 @@ def _search_blend_files_worker(directories, progress_queue, found_files, error_q
             error_queue.put(f"Error scanning directory structure: {str(e)}")
             return
 
-        # Second pass: collect files (with error handling)
+        # Second pass: collect files
         found_count = 0
         try:
             for directory in valid_dirs:
@@ -379,33 +423,38 @@ def _search_blend_files_worker(directories, progress_queue, found_files, error_q
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     try:
                         for file in files:
-                            if file.lower().endswith('.blend'):
-                                filepath = os.path.join(root, file)
-                                try:
-                                    if (
-                                        os.path.isfile(filepath)
-                                        and os.access(filepath, os.R_OK)
-                                    ):
-                                        found_files.append(filepath)
-                                        found_count += 1
-                                        if total_files > 0:
-                                            progress = (
-                                                found_count / total_files
-                                            ) * 100.0
-                                            progress_queue.put(
-                                                ('progress', progress)
-                                            )
-                                            progress_queue.put((
-                                                'status',
-                                                f'Found {found_count}/'
-                                                f'{total_files} .blend files...',
-                                            ))
-                                except (OSError, PermissionError) as e:
-                                    config.debug_print(
-                                        f"[Atomic Debug] Cannot access file "
-                                        f"{filepath}: {e}"
-                                    )
+                            is_blend = _is_blend_filename(file)
+                            is_image = _is_image_filename(file)
+                            if not is_blend and not is_image:
+                                continue
+                            filepath = os.path.join(root, file)
+                            try:
+                                if not (
+                                    os.path.isfile(filepath)
+                                    and os.access(filepath, os.R_OK)
+                                ):
                                     continue
+                                if is_blend:
+                                    found_blends.append(filepath)
+                                else:
+                                    found_images.append(filepath)
+                                found_count += 1
+                                if total_files > 0:
+                                    progress = (
+                                        found_count / total_files
+                                    ) * 100.0
+                                    progress_queue.put(('progress', progress))
+                                    progress_queue.put((
+                                        'status',
+                                        f'Found {found_count}/'
+                                        f'{total_files} files...',
+                                    ))
+                            except (OSError, PermissionError) as e:
+                                config.debug_print(
+                                    f"[Atomic Debug] Cannot access file "
+                                    f"{filepath}: {e}"
+                                )
+                                continue
                     except (PermissionError, OSError) as e:
                         config.debug_print(
                             f"[Atomic Debug] Cannot access directory "
@@ -424,29 +473,26 @@ def _search_blend_files_worker(directories, progress_queue, found_files, error_q
 
 
 def _process_library_search_step():
-    """Timer callback to process library search progress"""
+    """Timer callback to process missing-file search progress"""
     global _library_search_state
-    
+
     atom = bpy.context.scene.atomic
     state = _library_search_state
-    
+
     if not state['is_searching']:
         return None
-    
-    # Check for cancellation
+
     if atom.cancel_operation:
         if state['search_thread'] and state['search_thread'].is_alive():
-            # Thread will finish naturally, we'll handle cancellation in next step
             pass
         state['is_searching'] = False
         _safe_set_atom_property(atom, 'is_operation_running', False)
         _safe_set_atom_property(atom, 'operation_progress', 0.0)
         _safe_set_atom_property(atom, 'operation_status', "")
-        config.debug_print("[Atomic Debug] Library search cancelled")
+        config.debug_print("[Atomic Debug] File search cancelled")
         _tag_search_ui_redraw()
         return None
-    
-    # Process progress updates from queue
+
     if state['progress_queue']:
         try:
             while True:
@@ -466,64 +512,168 @@ def _process_library_search_step():
                 except queue.Empty:
                     break
         except Exception as e:
-            config.debug_print(f"[Atomic Error] Error processing progress queue: {e}")
-    
-    # Check for errors
+            config.debug_print(
+                f"[Atomic Error] Error processing progress queue: {e}"
+            )
+
     if state.get('error_queue'):
         try:
             error_msg = state['error_queue'].get_nowait()
             state['search_error'] = error_msg
             state['is_searching'] = False
-            _safe_set_atom_property(atom, 'operation_status', f"Error: {error_msg}")
-            # Clear progress after showing error
+            _safe_set_atom_property(
+                atom, 'operation_status', f"Error: {error_msg}"
+            )
+
             def clear_error_progress():
                 _safe_set_atom_property(atom, 'is_operation_running', False)
                 _safe_set_atom_property(atom, 'operation_progress', 0.0)
                 _safe_set_atom_property(atom, 'operation_status', "")
                 _tag_search_ui_redraw()
-                return None  # Run once
-            bpy.app.timers.register(clear_error_progress, first_interval=3.0)  # Clear after 3 seconds
+                return None
+
+            bpy.app.timers.register(clear_error_progress, first_interval=3.0)
             _tag_search_ui_redraw()
             return None
         except queue.Empty:
             pass
-    
-    # Check if search is complete
-    if state['search_complete'] and (not state['search_thread'] or not state['search_thread'].is_alive()):
-        state['is_searching'] = False
-        _safe_set_atom_property(atom, 'operation_progress', 100.0)
-        _safe_set_atom_property(atom, 'operation_status', f"Search complete! Found {len(state['found_blend_files'])} .blend files")
 
-        # Persist walk results for this Blender session (roots from Start Search)
+    if state['search_complete'] and (
+        not state['search_thread'] or not state['search_thread'].is_alive()
+    ):
+        state['is_searching'] = False
+        n_blend = len(state.get('found_blend_files') or [])
+        n_img = len(state.get('found_image_files') or [])
+        _safe_set_atom_property(atom, 'operation_progress', 100.0)
+        _safe_set_atom_property(
+            atom,
+            'operation_status',
+            f"Search complete! Found {n_blend} .blend, {n_img} image file(s)",
+        )
+
         search_dirs = state.get('search_dirs') or []
         if search_dirs:
-            _store_blend_search_index(search_dirs, state['found_blend_files'])
+            _store_file_search_index(
+                search_dirs,
+                state.get('found_blend_files') or [],
+                state.get('found_image_files') or [],
+            )
 
-        # Match libraries
         _match_libraries()
-        
-        # Clear operation running state after a short delay to show completion message
-        # This allows the user to see the completion message briefly
+        _match_images()
+
         def clear_progress():
             _safe_set_atom_property(atom, 'is_operation_running', False)
             _safe_set_atom_property(atom, 'operation_progress', 0.0)
             _safe_set_atom_property(atom, 'operation_status', "")
             _tag_search_ui_redraw()
-            return None  # Run once
-        
-        # Only register timer if not already cleared (avoid duplicate timers)
+            return None
+
         if atom.is_operation_running:
-            bpy.app.timers.register(clear_progress, first_interval=1.5)  # Clear after 1.5 seconds
-        
+            bpy.app.timers.register(clear_progress, first_interval=1.5)
+
         _tag_search_ui_redraw()
         return None
-    
-    # Keep the props dialog alive while the worker runs (issue #22)
+
     state['_dialog_needs_redraw'] = True
     _tag_search_ui_redraw()
-
-    # Continue polling
     return 0.1
+
+
+def _basename_as_udim_template(name):
+    """Replace first UDIM tile digits 1000-1099 with <UDIM>."""
+    import re
+    return re.sub(
+        r'(?<!\d)(10[0-9]{2})(?!\d)',
+        '<UDIM>',
+        name,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+
+
+def _path_as_udim_template(filepath):
+    """Return path with basename tile digits replaced by <UDIM>."""
+    import re
+    directory = os.path.dirname(filepath)
+    base = os.path.basename(filepath)
+    templ = _basename_as_udim_template(base)
+    templ = re.sub(r'(?i)<udim>', '<UDIM>', templ)
+    return os.path.join(directory, templ)
+
+
+def _udim_template_has_tile(template_path):
+    """True if any tile 1001-1099 exists for a <UDIM> filepath template."""
+    abs_tmpl = os.path.normpath(bpy.path.abspath(template_path))
+    for tile in range(1001, 1100):
+        if os.path.isfile(abs_tmpl.replace('<UDIM>', str(tile))):
+            return True
+    return False
+
+
+def _match_entry(target_filename, found_files, equiv_map, udim=False):
+    """
+    Exact (incl. equiv / UDIM tile) then fuzzy substring match.
+
+    Returns dict with exact, via_equivalent, candidates, selected_match, warnings.
+    """
+    target_filename = (target_filename or "").lower()
+    acceptable = set(equiv_map.get(target_filename, {target_filename}))
+    if udim:
+        expanded = set(acceptable)
+        for name in list(acceptable):
+            if '<udim>' in name:
+                for tile in range(1001, 1100):
+                    expanded.add(name.replace('<udim>', str(tile)))
+            else:
+                tmpl = _basename_as_udim_template(name).lower()
+                if '<udim>' in tmpl:
+                    for tile in range(1001, 1100):
+                        expanded.add(tmpl.replace('<udim>', str(tile)))
+        acceptable = expanded
+
+    exact_match = None
+    via_equivalent = False
+    candidates = []
+
+    for filepath in found_files:
+        filename = os.path.basename(filepath).lower()
+        if filename in acceptable:
+            exact_match = filepath
+            via_equivalent = filename != target_filename
+            if udim:
+                exact_match = _path_as_udim_template(filepath)
+                via_equivalent = (
+                    os.path.basename(exact_match).lower() != target_filename
+                    and filename != target_filename
+                )
+            break
+
+    if not exact_match:
+        target_fuzzy = (
+            _basename_as_udim_template(target_filename).lower()
+            if udim else target_filename
+        )
+        for filepath in found_files:
+            filename = os.path.basename(filepath).lower()
+            cmp_name = (
+                _basename_as_udim_template(filename).lower() if udim else filename
+            )
+            if target_fuzzy in cmp_name or cmp_name in target_fuzzy:
+                hit = _path_as_udim_template(filepath) if udim else filepath
+                if hit not in candidates:
+                    candidates.append(hit)
+
+    selected = exact_match if exact_match else (
+        candidates[0] if candidates else None
+    )
+    return {
+        'exact': exact_match,
+        'via_equivalent': via_equivalent,
+        'candidates': candidates[:10],
+        'warnings': [],
+        'selected_match': selected,
+    }
 
 
 def _match_libraries():
@@ -533,88 +683,88 @@ def _match_libraries():
     from ..ui.preferences_ui import build_filename_equivalence_map
 
     missing_libs = missing.libraries()
-    found_files = _library_search_state['found_blend_files']
+    found_files = _library_search_state.get('found_blend_files') or []
     matches = {}
-    # missing basename -> set of acceptable exact-hit basenames (incl. renames)
     equiv_map = build_filename_equivalence_map()
 
     for lib_key in missing_libs:
         lib_info = missing.get_missing_library_info(lib_key)
         if not lib_info:
             continue
-
-        target_filename = lib_info['filename'].lower()
-        acceptable = equiv_map.get(target_filename, {target_filename})
-        exact_match = None
-        via_equivalent = False
-        candidates = []
-
-        # Exact match first (case-insensitive), including configured renames
-        for filepath in found_files:
-            filename = os.path.basename(filepath).lower()
-            if filename in acceptable:
-                exact_match = filepath
-                via_equivalent = filename != target_filename
-                break
-
-        # If no exact/equivalent match, collect fuzzy candidates
-        if not exact_match:
-            for filepath in found_files:
-                filename = os.path.basename(filepath).lower()
-                # Simple fuzzy matching: check if target filename is in candidate or vice versa
-                if target_filename in filename or filename in target_filename:
-                    candidates.append(filepath)
-
-        matches[lib_key] = {
-            'exact': exact_match,
-            'via_equivalent': via_equivalent,
-            'candidates': candidates[:10],  # Limit to 10 candidates
-            'warnings': [],
-            'selected_match': exact_match if exact_match else (candidates[0] if candidates else None)
-        }
-
-        # Validate if we have a match
-        if matches[lib_key]['selected_match']:
-            warnings = _validate_replacement_library(lib_key, matches[lib_key]['selected_match'], lib_info)
-            matches[lib_key]['warnings'] = warnings
+        entry = _match_entry(lib_info['filename'], found_files, equiv_map)
+        if entry['selected_match']:
+            entry['warnings'] = _validate_replacement_library(
+                lib_key, entry['selected_match'], lib_info
+            )
+        matches[lib_key] = entry
 
     _library_search_state['matches'] = matches
 
 
+def _match_images():
+    """Match missing images to found image/movie files"""
+    global _library_search_state
+
+    from ..ui.preferences_ui import build_filename_equivalence_map
+
+    missing_imgs = missing.images()
+    found_files = _library_search_state.get('found_image_files') or []
+    matches = {}
+    equiv_map = build_filename_equivalence_map()
+
+    for img_key in missing_imgs:
+        img_info = missing.get_missing_image_info(img_key)
+        if not img_info:
+            continue
+        entry = _match_entry(
+            img_info['filename'],
+            found_files,
+            equiv_map,
+            udim=bool(img_info.get('is_udim')),
+        )
+        matches[img_key] = entry
+
+    _library_search_state['image_matches'] = matches
+
+
 def _validate_replacement_library(library_key, replacement_path, original_info):
-    """
-    Validate a replacement library and return warnings.
-    
-    Returns list of warning strings.
-    """
+    """Validate a replacement library and return warnings."""
     warnings = []
-    
+    if not replacement_path:
+        warnings.append("No replacement path")
+        return warnings
+    if '<UDIM>' in replacement_path:
+        if not _udim_template_has_tile(replacement_path):
+            warnings.append(f"No UDIM tiles found for: {replacement_path}")
+        return warnings
     if not os.path.exists(replacement_path):
         warnings.append(f"Replacement file does not exist: {replacement_path}")
         return warnings
-    
     try:
-        # Try to read the blend file to check for missing dependencies
-        # We'll use a simple approach: try to load it temporarily
-        # Note: This is a simplified check - full validation would require loading the blend file
-        
-        # Check if replacement library has missing dependencies by examining its structure
-        # For now, we'll do a basic file check and let Blender handle the rest when relinking
-        
-        # Check if original linked data-blocks might be missing in replacement
-        # This is a simplified check - we can't easily read blend file contents without loading it
-        # The user will see warnings when they actually try to use the library
-        
-        pass
+        if not os.access(replacement_path, os.R_OK):
+            warnings.append(f"Cannot read replacement file: {replacement_path}")
     except Exception as e:
-        warnings.append(f"Could not validate replacement library: {str(e)}")
-    
+        warnings.append(f"Could not validate library: {str(e)}")
     return warnings
+
+
+def _image_filepath_exists(image):
+    """True when image filepath resolves to an existing file (or UDIM tile)."""
+    try:
+        fp = image.filepath or ""
+        if not fp:
+            return False
+        abs_path = os.path.normpath(bpy.path.abspath(fp))
+        if '<UDIM>' in abs_path:
+            return _udim_template_has_tile(abs_path)
+        return os.path.isfile(abs_path)
+    except Exception:
+        return False
 
 
 def _library_filepath_prefer_relative(abs_path):
     """
-    Prefer a blend-relative ``//`` path for library.filepath (#23).
+    Prefer a blend-relative ``//`` path for library/image filepath (#23).
 
     Falls back to the absolute path when the blend is unsaved or the hit sits
     on a different drive/root anchor (Windows ``ValueError`` from relpath).
@@ -747,6 +897,88 @@ def _relink_library_batch_result(library_key, filepath):
     return False, message
 
 
+def _relink_image(image_key, new_filepath, use_relative_path=True):
+    """Relink an image datablock to a new filepath (file, sequence frame, or UDIM)."""
+    if image_key not in bpy.data.images:
+        return False, "Image not found"
+
+    image = bpy.data.images[image_key]
+
+    try:
+        if not new_filepath:
+            return False, "No filepath provided"
+
+        # UDIM templates keep <UDIM> in the stored path
+        is_udim = '<UDIM>' in new_filepath
+        if is_udim:
+            abs_path = os.path.normpath(bpy.path.abspath(new_filepath))
+            if not _udim_template_has_tile(abs_path):
+                return False, f"No UDIM tiles found for: {abs_path}"
+            store_path = abs_path
+        else:
+            abs_path = os.path.normpath(bpy.path.abspath(new_filepath))
+            if not os.path.exists(abs_path):
+                return False, f"File does not exist: {abs_path}"
+            if not os.path.isfile(abs_path):
+                return False, f"Path is not a file: {abs_path}"
+            if not os.access(abs_path, os.R_OK):
+                return False, f"Cannot read file (permission denied): {abs_path}"
+            store_path = abs_path
+
+        try:
+            old_fp = image.filepath or ""
+            old_basename = os.path.basename(
+                bpy.path.abspath(old_fp) if old_fp else image_key
+            )
+        except Exception:
+            old_basename = os.path.basename(image_key) if image_key else ""
+
+        try:
+            if use_relative_path:
+                # Prefer relative for non-UDIM; UDIM templates need the token kept
+                if is_udim and bpy.data.filepath:
+                    try:
+                        # Relpath of a tile, then restore <UDIM> in basename
+                        tile_probe = store_path.replace('<UDIM>', '1001')
+                        rel = bpy.path.relpath(tile_probe)
+                        image.filepath = _path_as_udim_template(rel)
+                    except (ValueError, OSError, TypeError, RuntimeError):
+                        image.filepath = store_path
+                else:
+                    image.filepath = _library_filepath_prefer_relative(store_path)
+            else:
+                image.filepath = store_path
+        except Exception as e:
+            return False, f"Error setting image filepath: {str(e)}"
+
+        try:
+            image.reload()
+        except Exception as e:
+            if _image_filepath_exists(image):
+                config.debug_print(
+                    f"[Atomic Debug] Image '{image_key}' path ok after "
+                    f"reload warning: {e}"
+                )
+                _record_relink_equivalent(old_basename, store_path)
+                return True, f"Path updated (reload warned: {e})"
+            return False, f"Image filepath updated but reload failed: {str(e)}"
+
+        _record_relink_equivalent(old_basename, store_path)
+        return True, "Image relinked successfully"
+    except Exception as e:
+        return False, f"Error relinking image: {str(e)}"
+
+
+def _relink_image_batch_result(image_key, filepath):
+    """Relink one image for Relink All; treat vanished IDs as resolved."""
+    success, message = _relink_image(image_key, filepath)
+    if success:
+        return True, message
+    if message == "Image not found" and image_key not in bpy.data.images:
+        return True, "Already resolved (image ID gone)"
+    return False, message
+
+
 def _safe_set_atom_property(atom, prop_name, value):
     """Safely set an atom property, catching errors when Blender is in read-only state."""
     if atom is None:
@@ -761,9 +993,9 @@ def _safe_set_atom_property(atom, prop_name, value):
 
 # Atomic Data Manager Search for Missing Files Operator
 class ATOMIC_OT_search_missing(bpy.types.Operator):
-    """Search one or more directories for missing library files"""
+    """Search one or more directories for missing library and image files"""
     bl_idname = "atomic.search_missing"
-    bl_label = "Search for Missing Libraries"
+    bl_label = "Search for Missing Files"
     bl_options = {'REGISTER', 'UNDO'}
 
     # Selected matches for libraries with multiple candidates
@@ -838,11 +1070,12 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                 row.label(text="Please add at least one directory", icon='INFO')
 
             # Session index status + clear (independent of Smart Select dirty)
-            idx_files = len(_blend_search_index.get('files') or [])
+            n_b = len(_file_search_index.get('blends') or [])
+            n_i = len(_file_search_index.get('images') or [])
             idx_row = layout.row(align=True)
-            if idx_files:
+            if n_b or n_i:
                 idx_row.label(
-                    text=f"Search index: {idx_files} .blend file(s)",
+                    text=f"Search index: {n_b} .blend, {n_i} image file(s)",
                     icon='DOCUMENTS',
                 )
             else:
@@ -867,35 +1100,30 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
         # Results display
         if state['search_complete'] and not state['is_searching']:
             missing_libs = missing.libraries()
+            missing_imgs = missing.images()
             matches = state.get('matches', {})
+            image_matches = state.get('image_matches', {})
 
-            if not missing_libs:
+            if not missing_libs and not missing_imgs:
                 row = layout.row()
-                row.label(text="No missing libraries found!", icon='INFO')
+                row.label(text="No missing files found!", icon='INFO')
                 return
 
-            layout.separator()
-            row = layout.row()
-            row.label(text="Missing Libraries:", icon='LIBRARY_DATA_DIRECT')
-
-            # Display each missing library
-            for lib_key in missing_libs:
-                box = layout.box()
-
-                # Library name
+            def _draw_match_box(box, item_key, kind, match_info, display_name, icon):
                 row = box.row()
-                lib_info = missing.get_missing_library_info(lib_key)
-                lib_name = lib_info['filename'] if lib_info else lib_key
-                row.label(text=lib_name, icon='LIBRARY_DATA_DIRECT')
+                row.label(text=display_name, icon=icon)
 
-                match_info = matches.get(lib_key, {})
                 exact_match = match_info.get('exact')
                 via_equivalent = match_info.get('via_equivalent', False)
                 candidates = match_info.get('candidates', [])
                 warnings = match_info.get('warnings', [])
                 selected_match = match_info.get('selected_match')
+                found_any = bool(
+                    state.get('found_blend_files')
+                    if kind == 'LIBRARY'
+                    else state.get('found_image_files')
+                )
 
-                # Show match status
                 if exact_match:
                     row = box.row()
                     if via_equivalent:
@@ -908,7 +1136,10 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                         )
                     else:
                         row.label(
-                            text=f"✓ Exact match: {os.path.basename(exact_match)}",
+                            text=(
+                                f"✓ Exact match: "
+                                f"{os.path.basename(exact_match)}"
+                            ),
                             icon='CHECKMARK',
                         )
                 elif candidates:
@@ -917,12 +1148,10 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                         text=f"Found {len(candidates)} candidate(s)",
                         icon='QUESTION',
                     )
-
-                    # Show candidate selection
                     if len(candidates) > 1:
                         row = box.row()
                         row.label(text="Select match:")
-                        for i, candidate in enumerate(candidates[:5]):
+                        for candidate in candidates[:5]:
                             candidate_name = os.path.basename(candidate)
                             if len(candidate_name) > 40:
                                 candidate_name = candidate_name[:37] + "..."
@@ -930,54 +1159,85 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                                 "atomic.search_missing_select",
                                 text=candidate_name,
                             )
-                            op.library_key = lib_key
+                            op.kind = kind
+                            op.item_key = item_key
                             op.filepath = candidate
-                elif state['found_blend_files']:
+                elif found_any:
                     row = box.row()
                     row.label(text="No match found", icon='ERROR')
                 else:
                     row = box.row()
                     row.label(
-                        text="No .blend files found in search directories",
+                        text="No matching files found in search directories",
                         icon='INFO',
                     )
 
-                # Show warnings
-                if warnings:
-                    for warning in warnings:
-                        row = box.row()
-                        row.label(text=f"⚠ {warning}", icon='ERROR')
+                for warning in warnings:
+                    row = box.row()
+                    row.label(text=f"⚠ {warning}", icon='ERROR')
 
-                # Relink button
                 if selected_match:
                     row = box.row()
-                    if warnings:
-                        op = row.operator(
-                            "atomic.search_missing_relink",
-                            text="Relink (Ignore Warnings)",
-                        )
-                        op.library_key = lib_key
-                        op.filepath = selected_match
-                        op.ignore_warnings = True
-                    else:
-                        op = row.operator(
-                            "atomic.search_missing_relink",
-                            text="Relink",
-                        )
-                        op.library_key = lib_key
-                        op.filepath = selected_match
-                        op.ignore_warnings = False
+                    label = (
+                        "Relink (Ignore Warnings)" if warnings else "Relink"
+                    )
+                    op = row.operator(
+                        "atomic.search_missing_relink",
+                        text=label,
+                    )
+                    op.kind = kind
+                    op.item_key = item_key
+                    op.filepath = selected_match
+                    op.ignore_warnings = bool(warnings)
 
-            # Relink All: show when at least one library has a relinkable match
-            relinkable = [
-                lib_key for lib_key in missing_libs
-                if (matches.get(lib_key) or {}).get('selected_match')
-                or (matches.get(lib_key) or {}).get('exact')
-            ]
-            if relinkable:
+            if missing_libs:
                 layout.separator()
                 row = layout.row()
-                op = row.operator(
+                row.label(text="Missing Libraries:", icon='LIBRARY_DATA_DIRECT')
+                for lib_key in missing_libs:
+                    box = layout.box()
+                    lib_info = missing.get_missing_library_info(lib_key)
+                    lib_name = lib_info['filename'] if lib_info else lib_key
+                    _draw_match_box(
+                        box,
+                        lib_key,
+                        'LIBRARY',
+                        matches.get(lib_key, {}),
+                        lib_name,
+                        'LIBRARY_DATA_DIRECT',
+                    )
+
+            if missing_imgs:
+                layout.separator()
+                row = layout.row()
+                row.label(text="Missing Images:", icon='IMAGE_DATA')
+                for img_key in missing_imgs:
+                    box = layout.box()
+                    img_info = missing.get_missing_image_info(img_key)
+                    img_name = img_info['filename'] if img_info else img_key
+                    _draw_match_box(
+                        box,
+                        img_key,
+                        'IMAGE',
+                        image_matches.get(img_key, {}),
+                        img_name,
+                        'IMAGE_DATA',
+                    )
+
+            relinkable_libs = [
+                k for k in missing_libs
+                if (matches.get(k) or {}).get('selected_match')
+                or (matches.get(k) or {}).get('exact')
+            ]
+            relinkable_imgs = [
+                k for k in missing_imgs
+                if (image_matches.get(k) or {}).get('selected_match')
+                or (image_matches.get(k) or {}).get('exact')
+            ]
+            if relinkable_libs or relinkable_imgs:
+                layout.separator()
+                row = layout.row()
+                row.operator(
                     "atomic.search_missing_relink_all",
                     text="Relink All",
                     icon='LINKED',
@@ -1008,12 +1268,14 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
     def invoke(self, context, event):
         global _library_search_state
 
-        # Reset dialog/match state only — keep session _blend_search_index
+        # Reset dialog/match state only — keep session _file_search_index
         _search_popup_regions.clear()
         _library_search_state = {
             'is_searching': False,
             'found_blend_files': [],
+            'found_image_files': [],
             'matches': {},
+            'image_matches': {},
             'progress': 0.0,
             'status': '',
             'search_thread': None,
@@ -1117,8 +1379,9 @@ class ATOMIC_OT_search_missing_clear_index(bpy.types.Operator):
     bl_idname = "atomic.search_missing_clear_index"
     bl_label = "Clear Search Index"
     bl_description = (
-        "Forget cached .blend paths from Search Missing. The next Start Search "
-        "will re-walk directories. Does not clear Smart Select unused caches"
+        "Forget cached .blend and image paths from Search Missing. The next "
+        "Start Search will re-walk directories. Does not clear Smart Select "
+        "unused caches"
     )
     bl_options = {'INTERNAL'}
 
@@ -1133,7 +1396,7 @@ class ATOMIC_OT_search_missing_clear_index(bpy.types.Operator):
 
 # Operator to start the search
 class ATOMIC_OT_search_missing_start(bpy.types.Operator):
-    """Start searching for missing library files"""
+    """Start searching for missing library and image files"""
     bl_idname = "atomic.search_missing_start"
     bl_label = "Start Search"
     bl_options = {'INTERNAL'}
@@ -1156,22 +1419,24 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             )
             return {'CANCELLED'}
 
-        # Check if search is already running
         if _library_search_state.get('is_searching', False):
             self.report({'WARNING'}, "Search is already in progress")
             return {'CANCELLED'}
 
         atom = context.scene.atomic
 
-        # Session index hit: skip os.walk, still rematch for this blend
-        cached = _cached_blend_files_for_roots(valid)
+        cached = _cached_files_for_roots(valid)
         if cached is not None:
+            blends, images = cached
             _library_search_state['is_searching'] = False
-            _library_search_state['found_blend_files'] = cached
+            _library_search_state['found_blend_files'] = blends
+            _library_search_state['found_image_files'] = images
             _library_search_state['matches'] = {}
+            _library_search_state['image_matches'] = {}
             _library_search_state['progress'] = 100.0
             _library_search_state['status'] = (
-                f'Using session index ({len(cached)} .blend files)...'
+                f'Using session index ({len(blends)} .blend, '
+                f'{len(images)} image)...'
             )
             _library_search_state['search_complete'] = True
             _library_search_state['search_error'] = None
@@ -1179,6 +1444,7 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             _library_search_state['search_thread'] = None
             _library_search_state['progress_queue'] = None
             _match_libraries()
+            _match_images()
             _safe_set_atom_property(atom, 'is_operation_running', False)
             _safe_set_atom_property(atom, 'operation_progress', 0.0)
             _safe_set_atom_property(atom, 'operation_status', "")
@@ -1187,14 +1453,16 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             _tag_search_ui_redraw()
             self.report(
                 {'INFO'},
-                f"Matched from session index ({len(cached)} .blend files)",
+                f"Matched from session index "
+                f"({len(blends)} .blend, {len(images)} image)",
             )
             return {'FINISHED'}
 
-        # Initialize search state for a fresh walk
         _library_search_state['is_searching'] = True
         _library_search_state['found_blend_files'] = []
+        _library_search_state['found_image_files'] = []
         _library_search_state['matches'] = {}
+        _library_search_state['image_matches'] = {}
         _library_search_state['progress'] = 0.0
         _library_search_state['status'] = (
             f'Initializing search across {len(valid)} director'
@@ -1204,7 +1472,6 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
         _library_search_state['search_error'] = None
         _library_search_state['search_dirs'] = list(valid)
 
-        # Initialize progress tracking
         _safe_set_atom_property(atom, 'is_operation_running', True)
         _safe_set_atom_property(atom, 'operation_progress', 0.0)
         _safe_set_atom_property(
@@ -1212,20 +1479,19 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
         )
         _safe_set_atom_property(atom, 'cancel_operation', False)
 
-        # Create queues for thread communication
         progress_queue = queue.Queue()
         error_queue = queue.Queue()
         _library_search_state['progress_queue'] = progress_queue
         _library_search_state['error_queue'] = error_queue
 
-        # Start search thread
         try:
             search_thread = threading.Thread(
-                target=_search_blend_files_worker,
+                target=_search_files_worker,
                 args=(
                     valid,
                     progress_queue,
                     _library_search_state['found_blend_files'],
+                    _library_search_state['found_image_files'],
                     error_queue,
                 ),
                 daemon=True,
@@ -1238,7 +1504,6 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
             self.report({'ERROR'}, f"Failed to start search thread: {str(e)}")
             return {'CANCELLED'}
 
-        # Start timer to process progress
         try:
             bpy.app.timers.register(_process_library_search_step)
         except Exception as e:
@@ -1254,7 +1519,6 @@ class ATOMIC_OT_search_missing_start(bpy.types.Operator):
         return {'FINISHED'}
 
 
-# Operator to cancel the search
 class ATOMIC_OT_search_missing_cancel(bpy.types.Operator):
     """Cancel the library search"""
     bl_idname = "atomic.search_missing_cancel"
@@ -1274,55 +1538,79 @@ class ATOMIC_OT_search_missing_cancel(bpy.types.Operator):
 
 # Operator to select a match for a library
 class ATOMIC_OT_search_missing_select(bpy.types.Operator):
-    """Select a match for a library"""
+    """Select a match for a missing library or image"""
     bl_idname = "atomic.search_missing_select"
     bl_label = "Select Match"
     bl_options = {'INTERNAL'}
-    
-    library_key: bpy.props.StringProperty()
+
+    kind: bpy.props.EnumProperty(
+        items=(
+            ('LIBRARY', 'Library', ''),
+            ('IMAGE', 'Image', ''),
+        ),
+        default='LIBRARY',
+    )
+    item_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
-    
+
     def execute(self, context):
         global _library_search_state
-        
-        matches = _library_search_state.get('matches', {})
-        if self.library_key in matches:
-            matches[self.library_key]['selected_match'] = self.filepath
-            # Re-validate
-            lib_info = missing.get_missing_library_info(self.library_key)
-            if lib_info:
-                warnings = _validate_replacement_library(self.library_key, self.filepath, lib_info)
-                matches[self.library_key]['warnings'] = warnings
-        
-        # Redraw
+
+        if self.kind == 'IMAGE':
+            matches = _library_search_state.setdefault('image_matches', {})
+            if self.item_key in matches:
+                matches[self.item_key]['selected_match'] = self.filepath
+        else:
+            matches = _library_search_state.get('matches', {})
+            if self.item_key in matches:
+                matches[self.item_key]['selected_match'] = self.filepath
+                lib_info = missing.get_missing_library_info(self.item_key)
+                if lib_info:
+                    warnings = _validate_replacement_library(
+                        self.item_key, self.filepath, lib_info
+                    )
+                    matches[self.item_key]['warnings'] = warnings
+
         for area in context.screen.areas:
             area.tag_redraw()
-        
+
         return {'FINISHED'}
 
 
-# Operator to relink a library
 class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
-    """Relink a library to the selected file"""
+    """Relink a library or image to the selected file"""
     bl_idname = "atomic.search_missing_relink"
-    bl_label = "Relink Library"
+    bl_label = "Relink"
     bl_options = {'INTERNAL', 'UNDO'}
-    
-    library_key: bpy.props.StringProperty()
+
+    kind: bpy.props.EnumProperty(
+        items=(
+            ('LIBRARY', 'Library', ''),
+            ('IMAGE', 'Image', ''),
+        ),
+        default='LIBRARY',
+    )
+    item_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
     ignore_warnings: bpy.props.BoolProperty(default=False)
+    # Legacy prop kept so older draw paths do not explode if still set
+    library_key: bpy.props.StringProperty()
 
     def execute(self, context):
-        success, message = _relink_library(self.library_key, self.filepath)
-        
+        global _library_search_state
+        key = self.item_key or self.library_key
+        if self.kind == 'IMAGE':
+            success, message = _relink_image(key, self.filepath)
+            label = "Image"
+            bucket = 'image_matches'
+        else:
+            success, message = _relink_library(key, self.filepath)
+            label = "Library"
+            bucket = 'matches'
+
         if success:
-            self.report({'INFO'}, f"Library relinked: {message}")
-            # Remove from missing list by updating state
-            global _library_search_state
-            if self.library_key in _library_search_state.get('matches', {}):
-                del _library_search_state['matches'][self.library_key]
-            
-            # Clear progress state if operation was running
+            self.report({'INFO'}, f"{label} relinked: {message}")
+            _library_search_state.get(bucket, {}).pop(key, None)
             atom = context.scene.atomic
             if atom.is_operation_running:
                 _safe_set_atom_property(atom, 'is_operation_running', False)
@@ -1330,17 +1618,15 @@ class ATOMIC_OT_search_missing_relink(bpy.types.Operator):
                 _safe_set_atom_property(atom, 'operation_status', "")
         else:
             self.report({'ERROR'}, message)
-        
-        # Redraw
+
         for area in context.screen.areas:
             area.tag_redraw()
-        
+
         return {'FINISHED'}
 
 
-# Operator to relink all found libraries in the search dialog
 class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
-    """Relink all missing libraries that have a match selected"""
+    """Relink all missing libraries and images that have a match selected"""
     bl_idname = "atomic.search_missing_relink_all"
     bl_label = "Relink All"
     bl_options = {'INTERNAL', 'UNDO'}
@@ -1348,34 +1634,44 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
     def execute(self, context):
         global _library_search_state
         matches = _library_search_state.get('matches', {})
+        image_matches = _library_search_state.get('image_matches', {})
         to_relink = []
         for lib_key, match_info in matches.items():
             path = match_info.get('selected_match') or match_info.get('exact')
             if path and path.strip():
-                to_relink.append((lib_key, path))
+                to_relink.append(('LIBRARY', lib_key, path))
+        for img_key, match_info in image_matches.items():
+            path = match_info.get('selected_match') or match_info.get('exact')
+            if path and path.strip():
+                to_relink.append(('IMAGE', img_key, path))
         if not to_relink:
             self.report({'WARNING'}, "No matches to relink")
             return {'CANCELLED'}
         ok, fail = 0, 0
         fail_details = []
-        for lib_key, filepath in to_relink:
-            success, message = _relink_library_batch_result(lib_key, filepath)
+        for kind, key, filepath in to_relink:
+            if kind == 'IMAGE':
+                success, message = _relink_image_batch_result(key, filepath)
+                bucket = 'image_matches'
+            else:
+                success, message = _relink_library_batch_result(key, filepath)
+                bucket = 'matches'
             if success:
                 ok += 1
-                _library_search_state['matches'].pop(lib_key, None)
+                _library_search_state.get(bucket, {}).pop(key, None)
             else:
                 fail += 1
-                fail_details.append(f"{lib_key}: {message}")
+                fail_details.append(f"{key}: {message}")
         if ok:
             self.report(
                 {'INFO'},
-                f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}"
+                f"Relinked {ok} file{'s' if ok != 1 else ''}"
                 + (f", {fail} failed" if fail else ""),
             )
         if fail:
             self.report(
                 {'ERROR'},
-                f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink"
+                f"{fail} file{'s' if fail != 1 else ''} failed to relink"
                 + (f" — {fail_details[0]}" if fail_details else ""),
             )
             for detail in fail_details[1:]:
@@ -1391,18 +1687,19 @@ class ATOMIC_OT_search_missing_relink_all(bpy.types.Operator):
 
 
 # Module-level state for replace missing
+# Keys are "LIBRARY:<name>" / "IMAGE:<name>"
 _replace_missing_state = {}
+
+
+def _replace_state_key(kind, item_key):
+    """Stable state key for a replace-dialog row."""
+    return f"{kind}:{item_key}"
 
 
 def _replace_path_item_update(self, context):
     """Sync path to global state so browse/relink ops and redraws see it."""
     global _replace_missing_state
-    # Blender's FILE_PATH widget treats the last path segment as a filename
-    # unless the path ends with a separator. If the user typed an existing
-    # directory, normalize it by appending a trailing separator so the file
-    # browser opens *in* that folder instead of treating it as a filename.
     if getattr(self, "_atomic_normalizing_path", False):
-        # Prevent recursion if we assign to self.path below.
         pass
     else:
         raw = (self.path or "").strip()
@@ -1413,31 +1710,39 @@ def _replace_path_item_update(self, context):
                     self._atomic_normalizing_path = True
                     self.path = raw + os.sep
             except Exception:
-                # If abspath/exists checks fail, don't interfere with typing.
                 pass
             finally:
                 if hasattr(self, "_atomic_normalizing_path"):
                     self._atomic_normalizing_path = False
 
-    if self.lib_key:
-        _replace_missing_state[self.lib_key] = self.path
+    key = _replace_state_key(self.kind, self.item_key or self.lib_key)
+    if self.item_key or self.lib_key:
+        _replace_missing_state[key] = self.path
     for area in context.screen.areas:
         area.tag_redraw()
 
 
 class ATOMIC_PG_replace_path_item(bpy.types.PropertyGroup):
-    """One replacement path per missing library so each text field is stable (paste works)."""
+    """One replacement path per missing file so each text field is stable."""
+    kind: bpy.props.EnumProperty(
+        items=(
+            ('LIBRARY', 'Library', ''),
+            ('IMAGE', 'Image', ''),
+        ),
+        default='LIBRARY',
+    )
+    item_key: bpy.props.StringProperty()
+    # Legacy alias used by older callers
     lib_key: bpy.props.StringProperty()
     path: bpy.props.StringProperty(
         name="Path",
-        description="Path to the replacement library file",
+        description="Path to the replacement file",
         subtype='FILE_PATH',
         default="",
         update=_replace_path_item_update
     )
 
 
-# Atomic Data Manager Replace Missing Files Operator
 class ATOMIC_OT_replace_missing(bpy.types.Operator):
     """Replace each missing file with a new file"""
     bl_idname = "atomic.replace_missing"
@@ -1448,298 +1753,296 @@ class ATOMIC_OT_replace_missing(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         global _replace_missing_state
-        
+
         missing_libs = missing.libraries()
-        
-        if not missing_libs:
+        missing_imgs = missing.images()
+
+        if not missing_libs and not missing_imgs:
             row = layout.row()
-            row.label(text="No missing libraries found!", icon='INFO')
+            row.label(text="No missing files found!", icon='INFO')
             return
-        
-        # Header
+
         row = layout.row()
-        row.label(text="Select replacement files for missing libraries:", icon='LIBRARY_DATA_DIRECT')
-        
+        row.label(
+            text="Select replacement files for missing libraries and images:",
+            icon='FILEBROWSER',
+        )
         layout.separator()
-        
-        # List each missing library
-        for lib_key in missing_libs:
-            lib_info = missing.get_missing_library_info(lib_key)
-            if not lib_info:
-                continue
 
-            item = next((i for i in self.replace_paths if i.lib_key == lib_key), None)
-            if item is None:
-                continue
-
-            # Box for each library
+        def _draw_row(item, icon_broken, relink_label):
             box = layout.box()
-
-            # First row: icon and missing path
             row = box.row()
-            row.label(text="", icon='LIBRARY_DATA_BROKEN')
-
-            path_display = lib_info['filepath']
+            row.label(text="", icon=icon_broken)
+            if item.kind == 'LIBRARY':
+                info = missing.get_missing_library_info(item.item_key)
+            else:
+                info = missing.get_missing_image_info(item.item_key)
+            path_display = (info or {}).get('filepath') or item.item_key
             row.label(text=path_display)
 
-            # Second row: replacement path (one property per row so paste isn't overwritten on redraw)
             row = box.row()
             row.separator()
             path_row = row.row(align=True)
             path_row.prop(item, 'path', text="")
-            
-            # Third row: Relink button if path is set
+
             if item.path:
                 row = box.row()
                 row.separator()
-                relink_op = row.operator("atomic.replace_missing_relink", text="Relink Library", icon='LINKED')
-                relink_op.library_key = lib_key
+                relink_op = row.operator(
+                    "atomic.replace_missing_relink",
+                    text=relink_label,
+                    icon='LINKED',
+                )
+                relink_op.kind = item.kind
+                relink_op.item_key = item.item_key
                 relink_op.filepath = item.path
-        
-        # Relink All: only if at least one library has a path set
-        if any(_replace_missing_state.get(k) for k in missing_libs):
+
+        for item in self.replace_paths:
+            if item.kind == 'LIBRARY':
+                _draw_row(item, 'LIBRARY_DATA_BROKEN', "Relink Library")
+            else:
+                _draw_row(item, 'IMAGE_DATA', "Relink Image")
+
+        active_keys = {
+            _replace_state_key(it.kind, it.item_key) for it in self.replace_paths
+        }
+        if any(_replace_missing_state.get(k) for k in active_keys):
             layout.separator()
             row = layout.row()
-            row.operator("atomic.replace_missing_relink_all", text="Relink All", icon='LINKED')
-    
+            row.operator(
+                "atomic.replace_missing_relink_all",
+                text="Relink All",
+                icon='LINKED',
+            )
+
     def execute(self, context):
         return {'FINISHED'}
 
     def invoke(self, context, event):
         global _replace_missing_state
         missing_libs = missing.libraries()
+        missing_imgs = missing.images()
 
-        _replace_missing_state = {k: v for k, v in _replace_missing_state.items() if k in missing_libs}
+        valid_keys = set()
+        for k in missing_libs:
+            valid_keys.add(_replace_state_key('LIBRARY', k))
+        for k in missing_imgs:
+            valid_keys.add(_replace_state_key('IMAGE', k))
+        _replace_missing_state = {
+            k: v for k, v in _replace_missing_state.items() if k in valid_keys
+        }
 
-        if not missing_libs:
-            self.report({'INFO'}, "No missing libraries found")
+        if not missing_libs and not missing_imgs:
+            self.report({'INFO'}, "No missing files found")
             return {'CANCELLED'}
 
         self.replace_paths.clear()
         for lib_key in missing_libs:
             lib_info = missing.get_missing_library_info(lib_key)
             path_item = self.replace_paths.add()
+            path_item.kind = 'LIBRARY'
+            path_item.item_key = lib_key
             path_item.lib_key = lib_key
-            existing = _replace_missing_state.get(lib_key, "")
-            # Prefill the file browser with the missing filename when possible.
-            path_item.path = existing or (lib_info.get('filename', "") if lib_info else "")
+            sk = _replace_state_key('LIBRARY', lib_key)
+            existing = _replace_missing_state.get(sk, "")
+            path_item.path = existing or (
+                lib_info.get('filename', "") if lib_info else ""
+            )
+
+        for img_key in missing_imgs:
+            img_info = missing.get_missing_image_info(img_key)
+            path_item = self.replace_paths.add()
+            path_item.kind = 'IMAGE'
+            path_item.item_key = img_key
+            path_item.lib_key = img_key
+            sk = _replace_state_key('IMAGE', img_key)
+            existing = _replace_missing_state.get(sk, "")
+            path_item.path = existing or (
+                img_info.get('filename', "") if img_info else ""
+            )
 
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=800)
 
 
-# Operator to set replacement path from text input (now works inline)
 class ATOMIC_OT_replace_missing_set_path(bpy.types.Operator):
-    """Set replacement path for a library"""
+    """Set replacement path for a missing file"""
     bl_idname = "atomic.replace_missing_set_path"
     bl_label = "Set Replacement Path"
     bl_options = {'INTERNAL'}
-    
+
+    kind: bpy.props.EnumProperty(
+        items=(
+            ('LIBRARY', 'Library', ''),
+            ('IMAGE', 'Image', ''),
+        ),
+        default='LIBRARY',
+    )
+    item_key: bpy.props.StringProperty()
     library_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty(
         name="File Path",
-        description="Path to the replacement library file",
+        description="Path to the replacement file",
         subtype='FILE_PATH',
         default="",
-        update=lambda self, context: self._update_filepath(context)
     )
-    
-    def _update_filepath(self, context):
-        """Update state when filepath changes"""
-        global _replace_missing_state
-        if self.library_key:
-            _replace_missing_state[self.library_key] = self.filepath
-            # Redraw to update UI
-            for area in context.screen.areas:
-                area.tag_redraw()
-    
-    def invoke(self, context, event):
-        global _replace_missing_state
-        # Use filepath from state if available
-        if not self.filepath:
-            self.filepath = _replace_missing_state.get(self.library_key, "")
-        # Don't open dialog - this operator is now used inline
-        return {'FINISHED'}
-    
+
     def execute(self, context):
         global _replace_missing_state
-        if self.filepath:
-            _replace_missing_state[self.library_key] = self.filepath
-            # Redraw
+        key = self.item_key or self.library_key
+        if self.filepath and key:
+            _replace_missing_state[_replace_state_key(self.kind, key)] = (
+                self.filepath
+            )
             for area in context.screen.areas:
                 area.tag_redraw()
         return {'FINISHED'}
 
 
-# File browser operator for selecting replacement library
 class ATOMIC_OT_replace_missing_browse(bpy.types.Operator):
-    """Browse for replacement library file"""
+    """Browse for replacement file"""
     bl_idname = "atomic.replace_missing_browse"
-    bl_label = "Browse for Library"
+    bl_label = "Browse for File"
     bl_options = {'INTERNAL'}
-    
+
+    kind: bpy.props.EnumProperty(
+        items=(
+            ('LIBRARY', 'Library', ''),
+            ('IMAGE', 'Image', ''),
+        ),
+        default='LIBRARY',
+    )
+    item_key: bpy.props.StringProperty()
     library_key: bpy.props.StringProperty()
     filename: bpy.props.StringProperty(
         name="Filename",
-        description="Filename to pre-fill in file browser",
         subtype='FILE_NAME',
-        default=""
+        default="",
     )
     filepath: bpy.props.StringProperty(
         name="File Path",
-        description="Path to the replacement library file",
         subtype='FILE_PATH',
-        default=""
+        default="",
     )
-    filter_glob: bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
-    
+    filter_glob: bpy.props.StringProperty(
+        default="*.blend;*.png;*.jpg;*.jpeg;*.exr;*.hdr;*.tif;*.tiff;*.tga;*.bmp;*.webp;*.psd;*.mp4;*.mov;*.avi",
+        options={'HIDDEN'},
+    )
+
     def invoke(self, context, event):
-        global _replace_missing_state
-        
-        # Get the filename to pre-fill in the file browser
-        filename_to_use = None
-        
-        if self.filename:
-            # Use the provided filename
-            filename_to_use = self.filename
-        elif self.library_key in bpy.data.libraries:
-            # Extract filename from the missing library's path
-            library = bpy.data.libraries[self.library_key]
-            if library.filepath:
-                try:
-                    missing_path = bpy.path.abspath(library.filepath)
-                    filename_to_use = os.path.basename(missing_path)
-                except Exception:
-                    pass
-        
-        # Set the filename property (with FILE_NAME subtype) to pre-fill the filename field
-        if filename_to_use:
-            self.filename = filename_to_use
-        else:
-            # Check existing path from state and extract filename
-            existing_path = _replace_missing_state.get(self.library_key, "")
-            if existing_path:
-                self.filename = os.path.basename(existing_path) if os.path.dirname(existing_path) else existing_path
-            else:
-                self.filename = ""
-        
-        # Set filepath to empty initially - the file browser will populate it when a file is selected
-        # The filename property will pre-fill the filename field
-        self.filepath = ""
-        
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
-    
+
     def execute(self, context):
         global _replace_missing_state
-        
-        # When file browser accepts, filepath will contain the selected file
-        # Combine directory and filename if needed
+        key = self.item_key or self.library_key
         selected_path = self.filepath
-        
-        # If filepath is empty but filename is set, try to construct path
-        if not selected_path and self.filename:
-            # Try to get directory from current blend file
-            if bpy.data.filepath:
-                try:
-                    base_dir = os.path.dirname(bpy.path.abspath(bpy.data.filepath))
-                    selected_path = os.path.join(base_dir, self.filename)
-                except Exception:
-                    selected_path = self.filename
-            else:
-                selected_path = self.filename
-        
-        if not selected_path:
-            return {'CANCELLED'}
-        
-        # Store in state (don't auto-relink - let user click Relink button)
-        _replace_missing_state[self.library_key] = selected_path
-        
-        # Redraw to update UI and show Relink button
+        if key and selected_path:
+            _replace_missing_state[_replace_state_key(self.kind, key)] = (
+                selected_path
+            )
         for area in context.screen.areas:
             area.tag_redraw()
-        
         return {'FINISHED'}
 
 
-# Operator to relink a library
 class ATOMIC_OT_replace_missing_relink(bpy.types.Operator):
-    """Relink the library to the specified path"""
+    """Relink the library or image to the specified path"""
     bl_idname = "atomic.replace_missing_relink"
-    bl_label = "Relink Library"
+    bl_label = "Relink"
     bl_options = {'INTERNAL', 'UNDO'}
-    
+
+    kind: bpy.props.EnumProperty(
+        items=(
+            ('LIBRARY', 'Library', ''),
+            ('IMAGE', 'Image', ''),
+        ),
+        default='LIBRARY',
+    )
+    item_key: bpy.props.StringProperty()
     library_key: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
-    
+
     def execute(self, context):
         global _replace_missing_state
-        
+
         if not self.filepath:
             self.report({'ERROR'}, "No filepath specified")
             return {'CANCELLED'}
-        
-        success, message = _relink_library(self.library_key, self.filepath)
-        
+
+        key = self.item_key or self.library_key
+        if self.kind == 'IMAGE':
+            success, message = _relink_image(key, self.filepath)
+            label = "Image"
+        else:
+            success, message = _relink_library(key, self.filepath)
+            label = "Library"
+
         if success:
-            self.report({'INFO'}, f"Library relinked: {message}")
-            # Remove from state
-            if self.library_key in _replace_missing_state:
-                del _replace_missing_state[self.library_key]
-            
-            # Redraw all areas
+            self.report({'INFO'}, f"{label} relinked: {message}")
+            _replace_missing_state.pop(_replace_state_key(self.kind, key), None)
             for area in context.screen.areas:
                 area.tag_redraw()
         else:
             self.report({'ERROR'}, message)
-        
+
         return {'FINISHED'}
 
 
-# Operator to relink all libraries that have a path set
 class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
-    """Relink all missing libraries that have a replacement path set"""
+    """Relink all missing files that have a replacement path set"""
     bl_idname = "atomic.replace_missing_relink_all"
     bl_label = "Relink All"
     bl_options = {'INTERNAL', 'UNDO'}
-    
+
     def execute(self, context):
         global _replace_missing_state
-        
-        to_relink = [(k, v) for k, v in _replace_missing_state.items() if v and v.strip()]
+
+        to_relink = [
+            (k, v) for k, v in _replace_missing_state.items() if v and v.strip()
+        ]
         if not to_relink:
             self.report({'WARNING'}, "No replacement paths set")
             return {'CANCELLED'}
-        
+
         ok, fail = 0, 0
         fail_details = []
-        for lib_key, filepath in to_relink:
-            success, message = _relink_library_batch_result(lib_key, filepath)
+        for state_key, filepath in to_relink:
+            if ':' not in state_key:
+                # Legacy bare library key
+                kind, key = 'LIBRARY', state_key
+            else:
+                kind, key = state_key.split(':', 1)
+            if kind == 'IMAGE':
+                success, message = _relink_image_batch_result(key, filepath)
+            else:
+                success, message = _relink_library_batch_result(key, filepath)
             if success:
                 ok += 1
-                _replace_missing_state.pop(lib_key, None)
+                _replace_missing_state.pop(state_key, None)
             else:
                 fail += 1
-                fail_details.append(f"{lib_key}: {message}")
-        
+                fail_details.append(f"{key}: {message}")
+
         if ok:
             self.report(
                 {'INFO'},
-                f"Relinked {ok} librar{'y' if ok == 1 else 'ies'}"
+                f"Relinked {ok} file{'s' if ok != 1 else ''}"
                 + (f", {fail} failed" if fail else ""),
             )
         if fail:
             self.report(
                 {'ERROR'},
-                f"{fail} librar{'y' if fail == 1 else 'ies'} failed to relink"
+                f"{fail} file{'s' if fail != 1 else ''} failed to relink"
                 + (f" — {fail_details[0]}" if fail_details else ""),
             )
             for detail in fail_details[1:]:
                 self.report({'ERROR'}, detail)
-        
+
         for area in context.screen.areas:
             area.tag_redraw()
         return {'FINISHED'}
+
 
 
 reg_list = [
