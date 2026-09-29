@@ -61,31 +61,50 @@ def _get_addon_module_name():
 
 
 def _get_addon_prefs():
-    # robustly find our AddonPreferences instance regardless of module name
-    prefs = bpy.context.preferences
-    for addon in prefs.addons.values():
+    """Return this package's AddonPreferences (not another Atomic install)."""
+    # Prefer exact extension key — critical when both rainys_extensions and
+    # vscode_development copies are enabled; a property-name fallback would
+    # return the wrong prefs and clobber config.enable_debug_prints etc.
+    target = ATOMIC_PT_preferences_panel.bl_idname
+    addons = bpy.context.preferences.addons
+    if target in addons:
+        ap = getattr(addons[target], "preferences", None)
+        if ap is not None:
+            return ap
+
+    candidates = []
+    for key, addon in addons.items():
         ap = getattr(addon, "preferences", None)
-        if ap and hasattr(ap, "bl_idname") and ap.bl_idname == ATOMIC_PT_preferences_panel.bl_idname:
+        if ap is None:
+            continue
+        if getattr(ap, "bl_idname", None) == target or key == target:
             return ap
-        # fallback: match by known property
-        if ap and hasattr(ap, "enable_missing_file_warning"):
-            return ap
+        if hasattr(ap, "enable_missing_file_warning"):
+            candidates.append(ap)
+
+    # Only use property fallback when a single Atomic install is present
+    if len(candidates) == 1:
+        return candidates[0]
     return None
 
 
 def _persist_prefs_sidecar(self=None, context=None):
     """Sync config.py and write the reload-safe preferences sidecar."""
-    copy_prefs_to_config(None, None)
+    copy_prefs_to_config(self, context)
     try:
         from ..utils.prefs_sidecar import save_sidecar
-        save_sidecar()
+        # Prefer the prefs instance that triggered the update when present
+        prefs = self if self is not None and hasattr(
+            self, "enable_debug_prints"
+        ) else None
+        save_sidecar(prefs)
     except Exception as e:
         config.debug_print(f"[Atomic Debug] Sidecar save skipped: {e}")
 
 
 def _on_visible_pref_update(self, context):
     """Bool/string AddonPreferences change → config + sidecar."""
-    _persist_prefs_sidecar()
+    _persist_prefs_sidecar(self, context)
 
 
 def _on_include_fake_users_update(self, context):
@@ -97,7 +116,7 @@ def _on_include_fake_users_update(self, context):
         restoring = False
     if restoring:
         return
-    _persist_prefs_sidecar()
+    _persist_prefs_sidecar(self, context)
     try:
         from ..ops.main_ops import _invalidate_cache
         _invalidate_cache()
@@ -484,7 +503,12 @@ def copy_prefs_to_config(self, context):
     # copies the values of Atomic's preferences to the variables in
     # config.py for global use
 
-    atomic_preferences = _get_addon_prefs()
+    # Prefer the AddonPreferences instance from an update callback so we
+    # never sync another installed Atomic package's prefs into this config.
+    if self is not None and hasattr(self, "enable_debug_prints"):
+        atomic_preferences = self
+    else:
+        atomic_preferences = _get_addon_prefs()
     if not atomic_preferences:
         return
 
@@ -543,7 +567,10 @@ def update_pie_menu_hotkeys(self, context):
     except Exception:
         pass
 
-    atomic_preferences = _get_addon_prefs()
+    atomic_preferences = (
+        self if self is not None and hasattr(self, "enable_pie_menu_ui")
+        else _get_addon_prefs()
+    )
     if not atomic_preferences:
         return
 
@@ -555,7 +582,7 @@ def update_pie_menu_hotkeys(self, context):
     else:
         remove_pie_menu_hotkeys()
 
-    _persist_prefs_sidecar()
+    _persist_prefs_sidecar(self, context)
 
 
 def add_pie_menu_hotkeys():

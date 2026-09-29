@@ -54,6 +54,9 @@ def debug_print(*args, **kwargs):
     """
     Print debug messages only if enable_debug_prints is True.
     Usage: debug_print("message") or debug_print(f"formatted {value}")
+
+    Reads the live module attribute so `config.enable_debug_prints = ...`
+    from preferences sync is always honoured.
     """
-    if enable_debug_prints:
+    if globals().get("enable_debug_prints"):
         print(*args, **kwargs)
