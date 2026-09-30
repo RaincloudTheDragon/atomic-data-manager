@@ -318,4 +318,4 @@ def unregister():
     ops.unregister()
 
     compat.safe_unregister_class(ATOMIC_PG_main)
-    del bpy.types.Scene.atomic
+    compat.safe_del_type_attr(bpy.types.Scene, "atomic")

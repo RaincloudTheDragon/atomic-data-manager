@@ -2166,11 +2166,7 @@ def register():
 
 
 def unregister():
-    if hasattr(bpy.types.WindowManager, "atomic_remap_search_paths"):
-        try:
-            del bpy.types.WindowManager.atomic_remap_search_paths
-        except Exception:
-            pass
+    compat.safe_del_type_attr(bpy.types.WindowManager, "atomic_remap_search_paths")
 
     for item in reg_list:
         compat.safe_unregister_class(item)

@@ -33,18 +33,45 @@ def safe_register_class(cls):
 def safe_unregister_class(cls):
     """
     Safely unregister a class, handling any version-specific unregistration issues.
-    
-    Args:
-        cls: The class to unregister
-    
-    Returns:
-        bool: True if unregistration succeeded, False otherwise
+
+    Stale class objects after vscode F8 / Blender quit often lack bl_rna — skip
+    quietly (no console spam). Real register failures still print via
+    :func:`safe_register_class`.
     """
+    if cls is None:
+        return False
+    # Already gone (typical on quit after reload) — do not call unregister_class.
+    if not hasattr(cls, "bl_rna"):
+        return False
+    try:
+        is_reg = getattr(cls, "is_registered", None)
+        if callable(is_reg) and not is_reg():
+            return False
+        if isinstance(is_reg, bool) and not is_reg:
+            return False
+    except (AttributeError, TypeError, RuntimeError):
+        pass
     try:
         unregister_class(cls)
         return True
     except Exception as e:
-        print(f"Warning: Failed to unregister {cls.__name__}: {e}")
+        config.debug_print(
+            f"[Atomic Debug] Skip unregister {getattr(cls, '__name__', cls)}: {e}"
+        )
+        return False
+
+
+def safe_del_type_attr(type_obj, attr_name):
+    """Delete a bpy.types Pointer/CollectionProperty if it is still present."""
+    if not hasattr(type_obj, attr_name):
+        return False
+    try:
+        delattr(type_obj, attr_name)
+        return True
+    except (AttributeError, TypeError, RuntimeError) as e:
+        config.debug_print(
+            f"[Atomic Debug] Skip del {type_obj.__name__}.{attr_name}: {e}"
+        )
         return False
 
 
