@@ -158,13 +158,34 @@ _library_search_state = {
     'search_error': None
 }
 
-# Session-scoped file index from Search Missing walks (.blend + images).
-# Survives blend switches; cleared on Blender restart, root changes, or manual clear.
-_file_search_index = {
-    'roots_key': None,  # tuple of uppercased normalized roots
-    'blends': [],
-    'images': [],
-}
+# Blender-process session key for the Search Missing file index.
+# Lives in bpy.app.driver_namespace so F8 / vscode addon reload does not wipe it.
+_FILE_SEARCH_INDEX_DNS = "atomic_data_manager_file_search_index"
+
+
+def _empty_file_search_index():
+    """Fresh empty index payload."""
+    return {
+        'roots_key': None,  # tuple of uppercased normalized roots
+        'blends': [],
+        'images': [],
+    }
+
+
+def _file_search_index():
+    """
+    Session file index (.blend + images) for this Blender process.
+
+    Survives blend switches and addon reloads; cleared on Blender quit,
+    root changes, or manual Clear Search Index / Clear Cache.
+    """
+    dns = bpy.app.driver_namespace
+    idx = dns.get(_FILE_SEARCH_INDEX_DNS)
+    if not isinstance(idx, dict):
+        idx = _empty_file_search_index()
+        dns[_FILE_SEARCH_INDEX_DNS] = idx
+    return idx
+
 
 # Common Blender-loadable still/sequence image + movie extensions
 _IMAGE_EXTENSIONS = frozenset({
@@ -178,12 +199,7 @@ _IMAGE_EXTENSIONS = frozenset({
 
 def clear_file_search_index():
     """Drop the session search index (manual clear / Clear Cache / root change)."""
-    global _file_search_index
-    _file_search_index = {
-        'roots_key': None,
-        'blends': [],
-        'images': [],
-    }
+    bpy.app.driver_namespace[_FILE_SEARCH_INDEX_DNS] = _empty_file_search_index()
     config.debug_print("[Atomic Debug] File search index cleared")
 
 
@@ -203,33 +219,34 @@ def _cached_files_for_roots(directories):
 
     None if cache miss.
     """
+    idx = _file_search_index()
     key = _search_roots_key(directories)
     if (
         key
-        and _file_search_index.get('roots_key') == key
-        and _file_search_index.get('blends') is not None
-        and _file_search_index.get('images') is not None
+        and idx.get('roots_key') == key
+        and idx.get('blends') is not None
+        and idx.get('images') is not None
     ):
         return (
-            list(_file_search_index['blends']),
-            list(_file_search_index['images']),
+            list(idx['blends']),
+            list(idx['images']),
         )
     return None
 
 
 def _store_file_search_index(directories, blends, images):
-    """Remember walk results for this Blender session."""
-    global _file_search_index
-    _file_search_index = {
+    """Remember walk results for this Blender process session."""
+    idx = {
         'roots_key': _search_roots_key(directories),
         'blends': list(blends or []),
         'images': list(images or []),
     }
+    bpy.app.driver_namespace[_FILE_SEARCH_INDEX_DNS] = idx
     config.debug_print(
         f"[Atomic Debug] File search index stored: "
-        f"{len(_file_search_index['blends'])} blends, "
-        f"{len(_file_search_index['images'])} images for "
-        f"{len(_file_search_index['roots_key'] or ())} roots"
+        f"{len(idx['blends'])} blends, "
+        f"{len(idx['images'])} images for "
+        f"{len(idx['roots_key'] or ())} roots"
     )
 
 
@@ -1070,8 +1087,9 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                 row.label(text="Please add at least one directory", icon='INFO')
 
             # Session index status + clear (independent of Smart Select dirty)
-            n_b = len(_file_search_index.get('blends') or [])
-            n_i = len(_file_search_index.get('images') or [])
+            idx = _file_search_index()
+            n_b = len(idx.get('blends') or [])
+            n_i = len(idx.get('images') or [])
             idx_row = layout.row(align=True)
             if n_b or n_i:
                 idx_row.label(
@@ -1272,7 +1290,7 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
     def invoke(self, context, event):
         global _library_search_state
 
-        # Reset dialog/match state only — keep session _file_search_index
+        # Reset dialog/match state only — keep Blender-session file search index
         _search_popup_regions.clear()
         _library_search_state = {
             'is_searching': False,
