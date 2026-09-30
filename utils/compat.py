@@ -825,7 +825,58 @@ def _light_fingerprint():
         len(bpy.data.armatures),
         len(bpy.data.collections),
         _cache_modifier_counts(),
+        _override_storage_signature(),
     )
+
+
+def _has_override_library(id_block):
+    """True when this ID itself carries an override_library (local override shell)."""
+    if id_block is None:
+        return False
+    try:
+        return bool(getattr(id_block, "override_library", None))
+    except (AttributeError, ReferenceError, RuntimeError):
+        return False
+
+
+def _override_storage_signature():
+    """
+    Cheap invalidate signal for override hierarchy / session edits.
+
+    Counts override shells and a sample of property+operation lengths so
+    resync / remap / property edits refresh STORAGE without waiting on mtime.
+    """
+    n_ids = 0
+    n_props = 0
+    n_ops = 0
+    for attr in (
+        "objects",
+        "collections",
+        "lights",
+        "node_groups",
+        "meshes",
+        "materials",
+        "armatures",
+        "curves",
+    ):
+        coll = getattr(bpy.data, attr, None)
+        if not coll:
+            continue
+        for id_block in coll:
+            if not _has_override_library(id_block):
+                continue
+            n_ids += 1
+            try:
+                ov = id_block.override_library
+                for prop in ov.properties:
+                    n_props += 1
+                    try:
+                        n_ops += len(prop.operations)
+                    except (AttributeError, RuntimeError, TypeError):
+                        pass
+            except (AttributeError, ReferenceError, RuntimeError, TypeError):
+                pass
+    return (n_ids, n_props, n_ops)
 
 
 def _skip_linked(id_block):
@@ -859,6 +910,299 @@ def is_library_override_storage(id_block):
 
 def _override_weight_factor(id_block):
     return 0.08 if is_library_override_storage(id_block) else 1.0
+
+
+# --- Override hierarchy STORAGE (blend-file write estimate) -----------------
+# Calibrated shell/session sizes for local override DNA written into the .blend.
+# Not a DNA peek — order-of-magnitude for large hierarchy overrides.
+_OV_SHELL_OBJECT = 900
+_OV_SHELL_COLLECTION = 400
+_OV_SHELL_LIGHT = 500
+_OV_SHELL_NODETREE = 500
+_OV_SHELL_OTHER = 400
+_OV_HEADER = 64
+_OV_PROP_BASE = 32
+_OV_OP_BASE = 24
+
+
+def _override_shell_bytes(id_block):
+    """Estimated serialized shell for one local override ID (no 0.08 discount)."""
+    if isinstance(id_block, bpy.types.Object):
+        return _OV_SHELL_OBJECT
+    if isinstance(id_block, bpy.types.Collection):
+        return _OV_SHELL_COLLECTION
+    if isinstance(id_block, bpy.types.Light):
+        return _OV_SHELL_LIGHT
+    if isinstance(id_block, bpy.types.NodeTree):
+        return _OV_SHELL_NODETREE
+    return _OV_SHELL_OTHER
+
+
+def _override_session_bytes(id_block):
+    """
+    Estimate bytes for override_library.properties / operations written to disk.
+
+    Returns (bytes, prop_count, op_count).
+    """
+    ov = getattr(id_block, "override_library", None)
+    if not ov:
+        return 0, 0, 0
+    total = _OV_HEADER
+    n_props = 0
+    n_ops = 0
+    try:
+        for prop in ov.properties:
+            n_props += 1
+            path = getattr(prop, "rna_path", None) or ""
+            total += _OV_PROP_BASE + len(path) + 1
+            try:
+                for op in prop.operations:
+                    n_ops += 1
+                    name = getattr(op, "name", None) or ""
+                    total += _OV_OP_BASE + len(name) + 1
+            except (AttributeError, RuntimeError, TypeError, ReferenceError):
+                pass
+    except (AttributeError, RuntimeError, TypeError, ReferenceError):
+        return total, n_props, n_ops
+    return total, n_props, n_ops
+
+
+def _collection_is_non_override_local(coll):
+    """True for a local collection that is not itself a library override."""
+    if coll is None or _skip_linked(coll):
+        return False
+    return not _has_override_library(coll)
+
+
+def _iter_override_hierarchy_roots():
+    """
+    Yield override Collections that sit under the scene root or a local parent.
+
+    Example: a local parent collection → an override collection root.
+    """
+    seen = set()
+    candidates = []
+
+    def _consider(coll):
+        if coll is None or not _has_override_library(coll):
+            return
+        try:
+            ptr = coll.as_pointer()
+        except (AttributeError, ReferenceError, RuntimeError):
+            return
+        if ptr in seen:
+            return
+        seen.add(ptr)
+        candidates.append(coll)
+
+    for sc in bpy.data.scenes:
+        if _skip_linked(sc):
+            continue
+        master = getattr(sc, "collection", None)
+        if master is None:
+            continue
+        try:
+            children = list(master.children)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            continue
+        for ch in children:
+            _consider(ch)
+
+    for coll in bpy.data.collections:
+        if not _collection_is_non_override_local(coll):
+            continue
+        try:
+            children = list(coll.children)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            continue
+        for ch in children:
+            _consider(ch)
+
+    for coll in candidates:
+        yield coll
+
+
+def _gather_override_hierarchy_ids(root_coll):
+    """
+    Collect override IDs under an override collection root.
+
+    Includes nested override collections, objects in all_objects, plus
+    object.data / Geometry Nodes node_group overrides hanging off those objects.
+    """
+    by_ptr = {}
+
+    def _add(id_block):
+        if id_block is None or not _has_override_library(id_block):
+            return
+        try:
+            ptr = id_block.as_pointer()
+        except (AttributeError, ReferenceError, RuntimeError):
+            return
+        by_ptr[ptr] = id_block
+
+    def _walk_collection(coll):
+        if coll is None:
+            return
+        _add(coll)
+        try:
+            for child in coll.children:
+                _walk_collection(child)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            pass
+
+    _walk_collection(root_coll)
+
+    try:
+        objects = list(root_coll.all_objects)
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        objects = []
+
+    for ob in objects:
+        _add(ob)
+        try:
+            _add(ob.data)
+        except (AttributeError, ReferenceError, RuntimeError):
+            pass
+        try:
+            for mod in ob.modifiers:
+                if not is_geometry_nodes_modifier(mod):
+                    continue
+                ng = getattr(mod, "node_group", None)
+                _add(ng)
+        except (AttributeError, RuntimeError, ReferenceError, TypeError):
+            pass
+
+    return list(by_ptr.values())
+
+
+def _append_override_hierarchy_rows(rows):
+    """
+    Append override hierarchy accounting.
+
+    For each collection root: an OverrideHierarchy row (OVERRIDES mode) and a
+    Collection row carrying the same size (STORAGE mode). Nested override IDs
+    stay skipped in per-type loops so cost is not double-counted.
+
+    Orphan override IDs (no owning hierarchy collection) get OverrideHierarchy
+    rows only.
+    """
+    claimed = set()
+
+    for root in _iter_override_hierarchy_roots():
+        members = _gather_override_hierarchy_ids(root)
+        if not members:
+            continue
+
+        size = 0
+        n_ops = 0
+        for id_block in members:
+            try:
+                ptr = id_block.as_pointer()
+            except (AttributeError, ReferenceError, RuntimeError):
+                continue
+            claimed.add(ptr)
+            size += _override_shell_bytes(id_block)
+            sess, _np, nops = _override_session_bytes(id_block)
+            size += sess
+            n_ops += nops
+
+        size = max(64, int(size))
+        lib_name = ""
+        try:
+            ov = root.override_library
+            ref = getattr(ov, "reference", None) if ov else None
+            lib = getattr(ref, "library", None) if ref else None
+            if lib is not None:
+                lib_name = lib.name or ""
+        except (AttributeError, ReferenceError, RuntimeError):
+            lib_name = ""
+
+        # OVERRIDES mode list (excluded from STORAGE totals — Collection owns bytes)
+        rows.append(
+            {
+                "type": "OverrideHierarchy",
+                "name": root.name,
+                "embedded": 0,
+                "size_bytes": size,
+                "is_lib_override": True,
+                "kind": "override",
+                "id_name": root.name,
+                "lib_name": lib_name,
+                "override_id_count": len(members),
+                "override_op_count": n_ops,
+                "icon_type": _id_block_icon_type(root),
+                "exclude_from_storage_totals": True,
+            }
+        )
+        # STORAGE mode: cost rolls into the owning collection datablock
+        rows.append(
+            {
+                "type": "Collection",
+                "name": root.name,
+                "embedded": 0,
+                "size_bytes": size,
+                "is_lib_override": True,
+                "kind": "override",
+                "id_name": root.name,
+                "lib_name": lib_name,
+                "override_id_count": len(members),
+                "override_op_count": n_ops,
+                "icon_type": "Collection",
+            }
+        )
+
+    # Override IDs not under a scene/local-parent collection root (still on disk).
+    for attr in (
+        "objects",
+        "collections",
+        "lights",
+        "node_groups",
+        "meshes",
+        "materials",
+        "armatures",
+        "curves",
+    ):
+        coll = getattr(bpy.data, attr, None)
+        if not coll:
+            continue
+        for id_block in coll:
+            if not _has_override_library(id_block):
+                continue
+            try:
+                ptr = id_block.as_pointer()
+            except (AttributeError, ReferenceError, RuntimeError):
+                continue
+            if ptr in claimed:
+                continue
+
+            size = _override_shell_bytes(id_block)
+            sess, _np, n_ops = _override_session_bytes(id_block)
+            size = max(64, int(size + sess))
+            lib_name = ""
+            try:
+                ov = id_block.override_library
+                ref = getattr(ov, "reference", None) if ov else None
+                lib = getattr(ref, "library", None) if ref else None
+                if lib is not None:
+                    lib_name = lib.name or ""
+            except (AttributeError, ReferenceError, RuntimeError):
+                lib_name = ""
+
+            rows.append(
+                {
+                    "type": "OverrideHierarchy",
+                    "name": id_block.name,
+                    "embedded": 0,
+                    "size_bytes": size,
+                    "is_lib_override": True,
+                    "kind": "override",
+                    "id_name": id_block.name,
+                    "lib_name": lib_name,
+                    "override_id_count": 1,
+                    "override_op_count": n_ops,
+                    "icon_type": _id_block_icon_type(id_block),
+                }
+            )
 
 
 def _mesh_size_bytes(m):
@@ -1359,6 +1703,10 @@ _STORAGE_TYPE_ICONS = {
     "Object": "OBJECT_DATA",
     "Curve": "CURVE_DATA",
     "NodeTree": "NODETREE",
+    "GeometryNodeTree": "GEOMETRY_NODES",
+    "ShaderNodeTree": "NODE_MATERIAL",
+    "CompositorNodeTree": "NODE_COMPOSITING",
+    "TextureNodeTree": "NODE_TEXTURE",
     "Action": "ACTION",
     "Texture": "TEXTURE",
     "Volume": "VOLUME_DATA",
@@ -1366,14 +1714,58 @@ _STORAGE_TYPE_ICONS = {
     "Sound": "SOUND",
     "Font": "FONT_DATA",
     "Collection": "OUTLINER_COLLECTION",
+    "Light": "LIGHT",
     "GeoNodesBake": "GEOMETRY_NODES",
     "PhysicsCache": "PHYSICS",
+    "OverrideHierarchy": "LIBRARY_DATA_OVERRIDE",
 }
+
+
+def _node_tree_icon_type(nt):
+    """Map bpy.types.NodeTree.type to a storage icon key."""
+    if nt is None:
+        return "NodeTree"
+    kind = getattr(nt, "type", None) or ""
+    return {
+        "GEOMETRY": "GeometryNodeTree",
+        "SHADER": "ShaderNodeTree",
+        "COMPOSITING": "CompositorNodeTree",
+        "TEXTURE": "TextureNodeTree",
+    }.get(kind, "NodeTree")
+
+
+def _id_block_icon_type(id_block):
+    """Icon key for an ID — used by STORAGE rows and OVERRIDES hierarchies."""
+    if id_block is None:
+        return "OverrideHierarchy"
+    if isinstance(id_block, bpy.types.Collection):
+        return "Collection"
+    if isinstance(id_block, bpy.types.Object):
+        return "Object"
+    if isinstance(id_block, bpy.types.Light):
+        return "Light"
+    if isinstance(id_block, bpy.types.Mesh):
+        return "Mesh"
+    if isinstance(id_block, bpy.types.Material):
+        return "Material"
+    if isinstance(id_block, bpy.types.Armature):
+        return "Armature"
+    if isinstance(id_block, bpy.types.Curve):
+        return "Curve"
+    if isinstance(id_block, bpy.types.NodeTree):
+        return _node_tree_icon_type(id_block)
+    return "OverrideHierarchy"
 
 
 def storage_type_icon(type_name):
     """Blender UI icon for a storage row type label."""
     return _STORAGE_TYPE_ICONS.get(type_name, "BLANK1")
+
+
+def storage_row_icon(row):
+    """Icon for a report row; prefers icon_type when set (node trees / overrides)."""
+    key = row.get("icon_type") or row.get("type")
+    return storage_type_icon(key)
 
 
 def storage_packed_icon(type_name):
@@ -1396,6 +1788,9 @@ def build_report():
         return is_library_override_storage(id_block)
 
     for m in bpy.data.meshes:
+        # Override shells counted in OverrideHierarchy rows
+        if _has_override_library(m):
+            continue
         sz = _mesh_size_bytes(m)
         if sz is not None:
             io = _ov(m)
@@ -1411,6 +1806,8 @@ def build_report():
             )
 
     for img in bpy.data.images:
+        if _has_override_library(img):
+            continue
         e = _image_entry(img)
         if e is None:
             continue
@@ -1428,6 +1825,8 @@ def build_report():
         )
 
     for a in bpy.data.armatures:
+        if _has_override_library(a):
+            continue
         sz = _armature_size_bytes(a)
         if sz is not None:
             io = _ov(a)
@@ -1443,6 +1842,8 @@ def build_report():
             )
 
     for c in getattr(bpy.data, "curves", []):
+        if _has_override_library(c):
+            continue
         sz = _curve_size_bytes(c)
         if sz is not None:
             io = _ov(c)
@@ -1458,6 +1859,8 @@ def build_report():
             )
 
     for ng in bpy.data.node_groups:
+        if _has_override_library(ng):
+            continue
         sz = _node_tree_size_bytes(ng)
         if sz is not None:
             io = _ov(ng)
@@ -1469,11 +1872,12 @@ def build_report():
                     "size_bytes": sz,
                     "is_lib_override": io,
                     "kind": "override" if io else "local",
+                    "icon_type": _node_tree_icon_type(ng),
                 }
             )
 
     for mat in bpy.data.materials:
-        if _skip_linked(mat):
+        if _skip_linked(mat) or _has_override_library(mat):
             continue
         sz = _node_tree_size_bytes(mat.node_tree) if mat.use_nodes and mat.node_tree else 256
         if sz is None:
@@ -1496,6 +1900,8 @@ def build_report():
 
     if hasattr(bpy.data, "actions"):
         for act in bpy.data.actions:
+            if _has_override_library(act):
+                continue
             sz = _action_size_bytes(act)
             if sz is not None:
                 io = _ov(act)
@@ -1511,6 +1917,8 @@ def build_report():
                 )
 
     for tex in getattr(bpy.data, "textures", []):
+        if _has_override_library(tex):
+            continue
         sz = _texture_size_bytes(tex)
         if sz is not None:
             io = _ov(tex)
@@ -1526,6 +1934,8 @@ def build_report():
             )
 
     for ob in bpy.data.objects:
+        if _has_override_library(ob):
+            continue
         sz = _object_size_bytes(ob)
         if sz is not None:
             io = _ov(ob)
@@ -1541,6 +1951,8 @@ def build_report():
             )
 
     for vol in getattr(bpy.data, "volumes", []):
+        if _has_override_library(vol):
+            continue
         sz = _volume_size_bytes(vol)
         if sz is not None:
             io = _ov(vol)
@@ -1556,6 +1968,8 @@ def build_report():
             )
 
     for pc in getattr(bpy.data, "pointclouds", []):
+        if _has_override_library(pc):
+            continue
         sz = _pointcloud_size_bytes(pc)
         if sz is not None:
             io = _ov(pc)
@@ -1571,6 +1985,8 @@ def build_report():
             )
 
     for snd in getattr(bpy.data, "sounds", []):
+        if _has_override_library(snd):
+            continue
         e = _sound_entry(snd)
         if e is None:
             continue
@@ -1588,6 +2004,8 @@ def build_report():
         )
 
     for font in getattr(bpy.data, "fonts", []):
+        if _has_override_library(font):
+            continue
         e = _font_entry(font)
         if e is None:
             continue
@@ -1605,6 +2023,8 @@ def build_report():
         )
 
     for coll in bpy.data.collections:
+        if _has_override_library(coll):
+            continue
         sz = _collection_size_bytes(coll)
         if sz is not None:
             io = _ov(coll)
@@ -1621,6 +2041,7 @@ def build_report():
 
     _append_geonodes_bake_rows(rows, _ov)
     _append_physics_cache_rows(rows, _ov)
+    _append_override_hierarchy_rows(rows)
 
     rows.sort(key=lambda r: r["size_bytes"], reverse=True)
 
@@ -1628,6 +2049,9 @@ def build_report():
     total_estimated = 0
     total_emb = 0
     for r in rows:
+        # OverrideHierarchy roots mirror Collection rows — count once for STORAGE
+        if r.get("exclude_from_storage_totals"):
+            continue
         t = r["type"]
         by_type[t] = by_type.get(t, 0) + r["size_bytes"]
         total_estimated += r["size_bytes"]

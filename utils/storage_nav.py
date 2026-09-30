@@ -68,6 +68,18 @@ def resolve_targets(
                 add_objects([ob.name for ob in coll.objects])
             return targets
 
+    # Activate objects under the override hierarchy root (or orphan ID users)
+    if storage_type == "OverrideHierarchy":
+        if not id_name:
+            return targets
+        if id_name in bpy.data.collections:
+            add_objects(users.collection_viewport_objects(id_name))
+        elif id_name in bpy.data.objects:
+            add_objects([id_name])
+        elif id_name in bpy.data.node_groups:
+            add_objects(users.node_group_viewport_objects(id_name))
+        return targets
+
     if storage_type == "Mesh":
         add_objects(users.mesh_objects(id_name))
     elif storage_type == "Curve":
