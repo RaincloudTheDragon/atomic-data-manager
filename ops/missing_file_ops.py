@@ -32,6 +32,7 @@ import threading
 import queue
 from bpy.utils import register_class
 from ..utils import compat
+from ..utils import wm_progress
 from ..stats import missing
 from ..ui.utils import ui_layouts
 from .. import config
@@ -580,6 +581,7 @@ def _process_library_search_step():
         _match_images()
 
         def clear_progress():
+            # Progress already at 100 — end taskbar first, then zero the panel.
             _safe_set_atom_property(atom, 'is_operation_running', False)
             _safe_set_atom_property(atom, 'operation_progress', 0.0)
             _safe_set_atom_property(atom, 'operation_status', "")
@@ -587,7 +589,8 @@ def _process_library_search_step():
             return None
 
         if atom.is_operation_running:
-            bpy.app.timers.register(clear_progress, first_interval=1.5)
+            # Short hold at 100% so the bar can paint, then drop the taskbar.
+            bpy.app.timers.register(clear_progress, first_interval=0.35)
 
         _tag_search_ui_redraw()
         return None
@@ -997,15 +1000,54 @@ def _relink_image_batch_result(image_key, filepath):
 
 
 def _safe_set_atom_property(atom, prop_name, value):
-    """Safely set an atom property, catching errors when Blender is in read-only state."""
+    """
+    Safely set an atom property, catching errors when Blender is in read-only state.
+
+    Also mirrors ``is_operation_running`` / ``operation_progress`` onto the OS
+    taskbar (same path as Smart Select / Clean via ``utils.wm_progress``).
+    """
     if atom is None:
         return False
+
+    was_running = None
+    if prop_name == 'is_operation_running':
+        try:
+            was_running = bool(getattr(atom, 'is_operation_running', False))
+        except (AttributeError, ReferenceError):
+            was_running = False
+
     try:
         setattr(atom, prop_name, value)
-        return True
     except (AttributeError, RuntimeError) as e:
         config.debug_print(f"[Atomic Debug] Could not set {prop_name}: {e}")
         return False
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] Unexpected error setting {prop_name}: {e}")
+        return False
+
+    try:
+        if prop_name == 'is_operation_running':
+            if value and not was_running:
+                # Always arm at 0 — leftover progress is often 100 from last run.
+                wm_progress.begin()
+                wm_progress.set_progress(0.0)
+            elif not value and was_running:
+                wm_progress.end()
+        elif prop_name == 'operation_progress':
+            try:
+                if not getattr(atom, 'is_operation_running', False):
+                    return True
+            except (AttributeError, ReferenceError):
+                return True
+            try:
+                percent = float(atom.operation_progress)
+            except (AttributeError, TypeError, ValueError):
+                percent = value
+            wm_progress.set_progress(percent)
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] wm_progress sync failed: {e}")
+
+    return True
 
 
 # Atomic Data Manager Search for Missing Files Operator

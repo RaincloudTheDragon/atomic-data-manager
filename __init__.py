@@ -276,6 +276,14 @@ def _load_post_invalidate_storage(_dummy):
     invalidate_cache()
 
 
+def _load_pre_end_taskbar(_dummy):
+    # File load swaps Scene.atomic without going through our property setter,
+    # so a mid-scan open never calls wm_progress.end() and the clear-hook
+    # leaves a stuck OS bar. Kill the session before the scene is replaced.
+    from .utils import wm_progress
+    wm_progress.end()
+
+
 def register():
     register_class(ATOMIC_PG_main)
     bpy.types.Scene.atomic = bpy.props.PointerProperty(type=ATOMIC_PG_main)
@@ -286,6 +294,7 @@ def register():
     
     # Register undo handler to invalidate cache
     bpy.app.handlers.undo_pre.append(_on_undo_pre)
+    bpy.app.handlers.load_pre.append(_load_pre_end_taskbar)
     bpy.app.handlers.load_post.append(_load_post_invalidate_storage)
     
     # bootstrap Rainy's Extensions repository
@@ -299,6 +308,8 @@ def unregister():
     # Remove undo handler
     if _on_undo_pre in bpy.app.handlers.undo_pre:
         bpy.app.handlers.undo_pre.remove(_on_undo_pre)
+    if _load_pre_end_taskbar in bpy.app.handlers.load_pre:
+        bpy.app.handlers.load_pre.remove(_load_pre_end_taskbar)
     if _load_post_invalidate_storage in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_load_post_invalidate_storage)
     
