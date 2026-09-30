@@ -1,3 +1,17 @@
+## [v2.14.0] - 2026-09-30
+
+### Features
+
+- **Progress**: Smart Select / Clean / Search Missing mirror `operation_progress` on the Windows taskbar (ITaskbarList3) and use `layout.progress` in the main panel.
+- **Remap (#24)**: Search/Replace missing image datablocks (UDIM / sequences) with the same session file index as libraries.
+
+### Fixes
+
+- **Progress**: steady taskbar bar (DNS clear-hook, unpatch before clear, end on file load); Search Missing mirrors the same path.
+- **Remap**: Search Missing index lasts for the Blender executable (survives open/revert and addon reload); Missing File Detection Refresh updates the open dialog in place.
+- **Clean**: one-pass purge for namesake rig trees with renamed `.001` peers; batched unused-name filter so cache-backed Clean dialogs open instantly.
+- **Scan**: unbounded batches with hang-threshold UI yields; quieter unregister on quit after vscode reload.
+
 ## [v2.13.0] - 2026-09-28
 
 ### Features
