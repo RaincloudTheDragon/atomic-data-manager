@@ -31,8 +31,49 @@ from .. import config
 from ..stats import missing
 from .utils import ui_layouts
 
-# Module-level state for detect missing operator instance
-_detect_missing_operator_instance = None
+# Popup regions for the detect-missing props dialog. area.tag_redraw alone
+# does not refresh invoke_props_dialog — need Region.tag_refresh_ui (4.2+).
+_detect_popup_regions = set()
+
+
+def _region_still_exists(region):
+    """True if region is still a live UI region."""
+    if region is None:
+        return False
+    try:
+        with bpy.context.temp_override(region=region):
+            return True
+    except (TypeError, ReferenceError, AttributeError):
+        return False
+
+
+def _remember_detect_popup_region(context):
+    """Cache the detect-missing props-dialog region for Refresh."""
+    region = getattr(context, "region_popup", None)
+    if region is not None:
+        _detect_popup_regions.add(region)
+
+
+def _tag_detect_ui_redraw():
+    """Force the open detect-missing dialog to redraw with fresh lists."""
+    for region in list(_detect_popup_regions):
+        if not _region_still_exists(region):
+            _detect_popup_regions.discard(region)
+            continue
+        try:
+            region.tag_redraw()
+            if hasattr(region, "tag_refresh_ui"):
+                region.tag_refresh_ui()
+        except (ReferenceError, AttributeError):
+            _detect_popup_regions.discard(region)
+
+    try:
+        screen = bpy.context.screen
+        if screen is not None:
+            for area in screen.areas:
+                area.tag_redraw()
+    except (AttributeError, ReferenceError):
+        pass
 
 
 def _warp_cursor_to_area_center(context, prefer_area_type="VIEW_3D") -> None:
@@ -73,15 +114,19 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
     bl_idname = "atomic.detect_missing"
     bl_label = "Missing File Detection"
 
-    # missing file lists
-    missing_images = []
-    missing_libraries = []
-
     def draw(self, context):
         layout = self.layout
 
+        # Keep popup region so Refresh can tag_refresh_ui (not a new dialog).
+        _remember_detect_popup_region(context)
+
+        # Live query each redraw so Refresh / Relink results show without
+        # depending on a stored operator instance (that goes stale after Search).
+        missing_images = missing.images()
+        missing_libraries = missing.libraries()
+
         # missing files interface if missing files are found
-        if self.missing_images or self.missing_libraries:
+        if missing_images or missing_libraries:
 
             # header warning
             row = layout.row()
@@ -91,21 +136,21 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
             )
 
             # missing images box list
-            if self.missing_images:
+            if missing_images:
                 ui_layouts.box_list(
                     layout=layout,
                     title="Images",
-                    items=self.missing_images,
+                    items=missing_images,
                     icon="IMAGE_DATA",
                     columns=3
                 )
 
             # missing libraries box list
-            if self.missing_libraries:
+            if missing_libraries:
                 ui_layouts.box_list(
                     layout=layout,
                     title="Libraries",
-                    items=self.missing_libraries,
+                    items=missing_libraries,
                     icon="LIBRARY_DATA_DIRECT",
                     columns=3
                 )
@@ -118,14 +163,18 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
 
             row = layout.row()
             row.scale_y = 1.5
-            op_reload = row.operator("atomic.reload_missing", text="Reload", icon="FILE_REFRESH")
-            op_remove = row.operator("atomic.remove_missing", text="Remove", icon="TRASH")
-            op_search = row.operator("atomic.search_missing", text="Search", icon="VIEWZOOM")
-            op_replace = row.operator("atomic.replace_missing", text="Replace", icon="FILEBROWSER")
-            
-            # Refresh button
+            row.operator("atomic.reload_missing", text="Reload", icon="FILE_REFRESH")
+            row.operator("atomic.remove_missing", text="Remove", icon="TRASH")
+            row.operator("atomic.search_missing", text="Search", icon="VIEWZOOM")
+            row.operator("atomic.replace_missing", text="Replace", icon="FILEBROWSER")
+
+            # Refresh button — redraws this dialog in place
             row = layout.row()
-            refresh_op = row.operator("atomic.detect_missing_refresh", text="Refresh", icon="FILE_REFRESH")
+            row.operator(
+                "atomic.detect_missing_refresh",
+                text="Refresh",
+                icon="FILE_REFRESH",
+            )
 
         # missing files interface if no missing files are found
         else:
@@ -145,14 +194,9 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        global _detect_missing_operator_instance
-        
-        # Store operator instance for refresh functionality
-        _detect_missing_operator_instance = self
-        
-        # Always refresh missing file lists when invoked
-        self.missing_images = missing.images()
-        self.missing_libraries = missing.libraries()
+        # Snapshot for dialog width only; draw() re-queries live lists.
+        images = missing.images()
+        libraries = missing.libraries()
 
         wm = context.window_manager
 
@@ -160,7 +204,7 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         _warp_cursor_to_area_center(context)
 
         # invoke large dialog if there are missing files
-        if self.missing_images or self.missing_libraries:
+        if images or libraries:
             return wm.invoke_props_dialog(self, width=500)
 
         # invoke small dialog if there are no missing files
@@ -183,42 +227,23 @@ def autodetect_missing_files(dummy=None):
                 # If still in invalid context, ignore (will be handled on next user action)
                 pass
             return None  # Run once
-        
+
         bpy.app.timers.register(invoke_detect_missing, first_interval=0.1)
 
 
 # Refresh operator for missing file detection
 class ATOMIC_OT_detect_missing_refresh(bpy.types.Operator):
-    """Refresh missing file detection"""
+    """Refresh the open Missing File Detection dialog in place"""
     bl_idname = "atomic.detect_missing_refresh"
     bl_label = "Refresh Missing Files"
     bl_options = {'INTERNAL'}
-    
+
     def execute(self, context):
-        global _detect_missing_operator_instance
-        
-        # Update the stored operator instance if it exists and is valid
-        if _detect_missing_operator_instance is not None:
-            try:
-                # Check if operator instance is still valid
-                _ = _detect_missing_operator_instance.bl_idname
-                
-                # Update the missing file lists
-                _detect_missing_operator_instance.missing_images = missing.images()
-                _detect_missing_operator_instance.missing_libraries = missing.libraries()
-                
-                # Redraw all areas to refresh the dialog
-                for area in context.screen.areas:
-                    area.tag_redraw()
-                
-                self.report({'INFO'}, "Missing files list refreshed")
-                return {'FINISHED'}
-            except (ReferenceError, AttributeError, TypeError):
-                # Operator instance invalidated, clear it
-                _detect_missing_operator_instance = None
-        
-        # If no valid instance, invoke a new dialog
-        bpy.ops.atomic.detect_missing('INVOKE_DEFAULT')
+        # Never spawn a second detect_missing dialog — that was the bug after
+        # Search/Relink invalidated the stored operator instance. draw() reads
+        # live missing lists; just force the existing props dialog to redraw.
+        _tag_detect_ui_redraw()
+        self.report({'INFO'}, "Missing files list refreshed")
         return {'FINISHED'}
 
 
