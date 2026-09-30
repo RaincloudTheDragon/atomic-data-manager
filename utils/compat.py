@@ -348,8 +348,12 @@ def _orphaned_id_has_blocking_users(datablock, _memo=None):
     - The datablock itself (Blender sometimes lists self in user_map)
     - An Object's own ``.data`` (mesh/armature/etc.) — ownership, not an
       external keeper; otherwise orphan ARMATURE objects never clear
+    - Shape Keys (die with the mesh/object; not independent keepers)
+    - Scene-orphaned local Objects (peer leftovers in a dead hierarchy,
+      including renamed ``.001`` meshes that lack a linked namesake)
     - Keepers that are themselves cleanable orphaned local namesakes
       (recursive co-purge in one Smart Select)
+    - Object.data owners that are scene-orphaned locals (same tree)
     """
     if _memo is None:
         _memo = {}
@@ -376,6 +380,9 @@ def _orphaned_id_has_blocking_users(datablock, _memo=None):
         try:
             if isinstance(user, bpy.types.Scene):
                 continue
+            # Shape keys are owned by mesh/curve data — not real keepers
+            if isinstance(user, bpy.types.Key):
+                continue
             try:
                 uptr = user.as_pointer()
             except (AttributeError, ReferenceError, RuntimeError):
@@ -393,13 +400,18 @@ def _orphaned_id_has_blocking_users(datablock, _memo=None):
             ):
                 try:
                     if user.data.as_pointer() == self_ptr:
-                        # Owned by that object — only block if the object
-                        # itself is not a cleanable namesake leftover
+                        # Owned by a scene-orphaned leftover (namesake or
+                        # renamed .001 peer) — co-purged, not a keeper
+                        if is_scene_orphaned_local_object(user):
+                            continue
                         if is_cleanable_orphaned_local_namesake(user, _memo=_memo):
                             continue
-                        # Non-cleanable owner still blocks (fall through)
+                        # In-scene / collection owner still blocks
                 except (AttributeError, ReferenceError, RuntimeError):
                     pass
+            # Peer scene-orphaned locals (rig children, widgets) co-purge
+            if isinstance(user, bpy.types.Object) and is_scene_orphaned_local_object(user):
+                continue
             # Transitive namesake leftovers are co-purged — not blockers
             if is_cleanable_orphaned_local_namesake(user, _memo=_memo):
                 continue
@@ -416,13 +428,15 @@ def _orphaned_object_has_blocking_users(obj):
 
 def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
     """
-    Local ID that shares a name with a linked/override ID but is safe to purge.
+    Local ID safe to purge as a link/override leftover (or peer in that tree).
 
-    - Objects: not in any collection / scene base, and no *blocking* ID users.
-      Geometry Nodes Object Info (and similar) count as blocking. A lone Scene
-      entry in user_map does not — Blender often leaves that on link/override
-      leftovers that are already outside the hierarchy. Self-refs and the
-      object's own ``.data`` are not blockers.
+    - Objects: scene-orphaned (no collection / scene base) with no *blocking*
+      ID users. Linked/override namesakes qualify; so do renamed peers
+      (``CC_Base_Body.001``) that only hang off the same dead hierarchy —
+      otherwise the rig namesake and ``.001`` children deadlock across two
+      Smart Select/Clean passes. Geometry Nodes Object Info (and similar)
+      still count as blocking. Scene phantoms, shape Keys, peer scene-orphans,
+      and the object's own ``.data`` do not.
     - Materials: no scene-reachable user; any object users are themselves
       cleanable orphaned local namesakes (leftovers after linking/override).
     - Images / Armatures: Scene phantoms ignored; keepers that are cleanable
@@ -451,14 +465,16 @@ def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
 
     try:
         if isinstance(datablock, bpy.types.Object):
-            if not has_linked_or_override_namesake(datablock):
+            if is_library_or_override(datablock):
                 _memo[ptr] = False
                 return False
             if not is_scene_orphaned_local_object(datablock):
                 _memo[ptr] = False
                 return False
-            # Pointer-safe keepers (Object Info, parents, etc.). Name-based
-            # object_all is unsafe here: a linked namesake may be the scene hit.
+            # Pointer-safe keepers (Object Info, in-scene parents, etc.).
+            # Name-based object_all is unsafe: a linked namesake may be the
+            # scene hit. Peer scene-orphans / Keys are not blockers so
+            # namesake rigs + renamed .001 children clear in one pass.
             if _orphaned_id_has_blocking_users(datablock, _memo=_memo):
                 _memo[ptr] = False
                 return False
