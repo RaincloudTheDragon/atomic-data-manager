@@ -37,7 +37,7 @@ from ..utils.compat import (
     get_report,
     storage_packed_icon,
     storage_override_icon,
-    storage_type_icon,
+    storage_row_icon,
 )
 
 
@@ -137,6 +137,14 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             row.label(text="Local blend storage", icon='DISK_DRIVE')
 
             rep = storage_report
+            # Override hierarchies have their own stats_mode; keep STORAGE for
+            # meshes/images/bakes/etc.
+            storage_rows = [
+                r for r in rep["rows"] if r["type"] != "OverrideHierarchy"
+            ]
+            by_type = [
+                (t, n) for t, n in rep["by_type"] if t != "OverrideHierarchy"
+            ]
 
             col = box.column(align=True)
 
@@ -149,16 +157,16 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             col.separator()
             col.label(text="By datablock type (estimated total)")
 
-            for t, nbytes in rep["by_type"][:12]:
+            for t, nbytes in by_type[:12]:
                 col.label(text="  %s: %s" % (t, format_bytes(nbytes)))
 
             col.separator()
             col.label(text="Largest local datablocks (top 40)")
 
-            for r in rep["rows"][:40]:
+            for r in storage_rows[:40]:
                 split = col.split(factor=0.68)
                 left = split.row(align=True)
-                left.label(icon=storage_type_icon(r["type"]), text="")
+                left.label(icon=storage_row_icon(r), text="")
                 left.label(icon=storage_packed_icon(r["type"]), text="")
                 left.label(
                     icon=storage_override_icon(r.get("is_lib_override", False)),
@@ -177,8 +185,64 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 nav.modifier_name = r.get("modifier_name", "")
                 split.label(text=format_bytes(r["size_bytes"]))
 
-            if len(rep["rows"]) > 40:
+            if len(storage_rows) > 40:
                 col.label(text="  ...")
+
+        # library override hierarchies (blend-written shells + session RNA)
+        elif atom.stats_mode == 'OVERRIDES':
+
+            row = box.row()
+            row.label(text="Library Overrides", icon='LIBRARY_DATA_OVERRIDE')
+
+            rep = storage_report
+            ov_rows = [
+                r for r in rep["rows"] if r["type"] == "OverrideHierarchy"
+            ]
+            total_ov = sum(r["size_bytes"] for r in ov_rows)
+            total_ids = sum(r.get("override_id_count", 0) for r in ov_rows)
+            total_ops = sum(r.get("override_op_count", 0) for r in ov_rows)
+
+            col = box.column(align=True)
+            col.label(text="Estimated override DNA: " + format_bytes(total_ov))
+            col.label(
+                text="Hierarchies / IDs / ops: {0} / {1} / {2}".format(
+                    len(ov_rows), total_ids, total_ops
+                )
+            )
+
+            col.separator()
+            if not ov_rows:
+                col.label(text="No local library overrides")
+            else:
+                col.label(text="Override hierarchies")
+                for r in ov_rows[:40]:
+                    split = col.split(factor=0.68)
+                    left = split.row(align=True)
+                    left.label(icon=storage_row_icon(r), text="")
+                    label = r["name"]
+                    n_ids = r.get("override_id_count")
+                    n_ops = r.get("override_op_count")
+                    if n_ids or n_ops:
+                        label = "%s  (%s IDs, %s ops)" % (
+                            r["name"],
+                            n_ids or 0,
+                            n_ops or 0,
+                        )
+                    nav = left.operator(
+                        "atomic.storage_navigate",
+                        text=label,
+                        emboss=False,
+                    )
+                    nav.storage_type = r["type"]
+                    nav.id_name = r.get("id_name", r["name"])
+                    nav.id_ptr = r.get("id_ptr", "")
+                    nav.owner_object = r.get("owner_object", "")
+                    nav.owner_scene = r.get("owner_scene", "")
+                    nav.modifier_name = r.get("modifier_name", "")
+                    split.label(text=format_bytes(r["size_bytes"]))
+
+                if len(ov_rows) > 40:
+                    col.label(text="  ...")
 
         # collection statistics
         elif atom.stats_mode == 'COLLECTIONS':

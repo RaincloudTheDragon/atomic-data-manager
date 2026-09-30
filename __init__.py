@@ -161,6 +161,13 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
                 11
             ),
             (
+                'OVERRIDES',
+                'Overrides',
+                'Library override hierarchies written into this .blend',
+                'LIBRARY_DATA_OVERRIDE',
+                13
+            ),
+            (
                 'COLLECTIONS',
                 'Collections',
                 'Collections',
