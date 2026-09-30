@@ -28,6 +28,8 @@ attempting to reload missing project files.
 
 import bpy
 import os
+import sys
+import types
 import threading
 import queue
 from bpy.utils import register_class
@@ -159,9 +161,23 @@ _library_search_state = {
     'search_error': None
 }
 
-# Blender-process session key for the Search Missing file index.
-# Lives in bpy.app.driver_namespace so F8 / vscode addon reload does not wipe it.
-_FILE_SEARCH_INDEX_DNS = "atomic_data_manager_file_search_index"
+# Process-lifetime Search Missing file index (.blend + images).
+# NOT bpy.app.driver_namespace — that is wiped on open/revert/load_post.
+# NOT a module global — F8 / vscode addon reload re-executes this module.
+# A dedicated sys.modules entry survives both until Blender quits.
+_PROCESS_STORE_NAME = "atomic_data_manager._process_lifetime"
+_FILE_SEARCH_INDEX_ATTR = "file_search_index"
+# Legacy DNS key from b40c4df; migrate once then drop (DNS dies on file load).
+_FILE_SEARCH_INDEX_DNS_LEGACY = "atomic_data_manager_file_search_index"
+
+
+def _process_store():
+    """Return the Blender-executable singleton module used for process caches."""
+    mod = sys.modules.get(_PROCESS_STORE_NAME)
+    if mod is None:
+        mod = types.ModuleType(_PROCESS_STORE_NAME)
+        sys.modules[_PROCESS_STORE_NAME] = mod
+    return mod
 
 
 def _empty_file_search_index():
@@ -175,16 +191,18 @@ def _empty_file_search_index():
 
 def _file_search_index():
     """
-    Session file index (.blend + images) for this Blender process.
+    Session file index (.blend + images) for this Blender executable.
 
-    Survives blend switches and addon reloads; cleared on Blender quit,
+    Survives blend open/revert and addon reloads; cleared on Blender quit,
     root changes, or manual Clear Search Index / Clear Cache.
     """
-    dns = bpy.app.driver_namespace
-    idx = dns.get(_FILE_SEARCH_INDEX_DNS)
+    store = _process_store()
+    idx = getattr(store, _FILE_SEARCH_INDEX_ATTR, None)
     if not isinstance(idx, dict):
-        idx = _empty_file_search_index()
-        dns[_FILE_SEARCH_INDEX_DNS] = idx
+        # One-shot migrate from pre-fix DNS storage if still present.
+        legacy = bpy.app.driver_namespace.pop(_FILE_SEARCH_INDEX_DNS_LEGACY, None)
+        idx = legacy if isinstance(legacy, dict) else _empty_file_search_index()
+        setattr(store, _FILE_SEARCH_INDEX_ATTR, idx)
     return idx
 
 
@@ -200,7 +218,8 @@ _IMAGE_EXTENSIONS = frozenset({
 
 def clear_file_search_index():
     """Drop the session search index (manual clear / Clear Cache / root change)."""
-    bpy.app.driver_namespace[_FILE_SEARCH_INDEX_DNS] = _empty_file_search_index()
+    setattr(_process_store(), _FILE_SEARCH_INDEX_ATTR, _empty_file_search_index())
+    bpy.app.driver_namespace.pop(_FILE_SEARCH_INDEX_DNS_LEGACY, None)
     config.debug_print("[Atomic Debug] File search index cleared")
 
 
@@ -236,13 +255,14 @@ def _cached_files_for_roots(directories):
 
 
 def _store_file_search_index(directories, blends, images):
-    """Remember walk results for this Blender process session."""
+    """Remember walk results for this Blender executable session."""
     idx = {
         'roots_key': _search_roots_key(directories),
         'blends': list(blends or []),
         'images': list(images or []),
     }
-    bpy.app.driver_namespace[_FILE_SEARCH_INDEX_DNS] = idx
+    setattr(_process_store(), _FILE_SEARCH_INDEX_ATTR, idx)
+    bpy.app.driver_namespace.pop(_FILE_SEARCH_INDEX_DNS_LEGACY, None)
     config.debug_print(
         f"[Atomic Debug] File search index stored: "
         f"{len(idx['blends'])} blends, "
