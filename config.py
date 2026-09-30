@@ -51,7 +51,7 @@ pie_menu_shift = False
 
 # End the current scan batch after an ID that exceeds this (seconds) so the
 # status bar can name it — one extra timer tick per slow ID, not per item.
-SCAN_HANG_THRESHOLD_SEC = 0.5
+SCAN_HANG_THRESHOLD_SEC = 0.1
 
 
 def note_scan_hang(state, phase, name, elapsed):
