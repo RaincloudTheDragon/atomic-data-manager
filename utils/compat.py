@@ -278,14 +278,52 @@ def _bpy_data_collection_for(datablock):
     return getattr(bpy.data, attr, None)
 
 
-def has_linked_or_override_namesake(datablock):
-    """True if another ID in the same bpy.data collection shares this name and is linked/override."""
+def build_datablock_name_index(data):
+    """
+    One-pass name→IDs map and linked/override name set for a bpy.data collection.
+
+    Used by batch cleanability filters so resolve/protect checks stay O(names)
+    instead of O(collection × names) from repeated full scans.
+    """
+    by_name = {}
+    linked_names = set()
+    if data is None:
+        return by_name, linked_names
+    try:
+        for db in data:
+            try:
+                name = db.name
+            except (AttributeError, ReferenceError, RuntimeError):
+                continue
+            bucket = by_name.get(name)
+            if bucket is None:
+                by_name[name] = [db]
+            else:
+                bucket.append(db)
+            try:
+                if is_library_or_override(db):
+                    linked_names.add(name)
+            except (AttributeError, RuntimeError, ReferenceError):
+                continue
+    except (AttributeError, RuntimeError, ReferenceError, TypeError):
+        pass
+    return by_name, linked_names
+
+
+def has_linked_or_override_namesake(datablock, linked_names=None):
+    """True if another ID in the same bpy.data collection shares this name and is linked/override.
+
+    Pass ``linked_names`` from :func:`build_datablock_name_index` to avoid an
+    O(collection) scan per call (Clean dialog re-filter on large scenes).
+    """
     if datablock is None:
         return False
     try:
         name = datablock.name
     except (AttributeError, ReferenceError):
         return False
+    if linked_names is not None:
+        return name in linked_names
     data = _bpy_data_collection_for(datablock)
     if data is None:
         return False
@@ -583,29 +621,46 @@ def iter_datablocks_named(data, key):
         return
 
 
-def resolve_cleanable_datablock(data, key):
+def resolve_cleanable_datablock(data, key, by_name=None, linked_names=None):
     """
     Pick a non-protected local ID for this name (pointer-safe among namesakes).
 
     Prefer an orphaned local namesake when several unprotected locals share a name.
+
+    Optional ``by_name`` / ``linked_names`` from :func:`build_datablock_name_index`
+    avoid per-name full-collection scans (batch Clean / sanitize). With an index,
+    the expensive orphaned-namesake preference runs only when this name actually
+    collides (linked/override namesake or multiple IDs) — unique locals skip it.
     """
     if data is None:
         return None
     fallback = None
-    for db in iter_datablocks_named(data, key):
+    if by_name is not None:
+        candidates = by_name.get(key, ())
+        # Indexed path: only prefer orphans when the name is ambiguous.
+        prefer_orphan = (
+            (linked_names is not None and key in linked_names)
+            or len(candidates) > 1
+        )
+    else:
+        candidates = tuple(iter_datablocks_named(data, key))
+        # No index — keep legacy prefer-orphan behavior for every candidate.
+        prefer_orphan = True
+
+    for db in candidates:
         try:
-            if is_protected_from_clean(db):
+            if is_protected_from_clean(db, linked_names=linked_names):
                 continue
         except (AttributeError, RuntimeError, ReferenceError):
             continue
-        if is_cleanable_orphaned_local_namesake(db):
+        if prefer_orphan and is_cleanable_orphaned_local_namesake(db):
             return db
         if fallback is None:
             fallback = db
     return fallback
 
 
-def is_protected_from_clean(datablock):
+def is_protected_from_clean(datablock, linked_names=None):
     """
     True if Atomic must never flag-as-unused or delete this datablock.
 
@@ -616,6 +671,9 @@ def is_protected_from_clean(datablock):
     Exception: scene-orphaned local objects/images/armatures (and materials
     only used by them) that only collide by name with a linked/override ID
     are cleanable via pointer remove.
+
+    Optional ``linked_names`` from :func:`build_datablock_name_index` makes the
+    namesake check O(1) for batch filters.
     """
     if datablock is None:
         return True
@@ -629,7 +687,7 @@ def is_protected_from_clean(datablock):
     # linked ID reclaims the bare name (or bpy.data[name] is ambiguous),
     # unless this is an orphaned local leftover (pointer-safe purge).
     try:
-        if has_linked_or_override_namesake(datablock):
+        if has_linked_or_override_namesake(datablock, linked_names=linked_names):
             if is_cleanable_orphaned_local_namesake(datablock):
                 return False
             return True

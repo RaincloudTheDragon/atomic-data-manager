@@ -131,7 +131,11 @@ def remove_category_item(category, key):
 
 
 def filter_unused_names(category, names):
-    """Drop names that resolve to protected (linked/override/namesake) IDs."""
+    """Drop names that resolve to protected (linked/override/namesake) IDs.
+
+    Builds a one-pass name index so Clean dialog populate stays near-linear
+    instead of scanning the whole bpy.data collection per unused name.
+    """
     if not names:
         return []
     getter = CATEGORY_DATA.get(category)
@@ -140,10 +144,13 @@ def filter_unused_names(category, names):
     data = getter()
     if data is None:
         return list(names)
+    by_name, linked_names = compat.build_datablock_name_index(data)
     kept = []
     for key in names:
         try:
-            if compat.resolve_cleanable_datablock(data, key) is None:
+            if compat.resolve_cleanable_datablock(
+                data, key, by_name=by_name, linked_names=linked_names
+            ) is None:
                 continue
         except (AttributeError, RuntimeError, ReferenceError):
             continue
