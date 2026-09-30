@@ -35,6 +35,7 @@ import subprocess
 import math
 from bpy.utils import register_class
 from ..utils import compat
+from ..utils import wm_progress
 from ..stats import unused
 from ..stats import unused_parallel
 from .. import config
@@ -48,6 +49,10 @@ from ..ui.utils import ui_layouts
 def _safe_set_atom_property(atom, prop_name, value):
     """
     Safely set an atom property, catching errors when Blender is in read-only state.
+
+    Also mirrors ``is_operation_running`` / ``operation_progress`` onto the OS
+    taskbar progress bar (see ``utils.wm_progress``) so it tracks the same
+    0–100% as the Atomic panel slider.
     
     Args:
         atom: The atomic property group instance
@@ -59,9 +64,16 @@ def _safe_set_atom_property(atom, prop_name, value):
     """
     if atom is None:
         return False
+
+    was_running = None
+    if prop_name == 'is_operation_running':
+        try:
+            was_running = bool(getattr(atom, 'is_operation_running', False))
+        except (AttributeError, ReferenceError):
+            was_running = False
+
     try:
         setattr(atom, prop_name, value)
-        return True
     except (AttributeError, RuntimeError) as e:
         # Blender is in read-only state (e.g., during file loading, drawing/rendering)
         # AttributeError: Writing to ID classes in this context is not allowed
@@ -72,6 +84,35 @@ def _safe_set_atom_property(atom, prop_name, value):
         # Catch any other unexpected errors
         config.debug_print(f"[Atomic Debug] Unexpected error setting {prop_name}: {e}")
         return False
+
+    # Mirror panel progress onto the OS taskbar only while a session is open.
+    try:
+        if prop_name == 'is_operation_running':
+            if value and not was_running:
+                # Always arm at 0. Reading leftover operation_progress (often 100
+                # from the previous run) then applying 0 next would lock the
+                # monotonic watermark and skip every real update.
+                wm_progress.begin()
+                wm_progress.set_progress(0.0)
+            elif not value and was_running:
+                wm_progress.end()
+        elif prop_name == 'operation_progress':
+            # Only while running — ignores the common post-end progress=0 write
+            # that used to flash the taskbar back on.
+            try:
+                if not getattr(atom, 'is_operation_running', False):
+                    return True
+            except (AttributeError, ReferenceError):
+                return True
+            try:
+                percent = float(atom.operation_progress)
+            except (AttributeError, TypeError, ValueError):
+                percent = value
+            wm_progress.set_progress(percent)
+    except Exception as e:
+        config.debug_print(f"[Atomic Debug] wm_progress sync failed: {e}")
+
+    return True
 
 
 # Cache for unused data-blocks to avoid recalculation
@@ -176,8 +217,9 @@ def _analysis_done_status(scan_state, suffix=None, started_at=None):
 
 def _finish_scan_operation(atom, progress=100.0):
     """Hide the progress UI after a scan completes."""
-    _safe_set_atom_property(atom, 'is_operation_running', False)
+    # Progress first so the taskbar reaches 100% before WM/OS progress ends.
     _safe_set_atom_property(atom, 'operation_progress', progress)
+    _safe_set_atom_property(atom, 'is_operation_running', False)
     _safe_set_atom_property(atom, 'operation_status', "")
 
 
@@ -1433,8 +1475,8 @@ def _process_clean_execute_step():
         _clean_execute_state['safe_clean_active'] = False
 
     deleted_count = _clean_execute_state['deleted_count']
-    _safe_set_atom_property(atom, 'is_operation_running', False)
     _safe_set_atom_property(atom, 'operation_progress', 100.0)
+    _safe_set_atom_property(atom, 'is_operation_running', False)
     _safe_set_atom_property(atom, 'operation_status', f"Complete! Removed {deleted_count} unused data-blocks")
 
     # Clear state

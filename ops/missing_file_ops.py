@@ -1086,9 +1086,13 @@ class ATOMIC_OT_search_missing(bpy.types.Operator):
                 icon='TRASH',
             )
         else:
-            # Progress display
-            row = layout.row()
-            row.prop(atom, 'operation_progress', text="Progress", slider=True)
+            # Display-only loading bar (not an editable slider).
+            factor = max(0.0, min(1.0, float(atom.operation_progress) / 100.0))
+            layout.progress(
+                factor=factor,
+                type='BAR',
+                text=f"Progress {int(round(factor * 100.0))}%",
+            )
 
             if atom.operation_status:
                 row = layout.row()
