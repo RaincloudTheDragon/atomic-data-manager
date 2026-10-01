@@ -1,3 +1,9 @@
+## [v2.15.0] - 2026-10-01
+
+### Features
+
+- **Storage / Overrides**: estimate library-override hierarchy DNA (shells + session ops), roll it into the owning collection in STORAGE, and list hierarchies in a new Overrides stats category with type-specific icons (including Geometry Nodes for GN groups).
+
 ## [v2.14.0] - 2026-09-30
 
 ### Features
