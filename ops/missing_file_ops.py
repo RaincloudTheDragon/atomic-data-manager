@@ -32,6 +32,7 @@ import sys
 import types
 import threading
 import queue
+import subprocess
 from bpy.utils import register_class
 from ..utils import compat
 from ..utils import wm_progress
@@ -113,6 +114,45 @@ class ATOMIC_OT_reload_report(bpy.types.Operator):
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=800)
+
+
+# Atomic Data Manager Open Linked Library Source Operator
+class ATOMIC_OT_open_library_source(bpy.types.Operator):
+    """Open a linked .blend in a new Blender session to fix nested missing files"""
+    bl_idname = "atomic.open_library_source"
+    bl_label = "Open Source File"
+    bl_options = {'INTERNAL'}
+
+    filepath: bpy.props.StringProperty(
+        name="Library Filepath",
+        description="Absolute path to the linked .blend to open",
+        default="",
+        subtype='FILE_PATH',
+    )
+
+    def execute(self, context):
+        path = os.path.normpath(bpy.path.abspath(self.filepath)) if self.filepath else ""
+        if not path or not os.path.isfile(path):
+            self.report({'ERROR'}, "Source .blend not found on disk")
+            return {'CANCELLED'}
+
+        binary = bpy.app.binary_path
+        if not binary or not os.path.isfile(binary):
+            self.report({'ERROR'}, "Could not locate the Blender executable")
+            return {'CANCELLED'}
+
+        try:
+            # Detached process — do not wait; user edits nested deps in that session.
+            kwargs = {}
+            if sys.platform == "win32":
+                kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+            subprocess.Popen([binary, path], close_fds=True, **kwargs)
+        except OSError as e:
+            self.report({'ERROR'}, f"Failed to open source file: {e}")
+            return {'CANCELLED'}
+
+        self.report({'INFO'}, f"Opened: {os.path.basename(path)}")
+        return {'FINISHED'}
 
 
 # Atomic Data Manager Remove Missing Files Operator
@@ -2132,6 +2172,7 @@ class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
 reg_list = [
     ATOMIC_OT_reload_missing,
     ATOMIC_OT_reload_report,
+    ATOMIC_OT_open_library_source,
     ATOMIC_OT_search_missing,
     ATOMIC_OT_search_missing_path_add,
     ATOMIC_OT_search_missing_path_remove,

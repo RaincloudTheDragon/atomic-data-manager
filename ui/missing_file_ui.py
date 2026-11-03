@@ -124,9 +124,12 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         # depending on a stored operator instance (that goes stale after Search).
         missing_images = missing.images()
         missing_libraries = missing.libraries()
+        nested_libs = missing.libraries_with_nested_missing()
+        has_session_missing = bool(missing_images or missing_libraries)
+        has_nested_missing = bool(nested_libs)
 
-        # missing files interface if missing files are found
-        if missing_images or missing_libraries:
+        # Session-local missing files (relinkable in this blend)
+        if has_session_missing:
 
             # header warning
             row = layout.row()
@@ -168,16 +171,43 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
             row.operator("atomic.search_missing", text="Search", icon="VIEWZOOM")
             row.operator("atomic.replace_missing", text="Replace", icon="FILEBROWSER")
 
-            # Refresh button — redraws this dialog in place
-            row = layout.row()
-            row.operator(
-                "atomic.detect_missing_refresh",
-                text="Refresh",
-                icon="FILE_REFRESH",
-            )
+        # Linked libraries with nested missing deps — open source, do not relink here
+        if has_nested_missing:
+            if has_session_missing:
+                layout.separator()
+
+            col = layout.column(align=True)
+            row = col.row()
+            row.alert = True
+            row.label(text="Linked libraries with missing dependencies", icon='ERROR')
+            row = col.row()
+            row.enabled = False
+            row.label(text="Cannot relink from this session — edit the source file.")
+
+            box = layout.box()
+            for entry in nested_libs:
+                row = box.row(align=True)
+                count = entry.get("missing_count", 0)
+                label = entry.get("library_basename") or entry.get("library_key") or "?"
+                chain = entry.get("link_chain") or []
+                # Show parent→… only when this lib is indirect (chain longer than itself)
+                if len(chain) > 1:
+                    label = " → ".join(chain)
+                examples = entry.get("missing_examples") or []
+                tip = examples[0]["name"] if examples else ""
+                row.label(
+                    text=f"{label}  ({count} missing" + (f": {tip}" if tip else "") + ")",
+                    icon='LIBRARY_DATA_DIRECT',
+                )
+                op = row.operator(
+                    "atomic.open_library_source",
+                    text="Open",
+                    icon='FILE_BLEND',
+                )
+                op.filepath = entry.get("library_filepath") or ""
 
         # missing files interface if no missing files are found
-        else:
+        if not has_session_missing and not has_nested_missing:
             row = layout.row()
             row.label(text="No missing files were found!")
 
@@ -185,6 +215,14 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
             ui_layouts.box_list(
                 layout=layout
             )
+
+        # Refresh button — redraws this dialog in place
+        row = layout.row()
+        row.operator(
+            "atomic.detect_missing_refresh",
+            text="Refresh",
+            icon="FILE_REFRESH",
+        )
 
         row = layout.separator()  # extra space
 
@@ -197,6 +235,7 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         # Snapshot for dialog width only; draw() re-queries live lists.
         images = missing.images()
         libraries = missing.libraries()
+        nested = missing.libraries_with_nested_missing()
 
         wm = context.window_manager
 
@@ -204,7 +243,7 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         _warp_cursor_to_area_center(context)
 
         # invoke large dialog if there are missing files
-        if images or libraries:
+        if images or libraries or nested:
             return wm.invoke_props_dialog(self, width=500)
 
         # invoke small dialog if there are no missing files
@@ -218,8 +257,10 @@ def autodetect_missing_files(dummy=None):
     # loading a new Blender project
     # Use a timer to defer the operator call since load_post handlers
     # cannot directly invoke operators that modify data
-    if config.enable_missing_file_warning and \
-            (missing.images() or missing.libraries()):
+    if config.enable_missing_file_warning and (
+            missing.images()
+            or missing.libraries()
+            or missing.libraries_with_nested_missing()):
         def invoke_detect_missing():
             try:
                 bpy.ops.atomic.detect_missing('INVOKE_DEFAULT')
@@ -255,7 +296,8 @@ def register():
         register_class(item)
 
     # run missing file auto-detection after loading a Blender file
-    bpy.app.handlers.load_post.append(autodetect_missing_files)
+    if autodetect_missing_files not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(autodetect_missing_files)
 
 
 def unregister():
@@ -263,4 +305,6 @@ def unregister():
         compat.safe_unregister_class(item)
 
     # stop running missing file auto-detection after loading a Blender file
-    bpy.app.handlers.load_post.remove(autodetect_missing_files)
+    # (guarded — handler identity can be gone after hot-reload / partial unregister)
+    if autodetect_missing_files in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(autodetect_missing_files)
