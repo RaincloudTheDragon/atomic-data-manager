@@ -1,3 +1,9 @@
+## [v2.16.0] - 2026-11-03
+
+### Features
+
+- **Remap**: Missing File Detection lists linked libraries with nested missing deps (file paths + parent link chains) and Open Source File spawns a new Blender session — not session-relinkable.
+
 ## [v2.15.0] - 2026-10-01
 
 ### Features
