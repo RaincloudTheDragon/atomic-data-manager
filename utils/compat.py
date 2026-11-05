@@ -881,8 +881,147 @@ def _override_storage_signature():
     return (n_ids, n_props, n_ops)
 
 
+# When True, size helpers include ``is_linked_packed`` IDs (DNA stored in this .blend).
+_size_include_linked_packed = False
+
+
 def _skip_linked(id_block):
-    return getattr(id_block, "library", None) is not None
+    if getattr(id_block, "library", None) is None:
+        return False
+    if _size_include_linked_packed and getattr(id_block, "is_linked_packed", False):
+        return False
+    return True
+
+
+def _is_linked_packed(id_block):
+    """True when this ID is linked-and-packed into the current .blend (Blender 5+ archives)."""
+    return bool(getattr(id_block, "is_linked_packed", False))
+
+
+def _append_linked_packed_storage_rows(rows, _ov):
+    """Enumerate pack-linked IDs under Storage and Packed data totals.
+
+    These remain ``library``-linked (so normal loops skip them) but their DNA lives in this .blend via archive libraries (Essentials-style PACK imports).
+    """
+    global _size_include_linked_packed
+    _size_include_linked_packed = True
+    try:
+        specs = [
+            ("Mesh", bpy.data.meshes, _mesh_size_bytes, None),
+            ("Armature", bpy.data.armatures, _armature_size_bytes, None),
+            ("Curve", getattr(bpy.data, "curves", None), _curve_size_bytes, None),
+            ("NodeTree", bpy.data.node_groups, _node_tree_size_bytes, _node_tree_icon_type),
+            ("Action", getattr(bpy.data, "actions", None), _action_size_bytes, None),
+            ("Texture", getattr(bpy.data, "textures", None), _texture_size_bytes, None),
+            ("Object", bpy.data.objects, _object_size_bytes, None),
+            ("Volume", getattr(bpy.data, "volumes", None), _volume_size_bytes, None),
+            ("PointCloud", getattr(bpy.data, "pointclouds", None), _pointcloud_size_bytes, None),
+            ("Collection", bpy.data.collections, _collection_size_bytes, None),
+        ]
+
+        for type_name, coll, size_fn, icon_fn in specs:
+            if coll is None:
+                continue
+            for idb in coll:
+                if not _is_linked_packed(idb) or _has_override_library(idb):
+                    continue
+                sz = size_fn(idb)
+                if sz is None:
+                    continue
+                row = {
+                    "type": type_name,
+                    "name": idb.name,
+                    "embedded": int(sz),
+                    "size_bytes": int(sz),
+                    "is_lib_override": _ov(idb),
+                    "kind": "packed",
+                    "id_ptr": str(idb.as_pointer()),
+                }
+                if icon_fn is not None:
+                    row["icon_type"] = icon_fn(idb)
+                rows.append(row)
+
+        for img in bpy.data.images:
+            if not _is_linked_packed(img) or _has_override_library(img):
+                continue
+            e = _image_entry(img)
+            if e is None:
+                continue
+            _typ, name, emb, sz, kind = e
+            rows.append(
+                {
+                    "type": "Image",
+                    "name": name,
+                    "embedded": emb or int(sz),
+                    "size_bytes": sz,
+                    "is_lib_override": _ov(img),
+                    "kind": "packed",
+                    "id_ptr": str(img.as_pointer()),
+                }
+            )
+
+        for mat in bpy.data.materials:
+            if not _is_linked_packed(mat) or _has_override_library(mat):
+                continue
+            sz = (
+                _node_tree_size_bytes(mat.node_tree)
+                if mat.use_nodes and mat.node_tree
+                else 256
+            )
+            if sz is None:
+                sz = 256
+            rows.append(
+                {
+                    "type": "Material",
+                    "name": mat.name,
+                    "id_name": mat.name,
+                    "id_ptr": str(mat.as_pointer()),
+                    "embedded": int(sz),
+                    "size_bytes": int(sz),
+                    "is_lib_override": _ov(mat),
+                    "kind": "packed",
+                }
+            )
+
+        for snd in getattr(bpy.data, "sounds", []):
+            if not _is_linked_packed(snd) or _has_override_library(snd):
+                continue
+            e = _sound_entry(snd)
+            if e is None:
+                continue
+            _typ, name, emb, sz, kind = e
+            rows.append(
+                {
+                    "type": "Sound",
+                    "name": name,
+                    "embedded": emb or int(sz),
+                    "size_bytes": sz,
+                    "is_lib_override": _ov(snd),
+                    "kind": "packed",
+                    "id_ptr": str(snd.as_pointer()),
+                }
+            )
+
+        for font in getattr(bpy.data, "fonts", []):
+            if not _is_linked_packed(font) or _has_override_library(font):
+                continue
+            e = _font_entry(font)
+            if e is None:
+                continue
+            _typ, name, emb, sz, kind = e
+            rows.append(
+                {
+                    "type": "Font",
+                    "name": name,
+                    "embedded": emb or int(sz),
+                    "size_bytes": sz,
+                    "is_lib_override": _ov(font),
+                    "kind": "packed",
+                    "id_ptr": str(font.as_pointer()),
+                }
+            )
+    finally:
+        _size_include_linked_packed = False
 
 
 # Set at start of build_report(); object.data IDs whose users are overridden objects
@@ -2044,6 +2183,8 @@ def build_report():
     _append_geonodes_bake_rows(rows, _ov)
     _append_physics_cache_rows(rows, _ov)
     _append_override_hierarchy_rows(rows)
+    # Pack-linked archive IDs (Blender 5+ Essentials-style PACK): DNA in this .blend
+    _append_linked_packed_storage_rows(rows, _ov)
 
     rows.sort(key=lambda r: r["size_bytes"], reverse=True)
 

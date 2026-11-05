@@ -28,6 +28,42 @@ import os
 from ..utils import version, compat
 
 
+def _is_pack_linked_library(datablock):
+    """True for Blender 5+ archive libraries or sources that own pack-linked archives.
+
+    Pack-linked Essentials-style assets keep data in the current .blend via archive libraries. The source library filepath may still point at a missing on-disk path (Blender's own report_missing_files does too); that is not session-missing for Atomic.
+    """
+    if not isinstance(datablock, bpy.types.Library):
+        return False
+    if getattr(datablock, "is_archive", False):
+        return True
+    if getattr(datablock, "archive_parent_library", None) is not None:
+        return True
+    archives = getattr(datablock, "archive_libraries", None)
+    if archives is not None:
+        try:
+            if len(archives) > 0:
+                return True
+        except Exception:
+            pass
+    # Load-order fallback: archive child may exist before archive_libraries is populated on the parent
+    try:
+        for other in bpy.data.libraries:
+            parent = getattr(other, "archive_parent_library", None)
+            if parent is not None and parent == datablock:
+                return True
+    except Exception:
+        pass
+    # Any ID still tagged pack-linked from this library
+    try:
+        for idb in datablock.users_id:
+            if getattr(idb, "is_linked_packed", False):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def get_missing(data):
     # returns a list of keys of unpacked data-blocks with non-existent
     # filepaths
@@ -40,6 +76,10 @@ def get_missing(data):
     for datablock in data:
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(datablock):
+            continue
+
+        # Pack-linked archive libs / their parents: data lives in this .blend
+        if _is_pack_linked_library(datablock):
             continue
 
         # the absolute path to our data-block
@@ -258,7 +298,12 @@ def libraries_with_nested_missing():
             if library is None:
                 continue
             filepath = getattr(datablock, "filepath", None) or ""
-            if not filepath or _is_packed(datablock):
+            # Packed file blobs OR Blender 5+ pack-linked (archive) IDs live in this .blend
+            if (
+                not filepath
+                or _is_packed(datablock)
+                or getattr(datablock, "is_linked_packed", False)
+            ):
                 continue
 
             is_udim = False
@@ -274,6 +319,9 @@ def libraries_with_nested_missing():
 
     # Indirect .blend links: child.Library.parent is the blend that stores the link
     for child in bpy.data.libraries:
+        # Archive libs store pack-linked IDs in this file; never nested-missing
+        if _is_pack_linked_library(child):
+            continue
         parent = getattr(child, "parent", None)
         if parent is None:
             continue

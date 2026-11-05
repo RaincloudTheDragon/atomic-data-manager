@@ -108,11 +108,27 @@ def _warp_cursor_to_area_center(context, prefer_area_type="VIEW_3D") -> None:
         pass
 
 
+def _has_any_missing_files():
+    """True when session-missing or nested-missing lists are non-empty."""
+    return bool(
+        missing.images()
+        or missing.libraries()
+        or missing.libraries_with_nested_missing()
+    )
+
+
 # Atomic Data Manager Detect Missing Files Popup
 class ATOMIC_OT_detect_missing(bpy.types.Operator):
     """Detect missing files in this project"""
     bl_idname = "atomic.detect_missing"
     bl_label = "Missing File Detection"
+
+    # Autodetect on load should not open an empty "none found" dialog
+    silent_if_empty: bpy.props.BoolProperty(
+        name="Silent If Empty",
+        default=False,
+        options={'SKIP_SAVE', 'HIDDEN'},
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -253,6 +269,11 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         images = missing.images()
         libraries = missing.libraries()
         nested = missing.libraries_with_nested_missing()
+        has_missing = bool(images or libraries or nested)
+
+        # Autodetect on file load: never raise an empty confirmation dialog
+        if not has_missing and self.silent_if_empty:
+            return {'CANCELLED'}
 
         wm = context.window_manager
 
@@ -260,12 +281,11 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
         _warp_cursor_to_area_center(context)
 
         # invoke large dialog if there are missing files
-        if images or libraries or nested:
+        if has_missing:
             return wm.invoke_props_dialog(self, width=500)
 
-        # invoke small dialog if there are no missing files
-        else:
-            return wm.invoke_props_dialog(self, width=300)
+        # Manual Detect Missing: small dialog reporting none found
+        return wm.invoke_props_dialog(self, width=300)
 
 
 @persistent
@@ -274,19 +294,23 @@ def autodetect_missing_files(dummy=None):
     # loading a new Blender project
     # Use a timer to defer the operator call since load_post handlers
     # cannot directly invoke operators that modify data
-    if config.enable_missing_file_warning and (
-            missing.images()
-            or missing.libraries()
-            or missing.libraries_with_nested_missing()):
-        def invoke_detect_missing():
-            try:
-                bpy.ops.atomic.detect_missing('INVOKE_DEFAULT')
-            except RuntimeError:
-                # If still in invalid context, ignore (will be handled on next user action)
-                pass
-            return None  # Run once
+    if not config.enable_missing_file_warning:
+        return
+    if not _has_any_missing_files():
+        return
 
-        bpy.app.timers.register(invoke_detect_missing, first_interval=0.1)
+    def invoke_detect_missing():
+        # Re-check after load settles (pack-linked archive libs may not be fully wired at load_post, which previously caused an empty popup).
+        try:
+            if not _has_any_missing_files():
+                return None
+            bpy.ops.atomic.detect_missing('INVOKE_DEFAULT', silent_if_empty=True)
+        except RuntimeError:
+            # If still in invalid context, ignore (will be handled on next user action)
+            pass
+        return None  # Run once
+
+    bpy.app.timers.register(invoke_detect_missing, first_interval=0.1)
 
 
 # Refresh operator for missing file detection
@@ -297,7 +321,7 @@ class ATOMIC_OT_detect_missing_refresh(bpy.types.Operator):
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
-        # Never spawn a second detect_missing dialog — that was the bug after
+        # Never spawn a second detect_missing dialog; that was the bug after
         # Search/Relink invalidated the stored operator instance. draw() reads
         # live missing lists; just force the existing props dialog to redraw.
         _tag_detect_ui_redraw()
@@ -308,13 +332,30 @@ class ATOMIC_OT_detect_missing_refresh(bpy.types.Operator):
 reg_list = [ATOMIC_OT_detect_missing, ATOMIC_OT_detect_missing_refresh]
 
 
+def _purge_autodetect_load_post_handlers():
+    """Remove every autodetect_missing_files on load_post, including stale hot-reload copies.
+
+    ``importlib.reload`` creates a new function object, so ``handler not in load_post`` keeps appending while unregister only removes the current identity. Stale copies still fire on file load and reopen an empty missing-files dialog.
+    """
+    for handler in list(bpy.app.handlers.load_post):
+        if getattr(handler, "__name__", None) != "autodetect_missing_files":
+            continue
+        module = getattr(handler, "__module__", "") or ""
+        if "atomic_data_manager" not in module:
+            continue
+        try:
+            bpy.app.handlers.load_post.remove(handler)
+        except ValueError:
+            pass
+
+
 def register():
     for item in reg_list:
         register_class(item)
 
     # run missing file auto-detection after loading a Blender file
-    if autodetect_missing_files not in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.append(autodetect_missing_files)
+    _purge_autodetect_load_post_handlers()
+    bpy.app.handlers.load_post.append(autodetect_missing_files)
 
 
 def unregister():
@@ -322,6 +363,4 @@ def unregister():
         compat.safe_unregister_class(item)
 
     # stop running missing file auto-detection after loading a Blender file
-    # (guarded — handler identity can be gone after hot-reload / partial unregister)
-    if autodetect_missing_files in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.remove(autodetect_missing_files)
+    _purge_autodetect_load_post_handlers()
