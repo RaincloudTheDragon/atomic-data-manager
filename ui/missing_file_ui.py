@@ -138,22 +138,24 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
                      "your project!"
             )
 
-            # missing images box list
+            # missing images box list (hover = expected path, click = copy)
             if missing_images:
-                ui_layouts.box_list(
+                ui_layouts.box_list_missing_paths(
                     layout=layout,
                     title="Images",
                     items=missing_images,
+                    kind="IMAGE",
                     icon="IMAGE_DATA",
                     columns=3
                 )
 
-            # missing libraries box list
+            # missing libraries box list (hover = expected path, click = copy)
             if missing_libraries:
-                ui_layouts.box_list(
+                ui_layouts.box_list_missing_paths(
                     layout=layout,
                     title="Libraries",
                     items=missing_libraries,
+                    kind="LIBRARY",
                     icon="LIBRARY_DATA_DIRECT",
                     columns=3
                 )
@@ -195,10 +197,20 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
                     label = " → ".join(chain)
                 examples = entry.get("missing_examples") or []
                 tip = examples[0]["name"] if examples else ""
-                row.label(
+                # Prefer first nested miss path for hover/copy; fall back to the source .blend
+                copy_path = ""
+                if examples:
+                    copy_path = missing.nested_example_abspath(entry, examples[0])
+                if not copy_path:
+                    copy_path = entry.get("library_filepath") or ""
+                copy_op = row.operator(
+                    "atomic.copy_missing_path",
                     text=f"{label}  ({count} missing" + (f": {tip}" if tip else "") + ")",
                     icon='LIBRARY_DATA_DIRECT',
+                    emboss=False,
                 )
+                copy_op.filepath = copy_path
+                copy_op.item_name = tip or label
                 op = row.operator(
                     "atomic.open_library_source",
                     text="Open",

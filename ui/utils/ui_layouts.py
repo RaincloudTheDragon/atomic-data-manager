@@ -60,6 +60,36 @@ def box_list(layout, title=None, items=None, columns=2, icon=None):
         row.label(text="none")
 
 
+def box_list_missing_paths(layout, title, items, kind, icon=None, columns=3):
+    """Missing-file list: hover shows expected path; click copies it to the clipboard.
+
+    ``kind`` is ``IMAGE`` or ``LIBRARY`` (passed to ``missing.expected_abspath``).
+    """
+    from ...stats import missing as missing_stats
+
+    row = layout.row()  # extra row for additional spacing
+    row = layout.row()
+    row.label(text=title)
+
+    box = layout.box()
+    if not items:
+        row = box.row()
+        row.enabled = False
+        row.label(text="none")
+        return
+
+    flow = box.column_flow(columns=columns)
+    for item in items:
+        path = missing_stats.expected_abspath(kind, item)
+        # emboss=False keeps the look of a plain label while remaining clickable
+        kwargs = {"text": item, "emboss": False}
+        if icon is not None:
+            kwargs["icon"] = icon
+        op = flow.operator("atomic.copy_missing_path", **kwargs)
+        op.filepath = path
+        op.item_name = item
+
+
 def box_list_diverse(layout, title, items, columns=2):
     # a title label followed by a box that contains a two column list of
     # items, each of which is preceded by an icon that changes depending

@@ -372,3 +372,44 @@ def get_missing_library_info(library_key):
         'filename': filename,
         'linked_data_blocks': linked_data_blocks
     }
+
+
+def expected_abspath(kind, key):
+    """Absolute expected filepath for a missing IMAGE or LIBRARY datablock key.
+
+    Returns '' when the key is unknown or has no filepath.
+    """
+    if kind == "IMAGE":
+        info = get_missing_image_info(key)
+    elif kind == "LIBRARY":
+        info = get_missing_library_info(key)
+    else:
+        return ""
+    if not info:
+        return ""
+    filepath = info.get("filepath") or ""
+    if not filepath:
+        return ""
+    try:
+        return os.path.normpath(bpy.path.abspath(filepath))
+    except Exception:
+        return filepath
+
+
+def nested_example_abspath(entry, example):
+    """Absolute expected path for a nested-missing example, resolved vs the owning library."""
+    filepath = (example or {}).get("filepath") or ""
+    if not filepath:
+        return ""
+    lib_abs = (entry or {}).get("library_filepath") or ""
+    if lib_abs:
+        try:
+            return os.path.normpath(
+                bpy.path.abspath(filepath, start=os.path.dirname(lib_abs))
+            )
+        except Exception:
+            pass
+    try:
+        return os.path.normpath(bpy.path.abspath(filepath))
+    except Exception:
+        return filepath

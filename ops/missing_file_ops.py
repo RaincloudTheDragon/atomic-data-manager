@@ -87,17 +87,21 @@ class ATOMIC_OT_reload_report(bpy.types.Operator):
             )
 
             if missing_images:
-                ui_layouts.box_list(
+                ui_layouts.box_list_missing_paths(
                     layout=self.layout,
+                    title="Images",
                     items=missing_images,
+                    kind="IMAGE",
                     icon='IMAGE_DATA',
                     columns=4
                 )
 
             if missing_libraries:
-                ui_layouts.box_list(
+                ui_layouts.box_list_missing_paths(
                     layout=self.layout,
+                    title="Libraries",
                     items=missing_libraries,
+                    kind="LIBRARY",
                     icon='LIBRARY_DATA_DIRECT',
                     columns=4
                 )
@@ -114,6 +118,47 @@ class ATOMIC_OT_reload_report(bpy.types.Operator):
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=800)
+
+
+# Atomic Data Manager Copy Missing Path Operator
+class ATOMIC_OT_copy_missing_path(bpy.types.Operator):
+    """Copy a missing datablock's expected filepath to the clipboard"""
+    bl_idname = "atomic.copy_missing_path"
+    bl_label = "Copy Path"
+    bl_options = {'INTERNAL'}
+
+    filepath: bpy.props.StringProperty(
+        name="Filepath",
+        description="Expected filepath to copy",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+    item_name: bpy.props.StringProperty(
+        name="Item Name",
+        description="Datablock name shown in the UI",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+
+    @classmethod
+    def description(cls, context, properties):
+        # Hover shows the expected path (falls back to a short hint)
+        path = getattr(properties, "filepath", "") or ""
+        name = getattr(properties, "item_name", "") or ""
+        if path:
+            return path
+        if name:
+            return f"{name}: no filepath"
+        return "No filepath"
+
+    def execute(self, context):
+        path = self.filepath or ""
+        if not path:
+            self.report({'WARNING'}, "No filepath to copy")
+            return {'CANCELLED'}
+        context.window_manager.clipboard = path
+        self.report({'INFO'}, f"Copied path: {path}")
+        return {'FINISHED'}
 
 
 # Atomic Data Manager Open Linked Library Source Operator
@@ -2173,6 +2218,7 @@ class ATOMIC_OT_replace_missing_relink_all(bpy.types.Operator):
 reg_list = [
     ATOMIC_OT_reload_missing,
     ATOMIC_OT_reload_report,
+    ATOMIC_OT_copy_missing_path,
     ATOMIC_OT_open_library_source,
     ATOMIC_OT_search_missing,
     ATOMIC_OT_search_missing_path_add,
