@@ -1867,6 +1867,7 @@ class ATOMIC_PG_replace_path_item(bpy.types.PropertyGroup):
     )
 
 
+# Atomic Data Manager Replace Missing Files Operator
 class ATOMIC_OT_replace_missing(bpy.types.Operator):
     """Replace each missing file with a new file"""
     bl_idname = "atomic.replace_missing"
