@@ -61,9 +61,11 @@ def box_list(layout, title=None, items=None, columns=2, icon=None):
 
 
 def box_list_missing_paths(layout, title, items, kind, icon=None, columns=3):
-    """Missing-file list: hover shows expected path; click copies it to the clipboard.
+    """Missing-file list: hover/click the copy control for the expected path.
 
     ``kind`` is ``IMAGE`` or ``LIBRARY`` (passed to ``missing.expected_abspath``).
+
+    Names are drawn as labels; copy is an icon-only operator. Props-dialog accelerators (underlined letters) are assigned from operator button text — a labeled copy op would steal keys from Reload/Search/etc.
     """
     from ...stats import missing as missing_stats
 
@@ -81,11 +83,19 @@ def box_list_missing_paths(layout, title, items, kind, icon=None, columns=3):
     flow = box.column_flow(columns=columns)
     for item in items:
         path = missing_stats.expected_abspath(kind, item)
-        # emboss=False keeps the look of a plain label while remaining clickable
-        kwargs = {"text": item, "emboss": False}
+        row = flow.row(align=True)
+        # Label carries the datablock icon/name (labels are skipped by ui_menu_block_set_keyaccels)
         if icon is not None:
-            kwargs["icon"] = icon
-        op = flow.operator("atomic.copy_missing_path", **kwargs)
+            row.label(text=item, icon=icon)
+        else:
+            row.label(text=item)
+        # Empty text = no letter accelerator; tooltip still comes from the operator description
+        op = row.operator(
+            "atomic.copy_missing_path",
+            text="",
+            icon='COPYDOWN',
+            emboss=False,
+        )
         op.filepath = path
         op.item_name = item
 

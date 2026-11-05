@@ -138,7 +138,7 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
                      "your project!"
             )
 
-            # missing images box list (hover = expected path, click = copy)
+            # missing images box list (copy icon: hover = path, click = clipboard)
             if missing_images:
                 ui_layouts.box_list_missing_paths(
                     layout=layout,
@@ -203,10 +203,15 @@ class ATOMIC_OT_detect_missing(bpy.types.Operator):
                     copy_path = missing.nested_example_abspath(entry, examples[0])
                 if not copy_path:
                     copy_path = entry.get("library_filepath") or ""
-                copy_op = row.operator(
-                    "atomic.copy_missing_path",
+                # Label for the row text — avoids stealing dialog accelerators from Open/Search/etc.
+                row.label(
                     text=f"{label}  ({count} missing" + (f": {tip}" if tip else "") + ")",
                     icon='LIBRARY_DATA_DIRECT',
+                )
+                copy_op = row.operator(
+                    "atomic.copy_missing_path",
+                    text="",
+                    icon='COPYDOWN',
                     emboss=False,
                 )
                 copy_op.filepath = copy_path
