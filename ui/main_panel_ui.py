@@ -65,6 +65,7 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             atom.textures,
             atom.armatures,
             atom.actions,
+            atom.texts,
             atom.worlds
         ]
 
@@ -202,6 +203,23 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             text=""
         )
 
+        # particles buttons
+        splitcol = col.split(factor=0.8, align=True)
+
+        splitcol.prop(
+            atom,
+            "particles",
+            text="Particles",
+            icon='PARTICLES',
+            toggle=True
+        )
+
+        splitcol.operator(
+            "atomic.inspect_particles",
+            icon='VIEWZOOM',
+            text=""
+        )
+
         # right column
         col = split.column(align=True)
 
@@ -276,19 +294,19 @@ class ATOMIC_PT_main_panel(bpy.types.Panel):
             text=""
         )
 
-        # particles buttons
+        # texts buttons
         splitcol = col.split(factor=0.8, align=True)
 
         splitcol.prop(
             atom,
-            "particles",
-            text="Particles",
-            icon='PARTICLES',
+            "texts",
+            text="Texts",
+            icon='TEXT',
             toggle=True
         )
 
         splitcol.operator(
-            "atomic.inspect_particles",
+            "atomic.inspect_texts",
             icon='VIEWZOOM',
             text=""
         )

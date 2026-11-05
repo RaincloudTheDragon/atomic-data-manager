@@ -179,3 +179,12 @@ def actions(cached_list=None):
         action_keys = unused.actions_deep()
     if hasattr(bpy.data, "actions"):
         _clean_keys(bpy.data.actions, action_keys)
+
+
+def texts(cached_list=None):
+    # removes all unused texts from the project
+    if cached_list is not None:
+        text_keys = cached_list
+    else:
+        text_keys = unused.texts()
+    _clean_keys(bpy.data.texts, text_keys)

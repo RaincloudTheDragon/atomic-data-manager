@@ -906,7 +906,7 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
         if not (atom.collections or atom.images or atom.lights or
                 atom.materials or atom.node_groups or atom.objects or
                 atom.particles or atom.textures or atom.armatures or
-                atom.actions or atom.worlds):
+                atom.actions or atom.texts or atom.worlds):
 
             ui_layouts.box_list(
                 layout=layout,
@@ -1036,6 +1036,20 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
                 icon="ACTION"
             )
 
+        # display when the main panel texts property is toggled
+        if atom.texts:
+            from ..utils import compat
+            texts = sorted([
+                t.name for t in bpy.data.texts
+                if not compat.is_library_or_override(t)
+            ])
+            ui_layouts.box_list(
+                layout=layout,
+                title="Texts",
+                items=texts,
+                icon="TEXT"
+            )
+
         # display when the main panel worlds property is toggled
         if atom.worlds:
             from ..utils import compat
@@ -1095,6 +1109,9 @@ class ATOMIC_OT_nuke(bpy.types.Operator):
             if atom.actions:
                 nuke.actions()
 
+            if atom.texts:
+                nuke.texts()
+
             if atom.worlds:
                 nuke.worlds()
 
@@ -1126,6 +1143,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     unused_textures = None
     unused_armatures = None
     unused_actions = None
+    unused_texts = None
     unused_worlds = None
 
     def draw(self, context):
@@ -1139,7 +1157,7 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         if not (atom.collections or atom.images or atom.lights or
                 atom.materials or atom.node_groups or atom.objects or
                 atom.particles or atom.textures or atom.armatures or
-                atom.actions or atom.worlds):
+                atom.actions or atom.texts or atom.worlds):
 
             ui_layouts.box_list(
                 layout=layout,
@@ -1245,6 +1263,16 @@ class ATOMIC_OT_clean(bpy.types.Operator):
                 columns=4
             )
 
+        # display when the main panel texts property is toggled
+        if atom.texts:
+            ui_layouts.box_list(
+                layout=layout,
+                title="Texts",
+                items=self.unused_texts,
+                icon="TEXT",
+                columns=4
+            )
+
         # display when the main panel worlds property is toggled
         if atom.worlds:
             ui_layouts.box_list(
@@ -1294,6 +1322,9 @@ class ATOMIC_OT_clean(bpy.types.Operator):
         if atom.actions and self.unused_actions:
             total_items += len(self.unused_actions)
             categories_to_clean.append(('actions', self.unused_actions))
+        if atom.texts and self.unused_texts:
+            total_items += len(self.unused_texts)
+            categories_to_clean.append(('texts', self.unused_texts))
         if atom.worlds and self.unused_worlds:
             total_items += len(self.unused_worlds)
             categories_to_clean.append(('worlds', self.unused_worlds))
@@ -1373,6 +1404,8 @@ class ATOMIC_OT_clean(bpy.types.Operator):
             selected_categories.append('armatures')
         if atom.actions:
             selected_categories.append('actions')
+        if atom.texts:
+            selected_categories.append('texts')
         if atom.worlds:
             selected_categories.append('worlds')
         
@@ -1575,6 +1608,7 @@ def _on_smart_select_full_scan_complete(results, **kwargs):
     atom.textures = bool(results.get('textures'))
     atom.armatures = bool(results.get('armatures'))
     atom.actions = bool(results.get('actions'))
+    atom.texts = bool(results.get('texts'))
     atom.worlds = bool(results.get('worlds'))
     
     # Operation complete
@@ -2157,6 +2191,10 @@ def _populate_unused_lists(operator_instance, atom, all_unused):
         operator_instance.unused_actions = delete_utils.filter_unused_names(
             'actions', all_unused.get('actions', [])
         )
+    if atom.texts:
+        operator_instance.unused_texts = delete_utils.filter_unused_names(
+            'texts', all_unused.get('texts', [])
+        )
     if atom.worlds:
         operator_instance.unused_worlds = delete_utils.filter_unused_names(
             'worlds', all_unused.get('worlds', [])
@@ -2407,6 +2445,7 @@ class ATOMIC_OT_select_all(bpy.types.Operator):
         bpy.context.scene.atomic.textures = True
         bpy.context.scene.atomic.armatures = True
         bpy.context.scene.atomic.actions = True
+        bpy.context.scene.atomic.texts = True
         bpy.context.scene.atomic.worlds = True
         return {'FINISHED'}
 
@@ -2428,6 +2467,7 @@ class ATOMIC_OT_deselect_all(bpy.types.Operator):
         bpy.context.scene.atomic.textures = False
         bpy.context.scene.atomic.armatures = False
         bpy.context.scene.atomic.actions = False
+        bpy.context.scene.atomic.texts = False
         bpy.context.scene.atomic.worlds = False
 
         return {'FINISHED'}

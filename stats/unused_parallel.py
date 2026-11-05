@@ -49,6 +49,8 @@ def get_all_unused_parallel():
             result[category] = unused.armatures_deep()
         elif category == 'actions':
             result[category] = unused.actions_deep()
+        elif category == 'texts':
+            result[category] = unused.texts()
         elif category == 'worlds':
             config.debug_print(f"[Atomic Debug] get_all_unused_parallel: Calling unused.worlds()...")
             result[category] = unused.worlds()
@@ -250,9 +252,21 @@ def _has_any_unused_actions():
     return False
 
 
+def _has_any_unused_texts():
+    """Check if there are any unused texts (short-circuits early)."""
+    for text in bpy.data.texts:
+        if compat.is_library_or_override(text):
+            continue
+        if text.users == 0 or (text.users == 1 and
+                               text.use_fake_user and
+                               config.include_fake_users):
+            return True
+    return False
+
+
 # Category order for progress tracking
 CATEGORIES = ['collections', 'images', 'lights', 'materials', 'node_groups',
-              'objects', 'particles', 'textures', 'armatures', 'actions', 'worlds']
+              'objects', 'particles', 'textures', 'armatures', 'actions', 'texts', 'worlds']
 
 def get_unused_for_smart_select():
     """
@@ -288,6 +302,8 @@ def get_unused_for_smart_select():
             result[category] = _has_any_unused_armatures()
         elif category == 'actions':
             result[category] = _has_any_unused_actions()
+        elif category == 'texts':
+            result[category] = _has_any_unused_texts()
         elif category == 'worlds':
             result[category] = _has_any_unused_worlds()
     

@@ -699,3 +699,22 @@ def actions_shallow():
     if not hasattr(bpy.data, "actions"):
         return []
     return shallow(bpy.data.actions)
+
+
+def texts():
+    # returns a list of keys of unused texts (user-count based, like worlds)
+
+    unused = []
+
+    for text in bpy.data.texts:
+        # Skip library-linked and override datablocks
+        if compat.is_library_or_override(text):
+            continue
+
+        # if data-block has no users or if it has a fake user and ignore fake users is enabled
+        if text.users == 0 or (text.users == 1 and
+                               text.use_fake_user and
+                               config.include_fake_users):
+            unused.append(text.name)
+
+    return unused

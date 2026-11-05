@@ -45,6 +45,7 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
     textures: bpy.props.BoolProperty(default=False)
     armatures: bpy.props.BoolProperty(default=False)
     actions: bpy.props.BoolProperty(default=False)
+    texts: bpy.props.BoolProperty(default=False)
     worlds: bpy.props.BoolProperty(default=False)
 
     # inspect data-block search fields
@@ -76,6 +77,9 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
         update=inspect_ui.update_inspection)
 
     actions_field: bpy.props.StringProperty(
+        update=inspect_ui.update_inspection)
+
+    texts_field: bpy.props.StringProperty(
         update=inspect_ui.update_inspection)
 
     worlds_field: bpy.props.StringProperty(
@@ -138,6 +142,11 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
                 'ACTIONS',
                 'Actions',
                 'Actions'
+            ),
+            (
+                'TEXTS',
+                'Texts',
+                'Texts'
             )
         ],
         default='COLLECTIONS'
@@ -243,6 +252,13 @@ class ATOMIC_PG_main(bpy.types.PropertyGroup):
                 'Actions',
                 'ACTION',
                 12
+            ),
+            (
+                'TEXTS',
+                'Texts',
+                'Texts',
+                'TEXT',
+                14
             )
         ],
         default='OVERVIEW'

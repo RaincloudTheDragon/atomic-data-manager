@@ -97,3 +97,8 @@ def actions():
     # removes all local actions from the project
     if hasattr(bpy.data, "actions"):
         nuke_data(bpy.data.actions)
+
+
+def texts():
+    # removes all local texts from the project
+    nuke_data(bpy.data.texts)

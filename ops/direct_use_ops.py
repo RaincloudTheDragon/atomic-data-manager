@@ -175,6 +175,17 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             icon="ACTION"
         )
 
+        texts = sorted([
+            t.name for t in bpy.data.texts
+            if not compat.is_library_or_override(t)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            title="Texts",
+            items=texts,
+            icon="TEXT"
+        )
+
         worlds = sorted([
             w.name for w in bpy.data.worlds
             if not compat.is_library_or_override(w)
@@ -211,6 +222,7 @@ class ATOMIC_OT_nuke_all(bpy.types.Operator):
             nuke.textures()
             nuke.armatures()
             nuke.actions()
+            nuke.texts()
             nuke.worlds()
 
         return {'FINISHED'}
@@ -236,6 +248,7 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
     unused_textures = []
     unused_armatures = []
     unused_actions = []
+    unused_texts = []
     unused_worlds = []
 
     def draw(self, context):
@@ -317,6 +330,13 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
 
         ui_layouts.box_list(
             layout=layout,
+            title="Texts",
+            items=sorted(self.unused_texts),
+            icon="TEXT"
+        )
+
+        ui_layouts.box_list(
+            layout=layout,
             title="Worlds",
             items=sorted(self.unused_worlds),
             icon="WORLD"
@@ -339,6 +359,7 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
             clean.textures()
             clean.armatures()
             clean.actions()
+            clean.texts()
             clean.worlds()
 
         return {'FINISHED'}
@@ -359,6 +380,7 @@ class ATOMIC_OT_clean_all(bpy.types.Operator):
         self.unused_textures = all_unused['textures']
         self.unused_armatures = all_unused['armatures']
         self.unused_actions = all_unused.get('actions', [])
+        self.unused_texts = all_unused.get('texts', [])
         self.unused_worlds = all_unused['worlds']
 
         return wm.invoke_props_dialog(self)
@@ -717,6 +739,40 @@ class ATOMIC_OT_nuke_actions(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+# Atomic Data Manager Nuke Texts Operator
+class ATOMIC_OT_nuke_texts(bpy.types.Operator):
+    """Remove all texts from this project"""
+    bl_idname = "atomic.nuke_texts"
+    bl_label = "Nuke Texts"
+
+    def draw(self, context):
+        layout = self.layout
+        from ..utils import compat
+
+        row = layout.row()
+        row.label(text="Remove the following data-blocks?")
+
+        texts = sorted([
+            t.name for t in bpy.data.texts
+            if not compat.is_library_or_override(t)
+        ])
+        ui_layouts.box_list(
+            layout=layout,
+            items=texts,
+            icon="TEXT"
+        )
+
+        row = layout.row()  # extra space
+
+    def execute(self, context):
+        nuke.texts()
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
 # Atomic Data Manager Clean Collections Operator
 class ATOMIC_OT_clean_collections(bpy.types.Operator):
     """Remove all unused collections from this project"""
@@ -973,6 +1029,38 @@ class ATOMIC_OT_clean_worlds(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+# Atomic Data Manager Clean Texts Operator
+class ATOMIC_OT_clean_texts(bpy.types.Operator):
+    """Remove all unused texts from this project"""
+    bl_idname = "atomic.clean_texts"
+    bl_label = "Clean Texts"
+
+    unused_texts = []
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.label(text="Remove the following data-blocks?")
+
+        ui_layouts.box_list(
+            layout=layout,
+            items=self.unused_texts,
+            icon="TEXT"
+        )
+
+        row = layout.row()  # extra space
+
+    def execute(self, context):
+        clean.texts()
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        self.unused_texts = unused.texts()
+        return wm.invoke_props_dialog(self)
+
+
 reg_list = [
     ATOMIC_OT_invoke_pie_menu_ui,
 
@@ -989,6 +1077,7 @@ reg_list = [
     ATOMIC_OT_nuke_textures,
     ATOMIC_OT_nuke_armatures,
     ATOMIC_OT_nuke_actions,
+    ATOMIC_OT_nuke_texts,
     ATOMIC_OT_nuke_worlds,
 
     ATOMIC_OT_clean_collections,
@@ -998,6 +1087,7 @@ reg_list = [
     ATOMIC_OT_clean_node_groups,
     ATOMIC_OT_clean_particles,
     ATOMIC_OT_clean_textures,
+    ATOMIC_OT_clean_texts,
     ATOMIC_OT_clean_worlds
 ]
 

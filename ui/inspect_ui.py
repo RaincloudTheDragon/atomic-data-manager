@@ -907,6 +907,49 @@ class ATOMIC_OT_inspect_actions(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+# Atomic Data Manager Inspect Texts UI Operator
+class ATOMIC_OT_inspect_texts(bpy.types.Operator):
+    """Inspect Texts"""
+    bl_idname = "atomic.inspect_texts"
+    bl_label = "Inspect Texts"
+
+    def draw(self, context):
+        layout = self.layout
+
+        # inspect texts header
+        ui_layouts.inspect_header(
+            layout=layout,
+            atom_prop="texts_field",
+            data="texts"
+        )
+
+        # texts box list
+        ui_layouts.box_list(
+            layout=layout,
+            title="Texts in Project",
+            items=bpy.data.texts.keys(),
+            icon="TEXT"
+        )
+
+        row = layout.row()  # extra row for spacing
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        # update inspection context
+        atom = bpy.context.scene.atomic
+        atom.active_inspection = "TEXTS"
+
+        # trigger update on invoke
+        global inspection_update_trigger
+        inspection_update_trigger = True
+
+        # invoke inspect dialog
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
 reg_list = [
     ATOMIC_OT_inspect_collections,
     ATOMIC_OT_inspect_images,
@@ -918,6 +961,7 @@ reg_list = [
     ATOMIC_OT_inspect_textures,
     ATOMIC_OT_inspect_armatures,
     ATOMIC_OT_inspect_actions,
+    ATOMIC_OT_inspect_texts,
     ATOMIC_OT_inspect_worlds
 ]
 

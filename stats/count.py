@@ -233,3 +233,18 @@ def actions_unused():
     # returns the number of unused actions in the project
 
     return len(unused.actions_shallow())
+
+
+def texts():
+    # returns the number of texts in the project
+    count = 0
+    for text in bpy.data.texts:
+        if not compat.is_library_or_override(text):
+            count += 1
+    return count
+
+
+def texts_unused():
+    # returns the number of unused texts in the project
+
+    return len(unused.texts())

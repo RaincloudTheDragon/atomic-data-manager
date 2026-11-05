@@ -491,6 +491,27 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 text="Unnamed: {0}".format(count.worlds_unnamed())
             )
 
+        # text statistics
+        elif atom.stats_mode == 'TEXTS':
+            row = box.row()
+            row.label(text="Texts", icon='TEXT')
+
+            split = box.split()
+
+            # total count
+            col = split.column()
+
+            col.label(
+                text="Total: {0}".format(count.texts())
+            )
+
+            # unused count
+            col = split.column()
+
+            col.label(
+                text="Unused: {0}".format(count.texts_unused())
+            )
+
 reg_list = [ATOMIC_PT_stats_panel]
 
 

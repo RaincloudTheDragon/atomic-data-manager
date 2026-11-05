@@ -39,6 +39,7 @@ CATEGORY_DATA = {
     'textures': lambda: bpy.data.textures,
     'armatures': lambda: bpy.data.armatures,
     'actions': lambda: getattr(bpy.data, 'actions', None),
+    'texts': lambda: bpy.data.texts,
     'worlds': lambda: bpy.data.worlds,
 }
 
@@ -219,3 +220,8 @@ def world(key):
 def action(key):
     # removes a specific action
     delete_datablock(bpy.data.actions, key)
+
+
+def text(key):
+    # removes a specific text
+    delete_datablock(bpy.data.texts, key)

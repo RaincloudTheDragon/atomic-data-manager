@@ -141,6 +141,15 @@ class ATOMIC_OT_inspection_rename(bpy.types.Operator):
             action.name = name
             atom.actions_field = name
 
+        if inspection == 'TEXTS':
+            text = bpy.data.texts[atom.texts_field]
+            error = _check_library_or_override(text)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            text.name = name
+            atom.texts_field = name
+
         atom.rename_field = ""
         return {'FINISHED'}
 
@@ -234,6 +243,15 @@ class ATOMIC_OT_inspection_replace(bpy.types.Operator):
                 text=""
             )
 
+        if inspection == 'TEXTS':
+            row.prop_search(
+                atom,
+                "replace_field",
+                bpy.data,
+                "texts",
+                text=""
+            )
+
     def execute(self, context):
         atom = bpy.context.scene.atomic
         inspection = atom.active_inspection
@@ -318,6 +336,16 @@ class ATOMIC_OT_inspection_replace(bpy.types.Operator):
             action.user_remap(bpy.data.actions[atom.replace_field])
             atom.actions_field = atom.replace_field
 
+        if inspection == 'TEXTS' and \
+                atom.replace_field in bpy.data.texts.keys():
+            text = bpy.data.texts[atom.texts_field]
+            error = _check_library_or_override(text)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            text.user_remap(bpy.data.texts[atom.replace_field])
+            atom.texts_field = atom.replace_field
+
         atom.replace_field = ""
         return {'FINISHED'}
 
@@ -399,6 +427,14 @@ class ATOMIC_OT_inspection_toggle_fake_user(bpy.types.Operator):
                 self.report({'ERROR'}, error)
                 return {'CANCELLED'}
             action.use_fake_user = not action.use_fake_user
+
+        if inspection == 'TEXTS':
+            text = bpy.data.texts[atom.texts_field]
+            error = _check_library_or_override(text)
+            if error:
+                self.report({'ERROR'}, error)
+                return {'CANCELLED'}
+            text.use_fake_user = not text.use_fake_user
 
         return {'FINISHED'}
 
@@ -529,6 +565,19 @@ class ATOMIC_OT_inspection_duplicate(bpy.types.Operator):
                     return {'CANCELLED'}
                 copy_key = duplicate.action(key)
                 atom.actions_field = copy_key
+
+        elif inspection == 'TEXTS':
+            key = atom.texts_field
+            texts = bpy.data.texts
+
+            if key in texts.keys():
+                text = texts[key]
+                error = _check_library_or_override(text)
+                if error:
+                    self.report({'ERROR'}, error)
+                    return {'CANCELLED'}
+                copy_key = duplicate.text(key)
+                atom.texts_field = copy_key
 
         return {'FINISHED'}
 
@@ -711,6 +760,20 @@ def _process_inspect_delete_step():
                         return None
                     delete.action(key)
                     atom.actions_field = ""
+
+            elif inspection == 'TEXTS':
+                key = atom.texts_field
+                texts = bpy.data.texts
+
+                if key in texts.keys():
+                    text = texts[key]
+                    error = _check_library_or_override(text)
+                    if error:
+                        atom.is_operation_running = False
+                        atom.operation_status = ""
+                        return None
+                    delete.text(key)
+                    atom.texts_field = ""
     except:
         pass  # Handle any errors gracefully
     

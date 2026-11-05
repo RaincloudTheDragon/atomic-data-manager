@@ -80,3 +80,8 @@ def world(key):
 def action(key):
     # creates a copy of the specified action
     return duplicate_data(bpy.data.actions, key)
+
+
+def text(key):
+    # creates a copy of the specified text
+    return duplicate_data(bpy.data.texts, key)
