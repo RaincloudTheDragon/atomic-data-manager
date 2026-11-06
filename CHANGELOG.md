@@ -1,3 +1,16 @@
+## [v2.17.0] - 2026-11-05
+
+### Features
+
+- Support text datablocks (#27).
+- Missing File Detection: hover for expected path, click to copy.
+- Support pack-linked archive libraries (#25).
+
+### Fixes
+
+- Missing File Detection: bypass key accelerator via dedicated buttons next to each filename.
+- Missing File Detection: don't spawn an empty dialog when an archive library is present.
+
 ## [v2.16.0] - 2026-11-03
 
 ### Features
