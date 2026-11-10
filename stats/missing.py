@@ -178,9 +178,9 @@ def _filepath_exists(abspath, is_udim=False):
 
 
 def _library_abspath(library, _seen=None):
-    """Absolute path for a Library, resolving ``//`` via parent chain then session.
+    """Absolute path for a Library, preferring a path that exists on disk.
 
-    Indirect libs (Library.parent set) store paths relative to the parent .blend; resolving them against the current session file alone is wrong.
+    Indirect libs (Library.parent set) often store ``//`` paths relative to the parent .blend, but Blender may also keep paths that only resolve against the current session file (e.g. a nested link authored with a consumer-relative ``//``). Try parent-relative first, then session; return whichever exists so nested-missing checks do not false-positive.
     """
     if library is None:
         return ""
@@ -191,21 +191,32 @@ def _library_abspath(library, _seen=None):
     seen = _seen if _seen is not None else set()
     lib_ptr = library.as_pointer()
     if lib_ptr in seen:
-        return bpy.path.abspath(filepath)
+        try:
+            return bpy.path.abspath(filepath)
+        except Exception:
+            return filepath
     seen.add(lib_ptr)
 
+    parent_rel = ""
     parent = getattr(library, "parent", None)
     if parent is not None:
         parent_abs = _library_abspath(parent, seen)
         if parent_abs:
             try:
-                return bpy.path.abspath(filepath, start=os.path.dirname(parent_abs))
+                parent_rel = bpy.path.abspath(filepath, start=os.path.dirname(parent_abs))
             except Exception:
-                pass
+                parent_rel = ""
+
     try:
-        return bpy.path.abspath(filepath)
+        session_abs = bpy.path.abspath(filepath)
     except Exception:
-        return filepath
+        session_abs = filepath
+
+    if parent_rel and _filepath_exists(parent_rel):
+        return parent_rel
+    if session_abs and _filepath_exists(session_abs):
+        return session_abs
+    return parent_rel or session_abs
 
 
 def _resolve_vs_library(filepath, library):
@@ -327,6 +338,10 @@ def libraries_with_nested_missing():
             continue
         filepath = child.filepath or ""
         if not filepath or _is_packed(child):
+            continue
+
+        # Trust Blender when the nested lib already loaded successfully — parent-relative ``//`` resolve alone can false-positive (path only valid vs session).
+        if getattr(child, "is_missing", None) is False:
             continue
 
         abs_path = _library_abspath(child)
