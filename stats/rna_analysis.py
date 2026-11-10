@@ -38,7 +38,7 @@ from ..utils import compat
 _DATA_BLOCK_TYPE_NAMES = [
     'images', 'materials', 'objects', 'collections', 'node_groups',
     'textures', 'lights', 'armatures', 'actions', 'worlds', 'particles',
-    'meshes', 'scenes', 'fonts', 'texts',
+    'meshes', 'scenes', 'fonts',
 ]
 
 
@@ -63,7 +63,6 @@ def _get_data_block_types():
             'meshes': bpy.data.meshes,
             'scenes': bpy.data.scenes,
             'fonts': getattr(bpy.data, 'fonts', None),
-            'texts': getattr(bpy.data, 'texts', None),
         }
         return {k: v for k, v in raw.items() if v is not None}
     except Exception:
@@ -2200,7 +2199,7 @@ def step_graph_category_analysis(state, batch_size=None):
                 # Name may be scene-used via a linked/override ID while a local
                 # orphaned namesake remains purgeable (same carve-out as
                 # analyze_unused_from_graph for objects/images/armatures).
-                if category in ('objects', 'images', 'armatures', 'texts'):
+                if category in ('objects', 'images', 'armatures'):
                     try:
                         coll = _get_data_block_types().get(category)
                         cand = compat.resolve_cleanable_datablock(coll, item_name)

@@ -1369,9 +1369,9 @@ class ATOMIC_OT_clean(bpy.types.Operator):
     def invoke(self, context, event):
         atom = context.scene.atomic
         
-        # Store operator instance for dialog invocation
+        # Pending-results re-invoke owns the dialog; do not keep ``self`` across the async scan (FINISHED operators crash if dialoged later).
         global _clean_operator_instance, _clean_pending_results, _clean_pending_categories
-        _clean_operator_instance = self
+        _clean_operator_instance = None
         
         # Check if there are pending results from a completed scan
         if _clean_pending_results is not None:
@@ -1668,41 +1668,14 @@ def _on_clean_scan_complete(results, **kwargs):
     for area in bpy.context.screen.areas:
         area.tag_redraw()
     
-    # Use a timer to invoke the dialog
+    # Use a timer to invoke the dialog. Never call invoke_props_dialog on the invoke-time operator: Clean returns FINISHED before the async scan ends, so that instance is dead. Fast scans (e.g. texts-only) still look "valid" via bl_idname and then AV inside MSVCP140 when the dialog opens on it. Always re-invoke with pending results so even an empty dialog uses a live operator.
     def show_dialog():
         global _clean_operator_instance, _clean_pending_results, _clean_pending_categories
+        _clean_operator_instance = None
         try:
-            # Try to use stored operator instance first
-            operator_instance = None
-            if _clean_operator_instance is not None:
-                try:
-                    # Check if operator instance is still valid by accessing a property
-                    _ = _clean_operator_instance.bl_idname
-                    operator_instance = _clean_operator_instance
-                except (ReferenceError, AttributeError, TypeError) as e:
-                    # Operator instance invalidated
-                    _clean_operator_instance = None
-                    config.debug_print(f"[Atomic Debug] Clean: Stored operator instance invalidated: {e}")
-            
-            # If we have a valid operator instance, populate and show dialog
-            if operator_instance:
-                try:
-                    _populate_unused_lists(operator_instance, atom, scan_results)
-                    wm = bpy.context.window_manager
-                    wm.invoke_props_dialog(operator_instance, width=1000)
-                    _clean_operator_instance = None
-                except (ReferenceError, AttributeError, TypeError) as e:
-                    config.debug_print(f"[Atomic Error] Clean: Failed to populate/show dialog: {e}")
-                    # Fall through to pending results approach
-                    operator_instance = None
-            
-            # If operator instance is invalid, store results and invoke new operator
-            if not operator_instance:
-                # Store results for new operator invocation
-                _clean_pending_results = scan_results
-                _clean_pending_categories = selected_categories
-                # Invoke a new operator instance
-                bpy.ops.atomic.clean('INVOKE_DEFAULT')
+            _clean_pending_results = scan_results
+            _clean_pending_categories = selected_categories
+            bpy.ops.atomic.clean('INVOKE_DEFAULT')
         except Exception as e:
             config.debug_print(f"[Atomic Error] Clean: Failed to show dialog: {e}")
         return None  # Run once
@@ -1813,6 +1786,28 @@ def _process_unified_scan_step():
             # Initialize results dict if needed
             if _scan_state['results'] is None:
                 _scan_state['results'] = {}
+
+            # Texts: shallow + object-ref cascade via unused.texts(). Do this before the RNA graph build — Text RNA dumps have crashed Blender (MSVCP140 AV), and texts-only Clean must not pay for a full reference graph.
+            if category == 'texts':
+                unused_list = unused.texts()
+                if _scan_state['mode'] == 'quick':
+                    _scan_state['results'][category] = len(unused_list) > 0
+                else:
+                    _scan_state['results'][category] = unused_list
+                    config.debug_print(
+                        f"[Atomic Debug] Unified Scanner: unused.texts() found "
+                        f"{len(unused_list)} unused texts"
+                    )
+                _scan_state['current_category_index'] += 1
+                _scan_state['status_updated'] = False
+                _unified_scan_progress(atom, _scan_state, sub_fraction=0.0)
+                config.debug_print(
+                    f"[Atomic Debug] Unified Scanner: Finished '{category}', moved to index "
+                    f"{_scan_state['current_category_index']}/{total_categories}, "
+                    f"results: {_debug_summarize_results(_scan_state['results'])}"
+                )
+                _unified_scan_redraw()
+                return 0.01
             
             current_filepath = bpy.data.filepath
             cached_filepath = getattr(_process_unified_scan_step, '_rna_graph_filepath', None)
@@ -1989,18 +1984,6 @@ def _process_unified_scan_step():
                     _scan_state['results'][category] = unused_list
                 _scan_state['mat_analysis_state'] = None
                 _scan_state['material_session_ready'] = False
-
-            elif category == 'texts':
-                # Texts are not on the RNA used-set path: Rigify-style object ID props keep them "used" in the graph, and texts were never added to _DATA_BLOCK_TYPE_NAMES. Use unused.texts() (shallow + object-ref cascade / orphaned namesakes) so Smart Select and Clean match.
-                unused_list = unused.texts()
-                if _scan_state['mode'] == 'quick':
-                    _scan_state['results'][category] = len(unused_list) > 0
-                else:
-                    _scan_state['results'][category] = unused_list
-                    config.debug_print(
-                        f"[Atomic Debug] Unified Scanner: unused.texts() found "
-                        f"{len(unused_list)} unused texts"
-                    )
 
             else:
                 if _scan_state['cat_analysis_state'] is None or (
