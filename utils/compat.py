@@ -506,9 +506,7 @@ def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
       and the object's own ``.data`` do not.
     - Materials: no scene-reachable user; any object users are themselves
       cleanable orphaned local namesakes (leftovers after linking/override).
-    - Images / Armatures: Scene phantoms ignored; keepers that are cleanable
-      namesakes (materials, orphan objects, etc.) are also ignored so chains
-      purge in one pass.
+    - Images / Armatures / Texts: Scene phantoms ignored; keepers that are cleanable namesakes (materials, orphan objects, etc.) are also ignored so chains purge in one pass. Texts cover Rigify ``rig_ui`` leftovers that share a name with a linked script.
 
     ``_memo`` is an optional pointer→bool cache for recursive co-namesake walks
     (avoids cycles and duplicate work within one decision).
@@ -622,6 +620,20 @@ def is_cleanable_orphaned_local_namesake(datablock, _memo=None):
                 return False
             # Same Scene-phantom / co-namesake rule as images: orphan ARMATURE
             # object leftovers that only share a name with a linked rig.
+            if _orphaned_id_has_blocking_users(datablock, _memo=_memo):
+                _memo[ptr] = False
+                return False
+            _memo[ptr] = True
+            return True
+
+        if isinstance(datablock, bpy.types.Text):
+            if is_library_or_override(datablock):
+                _memo[ptr] = False
+                return False
+            if not has_linked_or_override_namesake(datablock):
+                _memo[ptr] = False
+                return False
+            # Local Rigify script leftover sharing a name with a linked text; object ID-prop keepers that are themselves orphan cleanable do not block.
             if _orphaned_id_has_blocking_users(datablock, _memo=_memo):
                 _memo[ptr] = False
                 return False

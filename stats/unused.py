@@ -701,20 +701,74 @@ def actions_shallow():
     return shallow(bpy.data.actions)
 
 
-def texts():
-    # returns a list of keys of unused texts (user-count based, like worlds)
+def _text_only_used_by_unused_objects(text):
+    """True when every ID user of ``text`` is an unused/orphaned local Object (e.g. Rigify ``rig_ui``).
 
-    unused = []
+    Non-object keepers (other than Scene phantoms) mean the text is still in use. Returns False when there are no object users (caller should use the shallow user-count path).
+    """
+    try:
+        user_map = bpy.data.user_map(subset=[text])
+        refs = user_map.get(text) or set()
+    except (AttributeError, RuntimeError, TypeError, ReferenceError):
+        return False
+
+    object_users = []
+    for user in refs:
+        try:
+            if isinstance(user, bpy.types.Scene):
+                continue
+            if isinstance(user, bpy.types.Object):
+                if compat.is_library_or_override(user):
+                    return False
+                object_users.append(user)
+                continue
+            # Any other ID keeper blocks cascade
+            return False
+        except (AttributeError, RuntimeError, ReferenceError):
+            return False
+
+    if not object_users:
+        return False
+
+    for obj in object_users:
+        # Orphaned Rigify leftovers count as unused even when name-based object_all is ambiguous
+        if compat.is_cleanable_orphaned_local_namesake(obj):
+            continue
+        if users.object_all(obj.name):
+            return False
+    return True
+
+
+def texts():
+    # returns a list of keys of unused texts (shallow user-count + object-ref cascade)
+
+    unused_list = []
 
     for text in bpy.data.texts:
         # Skip library-linked and override datablocks
         if compat.is_library_or_override(text):
             continue
 
-        # if data-block has no users or if it has a fake user and ignore fake users is enabled
-        if text.users == 0 or (text.users == 1 and
-                               text.use_fake_user and
-                               config.include_fake_users):
-            unused.append(text.name)
+        # Local namesake leftover sharing a name with a linked text (pointer-safe purge)
+        if compat.is_cleanable_orphaned_local_namesake(text):
+            if not text.use_fake_user or config.include_fake_users:
+                if text.name not in unused_list:
+                    unused_list.append(text.name)
+            continue
 
-    return unused
+        # Shallow: no users, or only a fake user when Include Fake Users is on
+        if text.users == 0 or (
+            text.users == 1
+            and text.use_fake_user
+            and config.include_fake_users
+        ):
+            unused_list.append(text.name)
+            continue
+
+        # Deep: only referenced by unused/orphaned objects (Rigify rig_ui ID props)
+        if _text_only_used_by_unused_objects(text):
+            if not text.use_fake_user or config.include_fake_users:
+                if text.name not in unused_list:
+                    unused_list.append(text.name)
+
+    return unused_list

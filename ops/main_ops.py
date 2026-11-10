@@ -1990,6 +1990,18 @@ def _process_unified_scan_step():
                 _scan_state['mat_analysis_state'] = None
                 _scan_state['material_session_ready'] = False
 
+            elif category == 'texts':
+                # Texts are not on the RNA used-set path: Rigify-style object ID props keep them "used" in the graph, and texts were never added to _DATA_BLOCK_TYPE_NAMES. Use unused.texts() (shallow + object-ref cascade / orphaned namesakes) so Smart Select and Clean match.
+                unused_list = unused.texts()
+                if _scan_state['mode'] == 'quick':
+                    _scan_state['results'][category] = len(unused_list) > 0
+                else:
+                    _scan_state['results'][category] = unused_list
+                    config.debug_print(
+                        f"[Atomic Debug] Unified Scanner: unused.texts() found "
+                        f"{len(unused_list)} unused texts"
+                    )
+
             else:
                 if _scan_state['cat_analysis_state'] is None or (
                     _scan_state['cat_analysis_state'].get('category') != category

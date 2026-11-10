@@ -254,14 +254,8 @@ def _has_any_unused_actions():
 
 def _has_any_unused_texts():
     """Check if there are any unused texts (short-circuits early)."""
-    for text in bpy.data.texts:
-        if compat.is_library_or_override(text):
-            continue
-        if text.users == 0 or (text.users == 1 and
-                               text.use_fake_user and
-                               config.include_fake_users):
-            return True
-    return False
+    # Delegate to full unused.texts() so Rigify object-ref cascade / namesakes match Clean
+    return bool(unused.texts())
 
 
 # Category order for progress tracking
