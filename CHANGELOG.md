@@ -1,3 +1,11 @@
+## [v2.17.1] - 2026-11-10
+
+### Fixes
+
+- Clean / Smart Select: Rigify-style texts held only by orphaned objects are detected and cleaned.
+- Clean: no longer AVs on texts-only Clean after a fast scan.
+- Missing File Detection: nested library `//` paths no longer false-positive when they only resolve against the session file.
+
 ## [v2.17.0] - 2026-11-05
 
 ### Features
