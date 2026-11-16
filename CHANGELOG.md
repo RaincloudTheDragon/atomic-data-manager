@@ -1,3 +1,9 @@
+## [v2.17.2] - 2026-11-16
+
+### Fixes
+
+- Stats: split classic packed data from pack-linked archives; Storage uses one aligned status column with the PACKAGE icon.
+
 ## [v2.17.1] - 2026-11-10
 
 ### Fixes
