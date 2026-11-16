@@ -35,8 +35,7 @@ from ..utils.compat import (
     format_bytes,
     format_embedded_total,
     get_report,
-    storage_packed_icon,
-    storage_override_icon,
+    storage_status_icon,
     storage_row_icon,
 )
 
@@ -79,6 +78,14 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
             row.label(
                 text="Packed data (local IDs): "
                 + format_embedded_total(storage_report["total_embedded_packed"])
+            )
+
+            row = box.row()
+            row.label(
+                text="Pack-linked archives: "
+                + format_embedded_total(
+                    storage_report.get("total_embedded_linked_packed", 0)
+                )
             )
 
             # cateogry statistics
@@ -154,6 +161,12 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 + format_embedded_total(rep["total_embedded_packed"])
             )
 
+            row = col.row()
+            row.label(
+                text="Pack-linked archives: "
+                + format_embedded_total(rep.get("total_embedded_linked_packed", 0))
+            )
+
             col.separator()
             col.label(text="By datablock type (estimated total)")
 
@@ -167,11 +180,8 @@ class ATOMIC_PT_stats_panel(bpy.types.Panel):
                 split = col.split(factor=0.68)
                 left = split.row(align=True)
                 left.label(icon=storage_row_icon(r), text="")
-                left.label(icon=storage_packed_icon(r["type"]), text="")
-                left.label(
-                    icon=storage_override_icon(r.get("is_lib_override", False)),
-                    text="",
-                )
+                # One status column so PACKAGE and override badges share the same slot
+                left.label(icon=storage_status_icon(r), text="")
                 nav = left.operator(
                     "atomic.storage_navigate",
                     text=r["name"],

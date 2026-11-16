@@ -911,9 +911,9 @@ def _is_linked_packed(id_block):
 
 
 def _append_linked_packed_storage_rows(rows, _ov):
-    """Enumerate pack-linked IDs under Storage and Packed data totals.
+    """Enumerate pack-linked archive IDs (kind ``linked_packed``) for Storage / overview.
 
-    These remain ``library``-linked (so normal loops skip them) but their DNA lives in this .blend via archive libraries (Essentials-style PACK imports).
+    These remain ``library``-linked (so normal loops skip them) but their DNA lives in this .blend via archive libraries (Essentials-style PACK imports). Kept separate from classic ``packed`` file blobs (images/sounds/fonts / GeoNodes bakes).
     """
     global _size_include_linked_packed
     _size_include_linked_packed = True
@@ -946,7 +946,7 @@ def _append_linked_packed_storage_rows(rows, _ov):
                     "embedded": int(sz),
                     "size_bytes": int(sz),
                     "is_lib_override": _ov(idb),
-                    "kind": "packed",
+                    "kind": "linked_packed",
                     "id_ptr": str(idb.as_pointer()),
                 }
                 if icon_fn is not None:
@@ -967,7 +967,7 @@ def _append_linked_packed_storage_rows(rows, _ov):
                     "embedded": emb or int(sz),
                     "size_bytes": sz,
                     "is_lib_override": _ov(img),
-                    "kind": "packed",
+                    "kind": "linked_packed",
                     "id_ptr": str(img.as_pointer()),
                 }
             )
@@ -991,7 +991,7 @@ def _append_linked_packed_storage_rows(rows, _ov):
                     "embedded": int(sz),
                     "size_bytes": int(sz),
                     "is_lib_override": _ov(mat),
-                    "kind": "packed",
+                    "kind": "linked_packed",
                 }
             )
 
@@ -1009,7 +1009,7 @@ def _append_linked_packed_storage_rows(rows, _ov):
                     "embedded": emb or int(sz),
                     "size_bytes": sz,
                     "is_lib_override": _ov(snd),
-                    "kind": "packed",
+                    "kind": "linked_packed",
                     "id_ptr": str(snd.as_pointer()),
                 }
             )
@@ -1028,7 +1028,7 @@ def _append_linked_packed_storage_rows(rows, _ov):
                     "embedded": emb or int(sz),
                     "size_bytes": sz,
                     "is_lib_override": _ov(font),
-                    "kind": "packed",
+                    "kind": "linked_packed",
                     "id_ptr": str(font.as_pointer()),
                 }
             )
@@ -1921,14 +1921,33 @@ def storage_row_icon(row):
     return storage_type_icon(key)
 
 
-def storage_packed_icon(type_name):
-    """Packed-in-blend indicator (GeoNodes bake rows only)."""
-    return "PACKAGE" if type_name == "GeoNodesBake" else "BLANK1"
+def storage_packed_icon(row_or_type):
+    """Packed-in-blend / pack-linked indicator for a storage row (or legacy type string)."""
+    if isinstance(row_or_type, dict):
+        kind = row_or_type.get("kind")
+        type_name = row_or_type.get("type")
+    else:
+        kind = None
+        type_name = row_or_type
+    if kind in ("linked_packed", "packed") or type_name == "GeoNodesBake":
+        return "PACKAGE"
+    return "BLANK1"
 
 
 def storage_override_icon(is_lib_override):
     """Library override emblem vs empty spacer."""
     return "LIBRARY_DATA_OVERRIDE" if is_lib_override else "BLANK1"
+
+
+def storage_status_icon(row):
+    """Single badge column for packed / pack-linked / override (same slot so badges align).
+
+    Prefer PACKAGE when the row is packed or pack-linked; otherwise show the override emblem.
+    """
+    packed = storage_packed_icon(row)
+    if packed != "BLANK1":
+        return packed
+    return storage_override_icon(row.get("is_lib_override", False))
 
 
 def build_report():
@@ -2202,7 +2221,8 @@ def build_report():
 
     by_type = {}
     total_estimated = 0
-    total_emb = 0
+    total_emb_packed = 0
+    total_emb_linked_packed = 0
     for r in rows:
         # OverrideHierarchy roots mirror Collection rows — count once for STORAGE
         if r.get("exclude_from_storage_totals"):
@@ -2210,7 +2230,12 @@ def build_report():
         t = r["type"]
         by_type[t] = by_type.get(t, 0) + r["size_bytes"]
         total_estimated += r["size_bytes"]
-        total_emb += r.get("embedded", 0)
+        emb = int(r.get("embedded", 0) or 0)
+        kind = r.get("kind")
+        if kind == "linked_packed":
+            total_emb_linked_packed += emb
+        elif kind == "packed":
+            total_emb_packed += emb
 
     type_order = sorted(by_type.keys(), key=lambda t: -by_type[t])
     by_type_sizes = [(t, by_type[t]) for t in type_order]
@@ -2219,7 +2244,8 @@ def build_report():
         "rows": rows,
         "by_type": by_type_sizes,
         "total_estimated_bytes": total_estimated,
-        "total_embedded_packed": total_emb,
+        "total_embedded_packed": total_emb_packed,
+        "total_embedded_linked_packed": total_emb_linked_packed,
     }
 
 
